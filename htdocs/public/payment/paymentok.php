@@ -94,10 +94,7 @@ if (empty($paymentmethod))
 dol_syslog("***** paymentok.php is called paymentmethod=".$paymentmethod." FULLTAG=".$FULLTAG." REQUEST_URI=".$_SERVER["REQUEST_URI"], LOG_DEBUG, 0, '_payment');
 
 
-$validpaymentmethod = array();
-if (!empty($conf->paypal->enabled)) $validpaymentmethod['paypal'] = 'paypal';
-if (!empty($conf->paybox->enabled)) $validpaymentmethod['paybox'] = 'paybox';
-if (!empty($conf->stripe->enabled)) $validpaymentmethod['stripe'] = 'stripe';
+$validpaymentmethod = getValidOnlinePaymentMethods($paymentmethod);
 
 // Security check
 if (empty($validpaymentmethod)) accessforbidden('', 0, 0, 1);

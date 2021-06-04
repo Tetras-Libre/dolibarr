@@ -84,10 +84,7 @@ if (empty($paymentmethod))
 }
 
 
-$validpaymentmethod = array();
-if (!empty($conf->paypal->enabled)) $validpaymentmethod['paypal'] = 'paypal';
-if (!empty($conf->paybox->enabled)) $validpaymentmethod['paybox'] = 'paybox';
-if (!empty($conf->stripe->enabled)) $validpaymentmethod['stripe'] = 'stripe';
+$validpaymentmethod = getValidOnlinePaymentMethods($paymentmethod);
 
 
 // Security check
