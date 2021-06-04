@@ -133,7 +133,7 @@ function payment_supplier_prepare_head(Paiement $object)
  */
 function getValidOnlinePaymentMethods($paymentmethod = '')
 {
-	global $conf, $langs;
+	global $conf, $langs, $hookmanager;
 
 	$validpaymentmethod = array();
 
@@ -152,7 +152,7 @@ function getValidOnlinePaymentMethods($paymentmethod = '')
 		$langs->load("stripe");
 		$validpaymentmethod['stripe'] = 'valid';
 	}
-	// TODO Add trigger
+	$reshook = $hookmanager->executeHooks('getValidOnlinePaymentMethods', ['paymentmethod' => $paymentmethod], $validpaymentmethod); // This hook usage is called just before output the head of tabs. Take also a look at "completeTabsHead"
 
 
 	return $validpaymentmethod;
