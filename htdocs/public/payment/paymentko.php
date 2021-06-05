@@ -39,6 +39,11 @@ if (is_numeric($entity)) define("DOLENTITY", $entity);
 require '../../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/company.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/payments.lib.php';
+include_once DOL_DOCUMENT_ROOT.'/core/class/hookmanager.class.php';
+$hookmanager = new HookManager($db);
+$hookmanager->initHooks(array('paymentko'));
+
+
 
 if (!empty($conf->paypal->enabled))
 {

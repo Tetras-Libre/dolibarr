@@ -39,6 +39,9 @@ if (is_numeric($entity)) define("DOLENTITY", $entity);
 require '../../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/company.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/payments.lib.php';
+include_once DOL_DOCUMENT_ROOT.'/core/class/hookmanager.class.php';
+$hookmanager = new HookManager($db);
+$hookmanager->initHooks(array('paymentok'));
 
 if (!empty($conf->paypal->enabled))
 {
@@ -269,6 +272,12 @@ if (!empty($conf->stripe->enabled))
 {
 	if ($paymentmethod == 'stripe') $ispaymentok = true; // We call this page only if payment is ok on payment system
 }
+
+$parameters = [
+	'paymentmethod' => $paymentmethod,
+	'validpaymentmethod' => &$validpaymentmethod
+];
+$hookmanager->executeHooks('isPaymentOk', $parameters, $ispaymentok, $action);
 
 
 // If data not provided from back url, search them into the session env
