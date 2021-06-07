@@ -378,6 +378,10 @@ if ($ispaymentok)
 				if ($paymentmethod == 'paybox') $accountid = $conf->global->PAYBOX_BANK_ACCOUNT_FOR_PAYMENTS;
 				if ($paymentmethod == 'paypal') $accountid = $conf->global->PAYPAL_BANK_ACCOUNT_FOR_PAYMENTS;
 				if ($paymentmethod == 'stripe') $accountid = $conf->global->STRIPE_BANK_ACCOUNT_FOR_PAYMENTS;
+				$parameters = [
+					'paymentmethod' => $paymentmethod,
+				];
+				$hookmanager->executeHooks('getBankAccountForPayements', $parameters, $paymentTypeId, $action);
 				if ($accountid < 0)
 				{
 					$error++;
@@ -691,6 +695,10 @@ if ($ispaymentok)
 					if ($paymentmethod == 'paybox') $bankaccountid = $conf->global->PAYBOX_BANK_ACCOUNT_FOR_PAYMENTS;
 					elseif ($paymentmethod == 'paypal') $bankaccountid = $conf->global->PAYPAL_BANK_ACCOUNT_FOR_PAYMENTS;
 					elseif ($paymentmethod == 'stripe') $bankaccountid = $conf->global->STRIPE_BANK_ACCOUNT_FOR_PAYMENTS;
+					$parameters = [
+						'paymentmethod' => $paymentmethod,
+					];
+					$hookmanager->executeHooks('getBankAccountForPayements', $parameters, $bankaccountid, $action);
 
 					if ($bankaccountid > 0)
 					{
