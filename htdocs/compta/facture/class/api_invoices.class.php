@@ -221,8 +221,9 @@ class Invoices extends DolibarrApi
 		}
 		// Add sql filters
 		if ($sqlfilters) {
-			if (!DolibarrApi::_checkFilters($sqlfilters)) {
-				throw new RestException(503, 'Error when validating parameter sqlfilters '.$sqlfilters);
+			$errormessage = '';
+			if (!DolibarrApi::_checkFilters($sqlfilters, $errormessage)) {
+				throw new RestException(503, 'Error when validating parameter sqlfilters -> '.$errormessage);
 			}
 			$regexstring = '\(([^:\'\(\)]+:[^:\'\(\)]+:[^\(\)]+)\)';
 			$sql .= " AND (".preg_replace_callback('/'.$regexstring.'/', 'DolibarrApi::_forge_criteria_callback', $sqlfilters).")";
@@ -506,7 +507,7 @@ class Invoices extends DolibarrApi
 	 *
 	 * @throws RestException 401
 	 * @throws RestException 404
-	 * @throws RestException 500
+	 * @throws RestException 500 System error
 	 */
 	public function deleteContact($id, $contactid, $type)
 	{
@@ -648,7 +649,7 @@ class Invoices extends DolibarrApi
 
 		$result = $this->invoice->delete(DolibarrApiAccess::$user);
 		if ($result < 0) {
-			throw new RestException(500);
+			throw new RestException(500, 'Error when deleting invoice');
 		}
 
 		return array(
@@ -767,7 +768,7 @@ class Invoices extends DolibarrApi
 	 * @throws RestException 304
 	 * @throws RestException 401
 	 * @throws RestException 404
-	 * @throws RestException 500
+	 * @throws RestException 500 System error
 	 *
 	 */
 	public function addContact($id, $fk_socpeople, $type_contact, $source, $notrigger = 0)
@@ -816,7 +817,7 @@ class Invoices extends DolibarrApi
 	 * @throws RestException 304
 	 * @throws RestException 401
 	 * @throws RestException 404
-	 * @throws RestException 500
+	 * @throws RestException 500 System error
 	 *
 	 */
 	public function settodraft($id, $idwarehouse = -1)
@@ -919,7 +920,7 @@ class Invoices extends DolibarrApi
 	 * @throws RestException 304
 	 * @throws RestException 401
 	 * @throws RestException 404
-	 * @throws RestException 500
+	 * @throws RestException 500 System error
 	 */
 	public function settopaid($id, $close_code = '', $close_note = '')
 	{
@@ -969,7 +970,7 @@ class Invoices extends DolibarrApi
 	 * @throws RestException 304
 	 * @throws RestException 401
 	 * @throws RestException 404
-	 * @throws RestException 500
+	 * @throws RestException 500 System error
 	 */
 	public function settounpaid($id)
 	{
@@ -1056,7 +1057,7 @@ class Invoices extends DolibarrApi
 	 * @throws RestException 304
 	 * @throws RestException 401
 	 * @throws RestException 404
-	 * @throws RestException 500
+	 * @throws RestException 500 System error
 	 */
 	public function markAsCreditAvailable($id)
 	{
@@ -1138,7 +1139,7 @@ class Invoices extends DolibarrApi
 				$sql = 'SELECT SUM(pf.amount) as total_payments';
 				$sql .= ' FROM '.MAIN_DB_PREFIX.'paiement_facture as pf, '.MAIN_DB_PREFIX.'paiement as p';
 				$sql .= ' LEFT JOIN '.MAIN_DB_PREFIX.'c_paiement as c ON p.fk_paiement = c.id';
-				$sql .= ' WHERE pf.fk_facture = '.$this->invoice->id;
+				$sql .= ' WHERE pf.fk_facture = '.((int) $this->invoice->id);
 				$sql .= ' AND pf.fk_paiement = p.rowid';
 				$sql .= ' AND p.entity IN ('.getEntity('invoice').')';
 				$resql = $this->db->query($sql);

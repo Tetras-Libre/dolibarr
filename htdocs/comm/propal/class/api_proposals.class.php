@@ -196,8 +196,9 @@ class Proposals extends DolibarrApi
 		}
 		// Add sql filters
 		if ($sqlfilters) {
-			if (!DolibarrApi::_checkFilters($sqlfilters)) {
-				throw new RestException(503, 'Error when validating parameter sqlfilters '.$sqlfilters);
+			$errormessage = '';
+			if (!DolibarrApi::_checkFilters($sqlfilters, $errormessage)) {
+				throw new RestException(503, 'Error when validating parameter sqlfilters -> '.$errormessage);
 			}
 			$regexstring = '\(([^:\'\(\)]+:[^:\'\(\)]+:[^\(\)]+)\)';
 			$sql .= " AND (".preg_replace_callback('/'.$regexstring.'/', 'DolibarrApi::_forge_criteria_callback', $sqlfilters).")";
@@ -532,7 +533,7 @@ class Proposals extends DolibarrApi
 	  *
 	  * @throws RestException 401
 	  * @throws RestException 404
-	  * @throws RestException 500
+	  * @throws RestException 500 System error
 	  */
 	public function deleteContact($id, $contactid, $type)
 	{
@@ -706,7 +707,7 @@ class Proposals extends DolibarrApi
 	 * @throws RestException 304
 	 * @throws RestException 401
 	 * @throws RestException 404
-	 * @throws RestException 500
+	 * @throws RestException 500 System error
 	 *
 	 * @return array
 	 */

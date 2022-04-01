@@ -46,6 +46,8 @@ if (!$user->admin || (empty($conf->product->enabled) && empty($conf->service->en
 
 $action = GETPOST('action', 'aZ09');
 $value = GETPOST('value', 'alpha');
+$modulepart = GETPOST('modulepart', 'aZ09');	// Used by actions_setmoduleoptions.inc.php
+
 $label = GETPOST('label', 'alpha');
 $scandir = GETPOST('scan_dir', 'alpha');
 $type = 'product';
@@ -148,25 +150,8 @@ if ($action == 'other') {
 	$value = GETPOST('activate_FillProductDescAuto', 'alpha');
 	$res = dolibarr_set_const($db, "PRODUIT_AUTOFILL_DESC", $value, 'chaine', 0, '', $conf->entity);
 
-	if ($value) {
-		$sql_test = "SELECT count(desc_fourn) as cpt FROM ".MAIN_DB_PREFIX."product_fournisseur_price WHERE 1";
-		$resql = $db->query($sql_test);
-		if (!$resql && $db->lasterrno == 'DB_ERROR_NOSUCHFIELD') { // if the field does not exist, we create it
-			$sql_new = "ALTER TABLE ".MAIN_DB_PREFIX."product_fournisseur_price ADD COLUMN desc_fourn text";
-			$resql_new = $db->query($sql_new);
-		}
-	}
-
 	$value = GETPOST('activate_useProdSupplierPackaging', 'alpha');
 	$res = dolibarr_set_const($db, "PRODUCT_USE_SUPPLIER_PACKAGING", $value, 'chaine', 0, '', $conf->entity);
-	if ($value) {
-		$sql_test = "SELECT count(packaging) as cpt FROM ".MAIN_DB_PREFIX."product_fournisseur_price WHERE 1";
-		$resql = $db->query($sql_test);
-		if (!$resql && $db->lasterrno == 'DB_ERROR_NOSUCHFIELD') { // if the field does not exist, we create it
-			$sql_new = "ALTER TABLE ".MAIN_DB_PREFIX."product_fournisseur_price ADD COLUMN packaging double(24,8) DEFAULT 1";
-			$resql_new = $db->query($sql_new);
-		}
-	}
 }
 
 if ($action == 'specimen') { // For products
@@ -346,7 +331,7 @@ foreach ($dirproduct as $dirroot) {
 					}
 					print '<td class="center">';
 					if (!$disabled) {
-						print '<a class="reposition" href="'.$_SERVER['PHP_SELF'].'?action=setcodeproduct&token='.newToken().'&value='.$file.'">';
+						print '<a class="reposition" href="'.$_SERVER['PHP_SELF'].'?action=setcodeproduct&token='.newToken().'&value='.urlencode($file).'">';
 					}
 					print img_picto($langs->trans("Disabled"), 'switch_off');
 					if (!$disabled) {
@@ -448,13 +433,13 @@ foreach ($dirmodels as $reldir) {
 								// Active
 								if (in_array($name, $def)) {
 									print '<td class="center">'."\n";
-									print '<a href="'.$_SERVER["PHP_SELF"].'?action=del&value='.$name.'">';
+									print '<a href="'.$_SERVER["PHP_SELF"].'?action=del&token='.newToken().'&value='.urlencode($name).'">';
 									print img_picto($langs->trans("Enabled"), 'switch_on');
 									print '</a>';
 									print '</td>';
 								} else {
 									print '<td class="center">'."\n";
-									print '<a href="'.$_SERVER["PHP_SELF"].'?action=set&amp;token='.newToken().'&amp;value='.$name.'&amp;scan_dir='.$module->scandir.'&amp;label='.urlencode($module->name).'">'.img_picto($langs->trans("Disabled"), 'switch_off').'</a>';
+									print '<a href="'.$_SERVER["PHP_SELF"].'?action=set&token='.newToken().'&value='.urlencode($name).'&scan_dir='.urlencode($module->scandir).'&label='.urlencode($module->name).'">'.img_picto($langs->trans("Disabled"), 'switch_off').'</a>';
 									print "</td>";
 								}
 
@@ -463,7 +448,7 @@ foreach ($dirmodels as $reldir) {
 								if ($conf->global->PRODUCT_ADDON_PDF == $name) {
 									print img_picto($langs->trans("Default"), 'on');
 								} else {
-									print '<a href="'.$_SERVER["PHP_SELF"].'?action=setdoc&amp;token='.newToken().'&amp;value='.$name.'&amp;scan_dir='.$module->scandir.'&amp;label='.urlencode($module->name).'" alt="'.$langs->trans("Default").'">'.img_picto($langs->trans("Disabled"), 'off').'</a>';
+									print '<a href="'.$_SERVER["PHP_SELF"].'?action=setdoc&token='.newToken().'&value='.urlencode($name).'&scan_dir='.urlencode($module->scandir).'&label='.urlencode($module->name).'" alt="'.$langs->trans("Default").'">'.img_picto($langs->trans("Disabled"), 'off').'</a>';
 								}
 								print '</td>';
 
@@ -762,10 +747,10 @@ if (!empty($conf->global->PRODUCT_CANVAS_ABILITY)) {
 						if ($conf->global->$const) {
 							print img_picto($langs->trans("Active"), 'tick');
 							print '</td><td class="right">';
-							print '<a href="'.$_SERVER["PHP_SELF"].'?action=set&amp;token='.newToken().'&amp;spe='.urlencode($file).'&amp;value=0">'.$langs->trans("Disable").'</a>';
+							print '<a href="'.$_SERVER["PHP_SELF"].'?action=set&token='.newToken().'&spe='.urlencode($file).'&value=0">'.$langs->trans("Disable").'</a>';
 						} else {
 							print '&nbsp;</td><td class="right">';
-							print '<a href="'.$_SERVER["PHP_SELF"].'?action=set&amp;token='.newToken().'&amp;spe='.urlencode($file).'&amp;value=1">'.$langs->trans("Activate").'</a>';
+							print '<a href="'.$_SERVER["PHP_SELF"].'?action=set&token='.newToken().'&spe='.urlencode($file).'&value=1">'.$langs->trans("Activate").'</a>';
 						}
 
 						print '</td></tr>';
