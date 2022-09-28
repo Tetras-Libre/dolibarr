@@ -51,7 +51,7 @@ class Conf
 	public $use_javascript_ajax;
 	//! To store if javascript/ajax is enabked
 	public $disable_compute;
-	//! Used to store current currency (ISO code like 'USD', 'EUR', ...)
+	//! Used to store current currency (ISO code like 'USD', 'EUR', ...). To get the currency symbol: $langs->getCurrencySymbol($this->currency)
 	public $currency;
 
 	//! Used to store current css (from theme)
@@ -165,7 +165,7 @@ class Conf
 
 	/**
 	 * Load setup values into conf object (read llx_const) for a specified entity
-	 * Note that this->db->xxx, this->file->xxx and this->multicompany have been already loaded when setValues is called.
+	 * Note that this->db->xxx, this->file->xxx and this->multicompany have been already loaded when setEntityValues is called.
 	 *
 	 * @param	DoliDB	$db			Database handler
 	 * @param	int		$entity		Entity to get
@@ -255,10 +255,12 @@ class Conf
 		);
 
 		if (!is_null($db) && is_object($db)) {
+			include_once DOL_DOCUMENT_ROOT.'/core/lib/security.lib.php';
+
 			// Define all global constants into $this->global->key=value
 			$sql = "SELECT ".$db->decrypt('name')." as name,";
 			$sql .= " ".$db->decrypt('value')." as value, entity";
-			$sql .= " FROM ".MAIN_DB_PREFIX."const";
+			$sql .= " FROM ".$db->prefix()."const";
 			$sql .= " WHERE entity IN (0,".$this->entity.")";
 			$sql .= " ORDER BY entity"; // This is to have entity 0 first, then entity 1 that overwrite.
 
@@ -278,8 +280,7 @@ class Conf
 							$value = $_ENV['DOLIBARR_'.$key];
 						}
 
-						//if (! defined("$key")) define("$key", $value);	// In some cases, the constant might be already forced (Example: SYSLOG_HANDLERS during install)
-						$this->global->$key = $value;
+						$this->global->$key = dolDecrypt($value);
 
 						if ($value && strpos($key, 'MAIN_MODULE_') === 0) {
 							$reg = array();
@@ -370,7 +371,7 @@ class Conf
 			}
 
 			// Object $mc
-			if (!defined('NOREQUIREMC') && !empty($this->multicompany->enabled)) {
+			if (!defined('NOREQUIREMC') && isModEnabled('multicompany')) {
 				global $mc;
 				$ret = @dol_include_once('/multicompany/class/actions_multicompany.class.php');
 				if ($ret) {
@@ -424,7 +425,7 @@ class Conf
 			$rootfordata = DOL_DATA_ROOT;
 			$rootforuser = DOL_DATA_ROOT;
 			// If multicompany module is enabled, we redefine the root of data
-			if (!empty($this->multicompany->enabled) && !empty($this->entity) && $this->entity > 1) {
+			if (isModEnabled('multicompany') && !empty($this->entity) && $this->entity > 1) {
 				$rootfordata .= '/'.$this->entity;
 			}
 			// Set standard temporary folder name or global override
@@ -616,15 +617,15 @@ class Conf
 			if (!empty($this->productbatch->enabled)) {
 				$this->global->STOCK_CALCULATE_ON_BILL = 0;
 				$this->global->STOCK_CALCULATE_ON_VALIDATE_ORDER = 0;
-				$this->global->STOCK_CALCULATE_ON_SHIPMENT = 1;
-				$this->global->STOCK_CALCULATE_ON_SHIPMENT_CLOSE = 0;
+				if (empty($this->global->STOCK_CALCULATE_ON_SHIPMENT_CLOSE)) $this->global->STOCK_CALCULATE_ON_SHIPMENT = 1;
+				if (empty($this->global->STOCK_CALCULATE_ON_SHIPMENT)) $this->global->STOCK_CALCULATE_ON_SHIPMENT_CLOSE = 1;
 				$this->global->STOCK_CALCULATE_ON_SUPPLIER_BILL = 0;
 				$this->global->STOCK_CALCULATE_ON_SUPPLIER_VALIDATE_ORDER = 0;
 				if (empty($this->reception->enabled)) {
 					$this->global->STOCK_CALCULATE_ON_SUPPLIER_DISPATCH_ORDER = 1;
 				} else {
-					$this->global->STOCK_CALCULATE_ON_RECEPTION = 1;
-					$this->global->STOCK_CALCULATE_ON_RECEPTION_CLOSE = 0;
+					if (empty($this->global->STOCK_CALCULATE_ON_RECEPTION_CLOSE)) $this->global->STOCK_CALCULATE_ON_RECEPTION = 1;
+					if (empty($this->global->STOCK_CALCULATE_ON_RECEPTION)) $this->global->STOCK_CALCULATE_ON_RECEPTION_CLOSE = 1;
 				}
 			}
 
@@ -746,8 +747,8 @@ class Conf
 				$this->global->PDF_ALLOW_HTML_FOR_FREE_TEXT = 1; // allow html content into free footer text
 			}
 
-			// Default max file size for upload
-			$this->maxfilesize = (empty($this->global->MAIN_UPLOAD_DOC) ? 0 : (int) $this->global->MAIN_UPLOAD_DOC * 1024);
+			// Default max file size for upload (deprecated)
+			//$this->maxfilesize = (empty($this->global->MAIN_UPLOAD_DOC) ? 0 : (int) $this->global->MAIN_UPLOAD_DOC * 1024);
 
 			// By default, we propagate contacts
 			if (!isset($this->global->MAIN_PROPAGATE_CONTACTS_FROM_ORIGIN)) {
@@ -772,6 +773,11 @@ class Conf
 			// By default, we show state code in combo list
 			if (!isset($this->global->MULTICURRENCY_USE_ORIGIN_TX)) {
 				$this->global->MULTICURRENCY_USE_ORIGIN_TX = 1;
+			}
+
+			// By default, use an enclosure " for field with CRL or LF into content, + we also remove also CRL/LF chars.
+			if (!isset($this->global->USE_STRICT_CSV_RULES)) {
+				$this->global->USE_STRICT_CSV_RULES = 2;
 			}
 
 			// Use a SCA ready workflow with Stripe module (STRIPE_USE_INTENT_WITH_AUTOMATIC_CONFIRMATION by default if nothing defined)
@@ -910,7 +916,7 @@ class Conf
 				// Value 1 makes CSRF check for all POST parameters only
 				// Value 2 makes also CSRF check for GET requests with action = a sensitive requests like action=del, action=remove...
 				// Value 3 makes also CSRF check for all GET requests with a param action or massaction
-				$this->global->MAIN_SECURITY_CSRF_WITH_TOKEN = 1;
+				$this->global->MAIN_SECURITY_CSRF_WITH_TOKEN = 2;
 				// Note: Set MAIN_SECURITY_CSRF_TOKEN_RENEWAL_ON_EACH_CALL=1 to have a renewal of token at each page call instead of each session (not recommended)
 			}
 
@@ -981,7 +987,7 @@ class Conf
 			}
 
 			// Object $mc
-			if (!defined('NOREQUIREMC') && !empty($this->multicompany->enabled)) {
+			if (!defined('NOREQUIREMC') && isModEnabled('multicompany')) {
 				if (is_object($mc)) {
 					$mc->setValues($this);
 				}
@@ -1013,7 +1019,9 @@ class Conf
 					}
 
 					if (empty($handler_file_found)) {
-						throw new Exception('Missing log handler file '.$handler.'.php');
+						// If log handler has been removed of is badly setup, we must be able to continue code.
+						//throw new Exception('Missing log handler file '.$handler.'.php');
+						continue;
 					}
 
 					require_once $handler_file_found;
@@ -1033,11 +1041,14 @@ class Conf
 		if (!empty($this->file->mailing_limit_sendbyweb)) {
 			$this->global->MAILING_LIMIT_SENDBYWEB = $this->file->mailing_limit_sendbyweb;
 		}
-		if (empty($this->global->MAILING_LIMIT_SENDBYWEB)) {
+		if (empty($this->global->MAILING_LIMIT_SENDBYWEB)) {	// Limit by web can't be 0
 			$this->global->MAILING_LIMIT_SENDBYWEB = 25;
 		}
 		if (!empty($this->file->mailing_limit_sendbycli)) {
 			$this->global->MAILING_LIMIT_SENDBYCLI = $this->file->mailing_limit_sendbycli;
+		}
+		if (!empty($this->file->mailing_limit_sendbyday)) {
+			$this->global->MAILING_LIMIT_SENDBYDAY = $this->file->mailing_limit_sendbyday;
 		}
 
 		return 0;

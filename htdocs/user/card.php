@@ -35,6 +35,7 @@
  *       \brief      Tab of user card
  */
 
+// Load Dolibarr environment
 require '../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/user/class/user.class.php';
 require_once DOL_DOCUMENT_ROOT.'/user/class/usergroup.class.php';
@@ -51,13 +52,13 @@ require_once DOL_DOCUMENT_ROOT.'/core/lib/security2.lib.php';
 if (!empty($conf->ldap->enabled)) {
 	require_once DOL_DOCUMENT_ROOT.'/core/class/ldap.class.php';
 }
-if (!empty($conf->adherent->enabled)) {
+if (isModEnabled('adherent')) {
 	require_once DOL_DOCUMENT_ROOT.'/adherents/class/adherent.class.php';
 }
-if (!empty($conf->categorie->enabled)) {
+if (isModEnabled('categorie')) {
 	require_once DOL_DOCUMENT_ROOT.'/categories/class/categorie.class.php';
 }
-if (!empty($conf->stock->enabled)) {
+if (isModEnabled('stock')) {
 	require_once DOL_DOCUMENT_ROOT.'/product/class/html.formproduct.class.php';
 }
 
@@ -76,15 +77,15 @@ $dateendvalidity = dol_mktime(0, 0, 0, GETPOST('dateendvaliditymonth', 'int'), G
 $dateofbirth = dol_mktime(0, 0, 0, GETPOST('dateofbirthmonth', 'int'), GETPOST('dateofbirthday', 'int'), GETPOST('dateofbirthyear', 'int'));
 
 // Define value to know what current user can do on users
-$canadduser = (!empty($user->admin) || $user->rights->user->user->creer);
-$canreaduser = (!empty($user->admin) || $user->rights->user->user->lire);
-$canedituser = (!empty($user->admin) || $user->rights->user->user->creer);
-$candisableuser = (!empty($user->admin) || $user->rights->user->user->supprimer);
+$canadduser = (!empty($user->admin) || $user->hasRight("user", "user", "write"));
+$canreaduser = (!empty($user->admin) || $user->hasRight("user", "user", "read"));
+$canedituser = (!empty($user->admin) || $user->hasRight("user", "user", "write"));
+$candisableuser = (!empty($user->admin) || $user->hasRight("user", "user", "delete"));
 $canreadgroup = $canreaduser;
 $caneditgroup = $canedituser;
 if (!empty($conf->global->MAIN_USE_ADVANCED_PERMS)) {
-	$canreadgroup = (!empty($user->admin) || $user->rights->user->group_advance->read);
-	$caneditgroup = (!empty($user->admin) || $user->rights->user->group_advance->write);
+	$canreadgroup = (!empty($user->admin) || $user->hasRight("user", "group_advance", "read"));
+	$caneditgroup = (!empty($user->admin) || $user->hasRight("user", "group_advance", "write"));
 }
 
 $childids = $user->getAllChildIds(1);	// For later, test on salary visibility
@@ -92,8 +93,8 @@ $childids = $user->getAllChildIds(1);	// For later, test on salary visibility
 // Define value to know what current user can do on properties of edited user
 if ($id > 0) {
 	// $user is the current logged user, $id is the user we want to edit
-	$caneditfield = ((($user->id == $id) && $user->rights->user->self->creer) || (($user->id != $id) && $user->rights->user->user->creer));
-	$caneditpassword = ((($user->id == $id) && $user->rights->user->self->password) || (($user->id != $id) && $user->rights->user->user->password));
+	$caneditfield = ((($user->id == $id) && $user->hasRight("user", "self", "write")) || (($user->id != $id) && $user->hasRight("user", "user", "write")));
+	$caneditpassword = ((($user->id == $id) && $user->hasRight("user", "self", "password")) || (($user->id != $id) && $user->hasRight("user", "user", "password")));
 }
 
 // Security check
@@ -247,6 +248,8 @@ if (empty($reshook)) {
 			$object->civility_code = GETPOST("civility_code", 'aZ09');
 			$object->lastname = GETPOST("lastname", 'alphanohtml');
 			$object->firstname = GETPOST("firstname", 'alphanohtml');
+			$object->ref_employee = GETPOST("ref_employee", 'alphanohtml');
+			$object->national_registration_number = GETPOST("national_registration_number", 'alphanohtml');
 			$object->login = GETPOST("login", 'alphanohtml');
 			$object->api_key = GETPOST("api_key", 'alphanohtml');
 			$object->gender = GETPOST("gender", 'aZ09');
@@ -260,7 +263,7 @@ if (empty($reshook)) {
 			$object->office_fax = GETPOST("office_fax", 'alphanohtml');
 			$object->user_mobile = GETPOST("user_mobile", 'alphanohtml');
 
-			if (!empty($conf->socialnetworks->enabled)) {
+			if (isModEnabled('socialnetworks')) {
 				$object->socialnetworks = array();
 				foreach ($socialnetworks as $key => $value) {
 					if (GETPOST($key, 'alphanohtml')) {
@@ -310,7 +313,7 @@ if (empty($reshook)) {
 
 			// Set entity property
 			$entity = GETPOST('entity', 'int');
-			if (!empty($conf->multicompany->enabled)) {
+			if (isModEnabled('multicompany')) {
 				if (GETPOST('superadmin', 'int')) {
 					$object->entity = 0;
 				} else {
@@ -331,18 +334,26 @@ if (empty($reshook)) {
 
 			$id = $object->create($user);
 			if ($id > 0) {
+				$resPass = 0;
 				if (GETPOST('password', 'none')) {
-					$object->setPassword($user, GETPOST('password', 'none'));
+					$resPass = $object->setPassword($user, GETPOST('password', 'none'));
 				}
-				if (!empty($conf->categorie->enabled)) {
-					// Categories association
-					$usercats = GETPOST('usercats', 'array');
-					$object->setCategories($usercats);
-				}
-				$db->commit();
+				if ($resPass < 0) {
+					$langs->load("errors");
+					$db->rollback();
+					setEventMessages($object->error, $object->errors, 'errors');
+					$action = "create"; // Go back to create page
+				} else {
+					if (!empty($conf->categorie->enabled)) {
+						// Categories association
+						$usercats = GETPOST('usercats', 'array');
+						$object->setCategories($usercats);
+					}
+					$db->commit();
 
-				header("Location: ".$_SERVER['PHP_SELF'].'?id='.$id);
-				exit;
+					header("Location: ".$_SERVER['PHP_SELF'].'?id='.$id);
+					exit;
+				}
 			} else {
 				$langs->load("errors");
 				$db->rollback();
@@ -402,12 +413,16 @@ if (empty($reshook)) {
 				$object->civility_code = GETPOST("civility_code", 'aZ09');
 				$object->lastname = GETPOST("lastname", 'alphanohtml');
 				$object->firstname = GETPOST("firstname", 'alphanohtml');
-				$object->login = GETPOST("login", 'alphanohtml');
+				$object->ref_employee = GETPOST("ref_employee", 'alphanohtml');
+				$object->national_registration_number = GETPOST("national_registration_number", 'alphanohtml');
 				$object->gender = GETPOST("gender", 'aZ09');
 				$object->pass = GETPOST("password", 'none');	// We can keep 'none' for password fields
 				$object->api_key = (GETPOST("api_key", 'alphanohtml')) ? GETPOST("api_key", 'alphanohtml') : $object->api_key;
-				if (!empty($user->admin)) {
-					$object->admin = GETPOST("admin", "int"); // admin flag can only be set/unset by an admin user. A test is also done later when forging sql request
+				if (!empty($user->admin)) { 	// admin flag can only be set/unset by an admin user. A test is also done later when forging sql request
+					$object->admin = GETPOST("admin", "int");
+				}
+				if ($user->admin && !$object->ldap_sid) {	// same test than on edit page
+					$object->login = GETPOST("login", 'alphanohtml');
 				}
 				$object->address = GETPOST('address', 'alphanohtml');
 				$object->zip = GETPOST('zipcode', 'alphanohtml');
@@ -418,7 +433,7 @@ if (empty($reshook)) {
 				$object->office_fax = GETPOST("office_fax", 'alphanohtml');
 				$object->user_mobile = GETPOST("user_mobile", 'alphanohtml');
 
-				if (!empty($conf->socialnetworks->enabled)) {
+				if (isModEnabled('socialnetworks')) {
 					$object->socialnetworks = array();
 					foreach ($socialnetworks as $key => $value) {
 						if (GETPOST($key, 'alphanohtml')) {
@@ -455,14 +470,14 @@ if (empty($reshook)) {
 				$object->dateendvalidity = $dateendvalidity;
 				$object->birth = $dateofbirth;
 
-				if (!empty($conf->stock->enabled)) {
+				if (isModEnabled('stock')) {
 					$object->fk_warehouse = GETPOST('fk_warehouse', 'int');
 				}
 
 				$object->lang = GETPOST('default_lang', 'aZ09');
 
 				// Do we update also ->entity ?
-				if (!empty($conf->multicompany->enabled && $user->entity == 0 && !empty($user->admin))) {	// If multicompany is not enabled, we never update the entity of a user.
+				if (isModEnabled('multicompany') && empty($user->entity) && !empty($user->admin)) {	// If multicompany is not enabled, we never update the entity of a user.
 					if (GETPOST('superadmin', 'int')) {
 						$object->entity = 0;
 					} else {
@@ -543,14 +558,14 @@ if (empty($reshook)) {
 
 				if (!$error && !count($object->errors)) {
 					if (GETPOST('deletephoto') && $object->oldcopy->photo) {
-						$fileimg = $conf->user->dir_output.'/'.get_exdir(0, 0, 0, 0, $object, 'user').$object->oldcopy->photo;
-						$dirthumbs = $conf->user->dir_output.'/'.get_exdir(0, 0, 0, 0, $object, 'user').'/thumbs';
+						$fileimg = $conf->user->dir_output.'/'.get_exdir(0, 0, 0, 0, $object, 'user').'photos/'.$object->oldcopy->photo;
+						$dirthumbs = $conf->user->dir_output.'/'.get_exdir(0, 0, 0, 0, $object, 'user').'photos/thumbs';
 						dol_delete_file($fileimg);
 						dol_delete_dir_recursive($dirthumbs);
 					}
 
 					if (isset($_FILES['photo']['tmp_name']) && trim($_FILES['photo']['tmp_name'])) {
-						$dir = $conf->user->dir_output.'/'.get_exdir(0, 0, 0, 1, $object, 'user');
+						$dir = $conf->user->dir_output.'/'.get_exdir(0, 0, 0, 1, $object, 'user').'/photos';
 
 						dol_mkdir($dir);
 
@@ -558,7 +573,7 @@ if (empty($reshook)) {
 							$newfile = $dir.'/'.dol_sanitizeFileName($_FILES['photo']['name']);
 							$result = dol_move_uploaded_file($_FILES['photo']['tmp_name'], $newfile, 1, 0, $_FILES['photo']['error']);
 
-							if (!$result > 0) {
+							if (!($result > 0)) {
 								setEventMessages($langs->trans("ErrorFailedToSaveFile"), null, 'errors');
 							} else {
 								// Create thumbs
@@ -698,7 +713,7 @@ if (empty($reshook)) {
 
 	// Actions to build doc
 	$upload_dir = $conf->user->dir_output;
-	$permissiontoadd = $user->rights->user->user->creer;
+	$permissiontoadd = $user->hasRight("user", "user", "write");
 	include DOL_DOCUMENT_ROOT.'/core/actions_builddoc.inc.php';
 }
 
@@ -712,11 +727,20 @@ $formother = new FormOther($db);
 $formcompany = new FormCompany($db);
 $formadmin = new FormAdmin($db);
 $formfile = new FormFile($db);
-if (!empty($conf->stock->enabled)) {
+if (isModEnabled('stock')) {
 	$formproduct = new FormProduct($db);
 }
 
-llxHeader('', $langs->trans("UserCard"));
+if ($object->id > 0) {
+	$person_name = !empty($object->firstname) ? $object->lastname.", ".$object->firstname : $object->lastname;
+	$title = $person_name." - ".$langs->trans('Card');
+} else {
+	$title = $langs->trans("NewUser");
+}
+$help_url = '';
+
+llxHeader('', $title, $help_url);
+
 
 if ($action == 'create' || $action == 'adduserldap') {
 	print load_fiche_titre($langs->trans("NewUser"), '', 'user');
@@ -816,7 +840,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 	print '<table class="border centpercent">';
 
 	// Civility
-	print '<tr><td><label for="civility_code">'.$langs->trans("UserTitle").'</label></td><td colspan="3">';
+	print '<tr><td><label for="civility_code">'.$langs->trans("UserTitle").'</label></td><td>';
 	print $formcompany->select_civility(GETPOSTISSET("civility_code") ? GETPOST("civility_code", 'aZ09') : $object->civility_code, 'civility_code');
 	print '</td></tr>';
 
@@ -869,7 +893,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 		print '<td>';
 		print $form->selectyesno('admin', GETPOST('admin'), 1);
 
-		if (!empty($conf->multicompany->enabled) && !$user->entity) {
+		if (isModEnabled('multicompany') && !$user->entity) {
 			if (!empty($conf->use_javascript_ajax)) {
 				print '<script type="text/javascript">
                             $(function() {
@@ -927,7 +951,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 	print "</tr>\n";
 
 	// Expense report validator
-	if (!empty($conf->expensereport->enabled)) {
+	if (isModEnabled('expensereport')) {
 		print '<tr><td class="titlefieldcreate">';
 		$text = $langs->trans("ForceUserExpenseValidator");
 		print $form->textwithpicto($text, $langs->trans("ValidatorIsSupervisorByDefault"), 1, 'help');
@@ -939,7 +963,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 	}
 
 	// Holiday request validator
-	if (!empty($conf->holiday->enabled)) {
+	if (isModEnabled('holiday')) {
 		print '<tr><td class="titlefieldcreate">';
 		$text = $langs->trans("ForceUserHolidayValidator");
 		print $form->textwithpicto($text, $langs->trans("ValidatorIsSupervisorByDefault"), 1, 'help');
@@ -976,18 +1000,18 @@ if ($action == 'create' || $action == 'adduserldap') {
 	print '<td>';
 	$valuetoshow = '';
 	if (preg_match('/ldap/', $dolibarr_main_authentication)) {
-		$valuetoshow .= ($valuetoshow ? ', ' : '').$langs->trans("PasswordOfUserInLDAP");
+		$valuetoshow .= ($valuetoshow ? ' + ' : '').$langs->trans("PasswordOfUserInLDAP").' (hidden)';
 	}
 	if (preg_match('/http/', $dolibarr_main_authentication)) {
-		$valuetoshow .= ($valuetoshow ? ', ' : '').$langs->trans("HTTPBasicPassword");
+		$valuetoshow .= ($valuetoshow ? ' + ' : '').$langs->trans("HTTPBasicPassword");
 	}
 	if (preg_match('/dolibarr/', $dolibarr_main_authentication)) {
 		if (!empty($ldap_pass)) {	// For very old system comaptibilty. Now clear password can't be viewed from LDAP read
-			$valuetoshow .= ($valuetoshow ? ', ' : '').'<input type="hidden" name="password" value="'.$ldap_pass.'">'; // Dolibarr password is preffiled with LDAP known password
+			$valuetoshow .= ($valuetoshow ? ' + ' : '').'<input type="hidden" name="password" value="'.dol_escape_htmltag($ldap_pass).'">'; // Dolibarr password is preffiled with LDAP known password
 			$valuetoshow .= preg_replace('/./i', '*', $ldap_pass);
 		} else {
 			// We do not use a field password but a field text to show new password to use.
-			$valuetoshow .= ($valuetoshow ? ', ' : '').'<input maxsize="32" type="text" name="password" value="'.$password.'" autocomplete="new-password">';
+			$valuetoshow .= ($valuetoshow ? ' + '.$langs->trans("DolibarrPassword") : '').'<input maxsize="32" type="text" name="password" value="'.dol_escape_htmltag($password).'" autocomplete="new-password">';
 		}
 	}
 
@@ -1105,7 +1129,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 	print '</td></tr>';
 
 	// Social networks
-	if (!empty($conf->socialnetworks->enabled)) {
+	if (isModEnabled('socialnetworks')) {
 		foreach ($socialnetworks as $key => $value) {
 			if ($value['active']) {
 				print '<tr><td>'.$langs->trans($value['label']).'</td>';
@@ -1132,7 +1156,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 	}
 
 	// Accountancy code
-	if (!empty($conf->accounting->enabled)) {
+	if (isModEnabled('accounting')) {
 		print '<tr><td>'.$langs->trans("AccountancyCode").'</td>';
 		print '<td>';
 		print '<input type="text" class="maxwidthonsmartphone" name="accountancy_code" value="'.dol_escape_htmltag(GETPOST('accountancy_code', 'alphanohtml')).'">';
@@ -1140,7 +1164,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 	}
 
 	// User color
-	if (!empty($conf->agenda->enabled)) {
+	if (isModEnabled('agenda')) {
 		print '<tr><td>'.$langs->trans("ColorUser").'</td>';
 		print '<td>';
 		print $formother->selectColor(GETPOSTISSET('color') ?GETPOST('color', 'alphanohtml') : $object->color, 'color', null, 1, '', 'hideifnotset');
@@ -1148,14 +1172,14 @@ if ($action == 'create' || $action == 'adduserldap') {
 	}
 
 	// Categories
-	if (!empty($conf->categorie->enabled) && !empty($user->rights->categorie->lire)) {
+	if (isModEnabled('categorie') && $user->hasRight("categorie", "read")) {
 		print '<tr><td>'.$form->editfieldkey('Categories', 'usercats', '', $object, 0).'</td><td>';
 		$cate_arbo = $form->select_all_categories('user', null, 'parent', null, null, 1);
 		print img_picto('', 'category', 'class="pictofixedwidth"').$form->multiselectarray('usercats', $cate_arbo, GETPOST('usercats', 'array'), 0, 0, 'maxwdith300 widthcentpercentminusx', 0, '90%');
 		print "</td></tr>";
 	}
 
-	if (!empty($conf->global->MAIN_MULTILANGS)) {
+	if (getDolGlobalInt('MAIN_MULTILANGS')) {
 		print '<tr><td>'.$form->editfieldkey('DefaultLang', 'default_lang', '', $object, 0, 'string', '', 0, 0, 'id', $langs->trans("WarningNotLangOfInterface", $langs->transnoentitiesnoconv("UserGUISetup"))).'</td>';
 		print '<td class="maxwidthonsmartphone">'."\n";
 		print img_picto('', 'language', 'class="pictofixedwidth"').$formadmin->select_language(GETPOST('default_lang', 'alpha') ?GETPOST('default_lang', 'alpha') : ($object->lang ? $object->lang : ''), 'default_lang', 0, 0, 1, 0, 0, 'maxwidth200onsmartphone widthcentpercentminusx');
@@ -1164,7 +1188,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 	}
 
 	// Multicompany
-	if (!empty($conf->multicompany->enabled) && is_object($mc)) {
+	if (isModEnabled('multicompany') && is_object($mc)) {
 		// This is now done with hook formObjectOptions. Keep this code for backward compatibility with old multicompany module
 		if (!method_exists($mc, 'formObjectOptions')) {
 			if (empty($conf->global->MULTICOMPANY_TRANSVERSE_MODE) && $conf->entity == 1 && $user->admin && !$user->entity) {	// condition must be same for create and edit mode
@@ -1205,7 +1229,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 	// TODO Move this into tab RH (HierarchicalResponsible must be on both tab)
 
 	// Default warehouse
-	if (!empty($conf->stock->enabled) && !empty($conf->global->MAIN_DEFAULT_WAREHOUSE_USER)) {
+	if (isModEnabled('stock') && !empty($conf->global->MAIN_DEFAULT_WAREHOUSE_USER)) {
 		print '<tr><td>'.$langs->trans("DefaultWarehouse").'</td><td>';
 		print $formproduct->selectWarehouses($object->fk_warehouse, 'fk_warehouse', 'warehouseopen', 1);
 		print '</td></tr>';
@@ -1217,9 +1241,9 @@ if ($action == 'create' || $action == 'adduserldap') {
 	print '<input class="maxwidth200 maxwidth150onsmartphone" type="text" name="job" value="'.dol_escape_htmltag(GETPOST('job', 'alphanohtml')).'">';
 	print '</td></tr>';
 
-	if ((!empty($conf->salaries->enabled) && !empty($user->rights->salaries->read) && in_array($id, $childids))
-		|| (!empty($conf->salaries->enabled) && !empty($user->rights->salaries->readall))
-		|| (!empty($conf->hrm->enabled) && !empty($user->rights->hrm->employee->read))) {
+	if ((!empty($conf->salaries->enabled) && $user->hasRight("salaries", "read") && in_array($id, $childids))
+		|| (!empty($conf->salaries->enabled) && $user->hasRight("salaries", "readall"))
+		|| (isModEnabled('hrm') && $user->hasRight("hrm", "employee", "read"))) {
 		$langs->load("salaries");
 
 		// THM
@@ -1271,7 +1295,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 	// Date birth
 	print '<tr><td>'.$langs->trans("DateOfBirth").'</td>';
 	print '<td>';
-	print $form->selectDate($dateofbirth, 'dateofbirth', 0, 0, 1, 'createuser', 1, 0);
+	print $form->selectDate($dateofbirth, 'dateofbirth', 0, 0, 1, 'createuser', 1, 0, 0, '', 0, '', '', 1, '', '', 'tzserver');
 	print '</td>';
 	print "</tr>\n";
 
@@ -1344,7 +1368,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 			$title = $langs->trans("User");
 			$linkback = '';
 
-			if ($user->rights->user->user->lire || $user->admin) {
+			if ($user->hasRight("user", "user", "read") || $user->admin) {
 				$linkback = '<a href="'.DOL_URL_ROOT.'/user/list.php?restore_lastsearch_values=1">'.$langs->trans("BackToList").'</a>';
 			}
 		}
@@ -1392,7 +1416,11 @@ if ($action == 'create' || $action == 'adduserldap') {
 		if ($action != 'edit') {
 			print dol_get_fiche_head($head, 'user', $title, -1, 'user');
 
-			dol_banner_tab($object, 'id', $linkback, $user->rights->user->user->lire || $user->admin);
+			$morehtmlref = '<a href="'.DOL_URL_ROOT.'/user/vcard.php?id='.$object->id.'" class="refid">';
+			$morehtmlref .= img_picto($langs->trans("Download").' '.$langs->trans("VCard"), 'vcard.png', 'class="valignmiddle marginleftonly paddingrightonly"');
+			$morehtmlref .= '</a>';
+
+			dol_banner_tab($object, 'id', $linkback, $user->hasRight("user", "user", "read") || $user->admin, 'rowid', 'ref', $morehtmlref);
 
 			print '<div class="fichecenter">';
 			print '<div class="fichehalfleft">';
@@ -1410,7 +1438,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 				print '<td>';
 				$addadmin = '';
 				if (property_exists($object, 'admin')) {
-					if (!empty($conf->multicompany->enabled) && !empty($object->admin) && empty($object->entity)) {
+					if (isModEnabled('multicompany') && !empty($object->admin) && empty($object->entity)) {
 						$addadmin .= img_picto($langs->trans("SuperAdministratorDesc"), "redstar", 'class="paddingleft"');
 					} elseif (!empty($object->admin)) {
 						$addadmin .= img_picto($langs->trans("AdministratorDesc"), "star", 'class="paddingleft"');
@@ -1471,7 +1499,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 			print "</tr>\n";
 
 			// Expense report validator
-			if (!empty($conf->expensereport->enabled)) {
+			if (isModEnabled('expensereport')) {
 				print '<tr><td>';
 				$text = $langs->trans("ForceUserExpenseValidator");
 				print $form->textwithpicto($text, $langs->trans("ValidatorIsSupervisorByDefault"), 1, 'help');
@@ -1487,7 +1515,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 			}
 
 			// Holiday request validator
-			if (!empty($conf->holiday->enabled)) {
+			if (isModEnabled('holiday')) {
 				print '<tr><td>';
 				$text = $langs->trans("ForceUserHolidayValidator");
 				print $form->textwithpicto($text, $langs->trans("ValidatorIsSupervisorByDefault"), 1, 'help');
@@ -1516,8 +1544,8 @@ if ($action == 'create' || $action == 'adduserldap') {
 
 			// Sensitive salary/value information
 			if ((empty($user->socid) && in_array($id, $childids))	// A user can always see salary/value information for its subordinates
-				|| (!empty($conf->salaries->enabled) && !empty($user->rights->salaries->readall))
-				|| (!empty($conf->hrm->enabled) && !empty($user->rights->hrm->employee->read))) {
+				|| (!empty($conf->salaries->enabled) && $user->hasRight("salaries", "readall"))
+				|| (isModEnabled('hrm') && $user->hasRight("hrm", "employee", "read"))) {
 				$langs->load("salaries");
 
 				// Salary
@@ -1562,8 +1590,15 @@ if ($action == 'create' || $action == 'adduserldap') {
 			print '</td>';
 			print "</tr>\n";
 
+			// Date of birth
+			print '<tr><td>'.$langs->trans("DateOfBirth").'</td>';
+			print '<td>';
+			print dol_print_date($object->birth, 'day', 'tzserver');
+			print '</td>';
+			print "</tr>\n";
+
 			// Default warehouse
-			if (!empty($conf->stock->enabled) && !empty($conf->global->MAIN_DEFAULT_WAREHOUSE_USER)) {
+			if (isModEnabled('stock') && !empty($conf->global->MAIN_DEFAULT_WAREHOUSE_USER)) {
 				require_once DOL_DOCUMENT_ROOT.'/product/stock/class/entrepot.class.php';
 				print '<tr><td>'.$langs->trans("DefaultWarehouse").'</td><td>';
 				if ($object->fk_warehouse > 0) {
@@ -1572,12 +1607,6 @@ if ($action == 'create' || $action == 'adduserldap') {
 					print $warehousestatic->getNomUrl(1);
 				}
 				print '</td></tr>';
-			}
-
-			// Accountancy code
-			if (!empty($conf->accounting->enabled)) {
-				print '<tr><td>'.$langs->trans("AccountancyCode").'</td>';
-				print '<td>'.$object->accountancy_code.'</td></tr>';
 			}
 
 			print '</table>';
@@ -1590,7 +1619,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 			print '<table class="border tableforfield centpercent">';
 
 			// Color user
-			if (!empty($conf->agenda->enabled)) {
+			if (isModEnabled('agenda')) {
 				print '<tr><td class="titlefield">'.$langs->trans("ColorUser").'</td>';
 				print '<td>';
 				print $formother->showColor($object->color, '');
@@ -1599,7 +1628,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 			}
 
 			// Categories
-			if (!empty($conf->categorie->enabled) && !empty($user->rights->categorie->lire)) {
+			if (isModEnabled('categorie') && $user->hasRight("categorie", "read")) {
 				print '<tr><td class="titlefield">'.$langs->trans("Categories").'</td>';
 				print '<td colspan="3">';
 				print $form->showCategories($object->id, Categorie::TYPE_USER, 1);
@@ -1607,7 +1636,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 			}
 
 			// Default language
-			if (!empty($conf->global->MAIN_MULTILANGS)) {
+			if (getDolGlobalInt('MAIN_MULTILANGS')) {
 				$langs->load("languages");
 				require_once DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php';
 				print '<tr><td class="titlefield">';
@@ -1616,6 +1645,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 				//$s=picto_from_langcode($object->default_lang);
 				//print ($s?$s.' ':'');
 				$labellang = ($object->lang ? $langs->trans('Language_'.$object->lang) : '');
+				print picto_from_langcode($object->lang, 'class="paddingrightonly saturatemedium opacitylow"');
 				print $labellang;
 				print '</td></tr>';
 			}
@@ -1627,10 +1657,10 @@ if ($action == 'create' || $action == 'adduserldap') {
 			}
 
 			// Multicompany
-			if (!empty($conf->multicompany->enabled) && is_object($mc)) {
+			if (isModEnabled('multicompany') && is_object($mc)) {
 				// This is now done with hook formObjectOptions. Keep this code for backward compatibility with old multicompany module
 				if (!method_exists($mc, 'formObjectOptions')) {
-					if (!empty($conf->multicompany->enabled) && empty($conf->global->MULTICOMPANY_TRANSVERSE_MODE) && $conf->entity == 1 && $user->admin && !$user->entity) {
+					if (isModEnabled('multicompany') && empty($conf->global->MULTICOMPANY_TRANSVERSE_MODE) && $conf->entity == 1 && $user->admin && !$user->entity) {
 						print '<tr><td>'.$langs->trans("Entity").'</td><td>';
 						if (empty($object->entity)) {
 							print $langs->trans("AllEntities");
@@ -1647,7 +1677,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 			include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_view.tpl.php';
 
 			// Company / Contact
-			if (!empty($conf->societe->enabled)) {
+			if (isModEnabled("societe")) {
 				print '<tr><td>'.$langs->trans("LinkToCompanyContact").'</td>';
 				print '<td>';
 				$s = '';
@@ -1678,7 +1708,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 			}
 
 			// Module Adherent
-			if (!empty($conf->adherent->enabled)) {
+			if (isModEnabled('adherent')) {
 				$langs->load("members");
 				print '<tr><td>'.$langs->trans("LinkedToDolibarrMember").'</td>';
 				print '<td>';
@@ -1697,15 +1727,6 @@ if ($action == 'create' || $action == 'adduserldap') {
 			// Signature
 			print '<tr><td class="tdtop">'.$langs->trans('Signature').'</td><td class="wordbreak">';
 			print dol_htmlentitiesbr($object->signature);
-			print "</td></tr>\n";
-
-			// VCard
-			print '<tr><td class="tdtop">'.$langs->trans("VCard").'</td>';
-			print '<td>';
-			print '<a href="'.DOL_URL_ROOT.'/user/vcard.php?id='.$object->id.'">';
-			print img_picto($langs->trans("Download"), 'vcard.png', 'class="paddingrightonly"');
-			print $langs->trans("Download");
-			print '</a>';
 			print "</td></tr>\n";
 
 			print "</table>\n";
@@ -1787,7 +1808,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 			print '</tr>'."\n";
 
 			// API key
-			if (!empty($conf->api->enabled) && ($user->id == $id || $user->admin || $user->rights->api->apikey->generate)) {
+			if (!empty($conf->api->enabled) && ($user->id == $id || $user->admin || $user->hasRight("api", "apikey", "generate"))) {
 				print '<tr><td>'.$langs->trans("ApiKey").'</td>';
 				print '<td>';
 				if (!empty($object->api_key)) {
@@ -1823,75 +1844,112 @@ if ($action == 'create' || $action == 'adduserldap') {
 			/*
 			 * Buttons actions
 			 */
-
 			print '<div class="tabsAction">';
 
 			$parameters = array();
 			$reshook = $hookmanager->executeHooks('addMoreActionsButtons', $parameters, $object, $action); // Note that $action and $object may have been modified by hook
 			if (empty($reshook)) {
 				if (empty($user->socid)) {
+					$canSendMail = false;
+					$params = array(
+						'attr' => array(
+							'title' => '',
+							'class' => 'classfortooltip'
+						)
+					);
 					if (!empty($object->email)) {
 						$langs->load("mails");
-						print '<div class="inline-block divButAction"><a class="butAction" href="'.$_SERVER['PHP_SELF'].'?id='.$object->id.'&action=presend&mode=init#formmailbeforetitle">'.$langs->trans('SendMail').'</a></div>';
+						$canSendMail = true;
 					} else {
 						$langs->load("mails");
-						print '<div class="inline-block divButAction"><a class="butActionRefused classfortooltip" href="#" title="'.dol_escape_htmltag($langs->trans("NoEMail")).'">'.$langs->trans('SendMail').'</a></div>';
+						$params['attr']['title'] = $langs->trans('NoEMail');
 					}
+					print dolGetButtonAction($langs->trans('SendMail'), '', 'default', $_SERVER['PHP_SELF'] . '?id=' . $object->id . '&action=presend&mode=init#formmailbeforetitle', '', $canSendMail, $params);
 				}
 
-				if ($caneditfield && (empty($conf->multicompany->enabled) || !$user->entity || ($object->entity == $conf->entity) || ($conf->global->MULTICOMPANY_TRANSVERSE_MODE && $conf->entity == 1))) {
+				if ($caneditfield && (!isModEnabled('multicompany') || !$user->entity || ($object->entity == $conf->entity) || ($conf->global->MULTICOMPANY_TRANSVERSE_MODE && $object->entity == 1))) {
+					$params = array(
+						'attr' => array(
+							'title' => '',
+							'class' => 'classfortooltip'
+						)
+					);
 					if (!empty($conf->global->MAIN_ONLY_LOGIN_ALLOWED)) {
-						print '<div class="inline-block divButAction"><a class="butActionRefused classfortooltip" href="#" title="'.dol_escape_htmltag($langs->trans("DisabledInMonoUserMode")).'">'.$langs->trans("Modify").'</a></div>';
+						$params['attr']['title'] = $langs->trans('DisabledInMonoUserMode');
+						print dolGetButtonAction($langs->trans('Modify'), '', 'default', $_SERVER['PHP_SELF'].'#', '', false, $params);
 					} else {
-						print '<div class="inline-block divButAction"><a class="butAction" href="'.$_SERVER['PHP_SELF'].'?id='.$object->id.'&action=edit&token='.newToken().'">'.$langs->trans("Modify").'</a></div>';
+						print dolGetButtonAction($langs->trans('Modify'), '', 'default', $_SERVER['PHP_SELF'].'?id='.$object->id.'&amp;action=edit&token='.newToken(), '', true, $params);
 					}
 				} elseif ($caneditpassword && !$object->ldap_sid &&
-				(empty($conf->multicompany->enabled) || !$user->entity || ($object->entity == $conf->entity) || ($conf->global->MULTICOMPANY_TRANSVERSE_MODE && $conf->entity == 1))) {
-					print '<div class="inline-block divButAction"><a class="butAction" href="'.$_SERVER['PHP_SELF'].'?id='.$object->id.'&action=edit&token='.newToken().'">'.$langs->trans("EditPassword").'</a></div>';
+				(!isModEnabled('multicompany') || !$user->entity || ($object->entity == $conf->entity) || ($conf->global->MULTICOMPANY_TRANSVERSE_MODE && $object->entity == 1))) {
+					$params = array(
+						'attr' => array(
+							'title' => '',
+							'class' => 'classfortooltip'
+						)
+					);
+					print dolGetButtonAction($langs->trans('Modify'), '', 'default', $_SERVER['PHP_SELF'].'?id='.$object->id.'&amp;action=edit', '', true, $params);
 				}
 
 				// Si on a un gestionnaire de generation de mot de passe actif
+				$params = array(
+					'attr' => array(
+						'title' => '',
+						'class' => 'classfortooltip'
+					)
+				);
 				if ($conf->global->USER_PASSWORD_GENERATED != 'none') {
 					if ($object->statut == 0) {
-						print '<div class="inline-block divButAction"><a class="butActionRefused classfortooltip" href="#" title="'.dol_escape_htmltag($langs->trans("UserDisabled")).'">'.$langs->trans("ReinitPassword").'</a></div>';
-					} elseif ($caneditpassword && $object->login && !$object->ldap_sid &&
-					((empty($conf->multicompany->enabled) && $object->entity == $user->entity) || !$user->entity || ($object->entity == $conf->entity) || ($conf->global->MULTICOMPANY_TRANSVERSE_MODE && $conf->entity == 1))) {
-						print '<div class="inline-block divButAction"><a class="butAction" href="'.$_SERVER['PHP_SELF'].'?id='.$object->id.'&amp;action=password">'.$langs->trans("ReinitPassword").'</a></div>';
+						$params['attr']['title'] = $langs->trans('UserDisabled');
+						print dolGetButtonAction($langs->trans('ReinitPassword'), '', 'default', $_SERVER['PHP_SELF'].'#', '', false, $params);
+					} elseif (($user->id != $id && $caneditpassword) && $object->login && !$object->ldap_sid &&
+					((!isModEnabled('multicompany') && $object->entity == $user->entity) || !$user->entity || ($object->entity == $conf->entity) || ($conf->global->MULTICOMPANY_TRANSVERSE_MODE && $object->entity == 1))) {
+						print dolGetButtonAction($langs->trans('ReinitPassword'), '', 'default', $_SERVER['PHP_SELF'].'?id='.$object->id.'&action=password&token='.newToken(), '', true, $params);
 					}
 
 					if ($object->statut == 0) {
-						print '<div class="inline-block divButAction"><a class="butActionRefused classfortooltip" href="#" title="'.dol_escape_htmltag($langs->trans("UserDisabled")).'">'.$langs->trans("SendNewPassword").'</a></div>';
-					} elseif ($caneditpassword && $object->login && !$object->ldap_sid &&
-					((empty($conf->multicompany->enabled) && $object->entity == $user->entity) || !$user->entity || ($object->entity == $conf->entity) || ($conf->global->MULTICOMPANY_TRANSVERSE_MODE && $conf->entity == 1))) {
+						$params['attr']['title'] = $langs->trans('UserDisabled');
+						print dolGetButtonAction($langs->trans('SendNewPassword'), '', 'default', $_SERVER['PHP_SELF'].'#', '', false, $params);
+					} elseif (($user->id != $id && $caneditpassword) && $object->login && !$object->ldap_sid &&
+					((!isModEnabled('multicompany') && $object->entity == $user->entity) || !$user->entity || ($object->entity == $conf->entity) || ($conf->global->MULTICOMPANY_TRANSVERSE_MODE && $object->entity == 1))) {
 						if ($object->email) {
-							print '<div class="inline-block divButAction"><a class="butAction" href="'.$_SERVER['PHP_SELF'].'?id='.$object->id.'&amp;action=passwordsend">'.$langs->trans("SendNewPassword").'</a></div>';
+							print dolGetButtonAction($langs->trans('SendNewPassword'), '', 'default', $_SERVER['PHP_SELF'].'?id='.$object->id.'&action=passwordsend&token='.newToken(), '', true, $params);
 						} else {
-							print '<div class="inline-block divButAction"><a class="butActionRefused classfortooltip" href="#" title="'.dol_escape_htmltag($langs->trans("NoEMail")).'">'.$langs->trans("SendNewPassword").'</a></div>';
+							$params['attr']['title'] = $langs->trans('NoEMail');
+							print dolGetButtonAction($langs->trans('SendNewPassword'), '', 'default', $_SERVER['PHP_SELF'].'#', '', false, $params);
 						}
 					}
 				}
 
 				// Enable user
+				$params = array(
+					'attr' => array(
+						'title' => '',
+						'class' => 'classfortooltip'
+					)
+				);
 				if ($user->id <> $id && $candisableuser && $object->statut == 0 &&
-				((empty($conf->multicompany->enabled) && $object->entity == $user->entity) || !$user->entity || ($object->entity == $conf->entity) || ($conf->global->MULTICOMPANY_TRANSVERSE_MODE && $conf->entity == 1))) {
-					print '<div class="inline-block divButAction"><a class="butAction" href="'.$_SERVER['PHP_SELF'].'?id='.$object->id.'&action=enable&token='.newToken().'">'.$langs->trans("Reactivate").'</a></div>';
+				((!isModEnabled('multicompany') && $object->entity == $user->entity) || !$user->entity || ($object->entity == $conf->entity) || ($conf->global->MULTICOMPANY_TRANSVERSE_MODE && $object->entity == 1))) {
+					print dolGetButtonAction($langs->trans('Reactivate'), '', 'default', $_SERVER['PHP_SELF'] . '?id=' . $object->id . '&action=enable&token='.newToken(), '', true, $params);
 				}
 				// Disable user
 				if ($user->id <> $id && $candisableuser && $object->statut == 1 &&
-				((empty($conf->multicompany->enabled) && $object->entity == $user->entity) || !$user->entity || ($object->entity == $conf->entity) || ($conf->global->MULTICOMPANY_TRANSVERSE_MODE && $conf->entity == 1))) {
-					print '<div class="inline-block divButAction"><a class="butActionDelete" href="'.$_SERVER['PHP_SELF'].'?action=disable&id='.$object->id.'&token='.newToken().'">'.$langs->trans("DisableUser").'</a></div>';
+				((!isModEnabled('multicompany') && $object->entity == $user->entity) || !$user->entity || ($object->entity == $conf->entity) || ($conf->global->MULTICOMPANY_TRANSVERSE_MODE && $object->entity == 1))) {
+					print dolGetButtonAction($langs->trans('DisableUser'), '', 'default', $_SERVER['PHP_SELF'] . '?id=' . $object->id . '&action=disable&token='.newToken(), '', true, $params);
 				} else {
 					if ($user->id == $id) {
-						print '<div class="inline-block divButAction"><a class="butActionRefused classfortooltip" href="#" title="'.$langs->trans("CantDisableYourself").'">'.$langs->trans("DisableUser").'</a></div>';
+						$params['attr']['title'] = $langs->trans('CantDisableYourself');
+						print dolGetButtonAction($langs->trans('DisableUser'), '', 'default', $_SERVER['PHP_SELF'].'#', '', false, $params);
 					}
 				}
 				// Delete
 				if ($user->id <> $id && $candisableuser &&
-				((empty($conf->multicompany->enabled) && $object->entity == $user->entity) || !$user->entity || ($object->entity == $conf->entity) || ($conf->global->MULTICOMPANY_TRANSVERSE_MODE && $conf->entity == 1))) {
+				((!isModEnabled('multicompany') && $object->entity == $user->entity) || !$user->entity || ($object->entity == $conf->entity) || ($conf->global->MULTICOMPANY_TRANSVERSE_MODE && $object->entity == 1))) {
 					if ($user->admin || !$object->admin) { // If user edited is admin, delete is possible on for an admin
-						print '<div class="inline-block divButAction"><a class="butActionDelete" href="'.$_SERVER['PHP_SELF'].'?action=delete&token='.newToken().'&id='.$object->id.'">'.$langs->trans("DeleteUser").'</a></div>';
+						print dolGetButtonAction($langs->trans('DeleteUser'), '', 'default', $_SERVER['PHP_SELF'].'?action=delete&token='.newToken().'&id='.$object->id, '', true, $params);
 					} else {
-						print '<div class="inline-block divButAction"><a class="butActionRefused classfortooltip" href="#" title="'.dol_escape_htmltag($langs->trans("MustBeAdminToDeleteOtherAdmin")).'">'.$langs->trans("DeleteUser").'</a></div>';
+						$params['attr']['title'] = $langs->trans('MustBeAdminToDeleteOtherAdmin');
+						print dolGetButtonAction($langs->trans('DeleteUser'), '', 'default', $_SERVER['PHP_SELF'].'?action=delete&token='.newToken().'&id='.$object->id, '', false, $params);
 					}
 				}
 			}
@@ -1900,7 +1958,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 
 
 
-			//Select mail models is same action as presend
+			// Select mail models is same action as presend
 			if (GETPOST('modelselected')) {
 				$action = 'presend';
 			}
@@ -2018,7 +2076,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 			}
 
 			// Civility
-			print '<tr><td class="titlefieldcreate"><label for="civility_code">'.$langs->trans("UserTitle").'</label></td><td colspan="3">';
+			print '<tr><td class="titlefieldcreate"><label for="civility_code">'.$langs->trans("UserTitle").'</label></td><td>';
 			if ($caneditfield && !$object->ldap_sid) {
 				print $formcompany->select_civility(GETPOSTISSET("civility_code") ? GETPOST("civility_code", 'aZ09') : $object->civility_code, 'civility_code');
 			} elseif ($object->civility_code) {
@@ -2079,13 +2137,13 @@ if ($action == 'create' || $action == 'adduserldap') {
 				if ($user->admin								// Need to be admin to allow downgrade of an admin
 				&& ($user->id != $object->id)                   // Don't downgrade ourself
 				&& (
-					(empty($conf->multicompany->enabled) && $nbAdmin >= 1)
-					|| (!empty($conf->multicompany->enabled) && (($object->entity > 0 || ($user->entity == 0 && $object->entity == 0)) || $nbSuperAdmin > 1))    // Don't downgrade a superadmin if alone
+					(!isModEnabled('multicompany') && $nbAdmin >= 1)
+					|| (isModEnabled('multicompany') && (($object->entity > 0 || ($user->entity == 0 && $object->entity == 0)) || $nbSuperAdmin > 1))    // Don't downgrade a superadmin if alone
 					)
 				) {
 					print $form->selectyesno('admin', $object->admin, 1);
 
-					if (!empty($conf->multicompany->enabled) && !$user->entity) {
+					if (isModEnabled('multicompany') && !$user->entity) {
 						if ($conf->use_javascript_ajax) {
 							print '<script type="text/javascript">
 									$(function() {
@@ -2131,7 +2189,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 					$yn = yn($object->admin);
 					print '<input type="hidden" name="admin" value="'.$object->admin.'">';
 					print '<input type="hidden" name="superadmin" value="'.(empty($object->entity) ? 1 : 0).'">';
-					if (!empty($conf->multicompany->enabled) && empty($object->entity)) {
+					if (isModEnabled('multicompany') && empty($object->entity)) {
 						print $form->textwithpicto($yn, $langs->trans("DontDowngradeSuperAdmin"), 1, 'warning');
 					} else {
 						print $yn;
@@ -2182,7 +2240,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 			print "</tr>\n";
 
 			// Expense report validator
-			if (!empty($conf->expensereport->enabled)) {
+			if (isModEnabled('expensereport')) {
 				print '<tr><td class="titlefield">';
 				$text = $langs->trans("ForceUserExpenseValidator");
 				print $form->textwithpicto($text, $langs->trans("ValidatorIsSupervisorByDefault"), 1, 'help');
@@ -2201,7 +2259,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 			}
 
 			// Holiday request validator
-			if (!empty($conf->holiday->enabled)) {
+			if (isModEnabled('holiday')) {
 				print '<tr><td class="titlefield">';
 				$text = $langs->trans("ForceUserHolidayValidator");
 				print $form->textwithpicto($text, $langs->trans("ValidatorIsSupervisorByDefault"), 1, 'help');
@@ -2246,6 +2304,12 @@ if ($action == 'create' || $action == 'adduserldap') {
 						print ' ('.$langs->trans("DomainUser").')';
 					}
 				} elseif ($object->socid > 0 && $object->contact_id > 0) {	// external user with a link to a contact
+					print img_picto('', 'company').$form->select_company($object->socid, 'socid', '', '&nbsp;'); // We keep thirdparty empty, contact is already set
+					print img_picto('', 'contact').$form->selectcontacts(0, $object->contact_id, 'contactid', 1, '', '', 1, '', false, 1);
+					if ($object->ldap_sid) {
+						print ' ('.$langs->trans("DomainUser").')';
+					}
+				} elseif (!($object->socid > 0) && $object->contact_id > 0) {	// internal user with a link to a contact
 					print img_picto('', 'company').$form->select_company(0, 'socid', '', '&nbsp;'); // We keep thirdparty empty, contact is already set
 					print img_picto('', 'contact').$form->selectcontacts(0, $object->contact_id, 'contactid', 1, '', '', 1, '', false, 1);
 					if ($object->ldap_sid) {
@@ -2296,7 +2360,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 			}
 			if (preg_match('/dolibarr/', $dolibarr_main_authentication)) {
 				if ($caneditpassword) {
-					$valuetoshow .= ($valuetoshow ? (' '.$langs->trans("or").' ') : '').'<input maxlength="128" type="password" class="flat" name="password" value="'.$object->pass.'" autocomplete="new-password">';
+					$valuetoshow .= ($valuetoshow ? (' '.$langs->trans("or").' ') : '').'<input maxlength="128" type="password" class="flat" name="password" value="'.dol_escape_htmltag($object->pass).'" autocomplete="new-password">';
 				} else {
 					$valuetoshow .= ($valuetoshow ? (' '.$langs->trans("or").' ') : '').preg_replace('/./i', '*', $object->pass);
 				}
@@ -2315,7 +2379,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 			print "</td></tr>\n";
 
 			// API key
-			if (!empty($conf->api->enabled) && ($user->id == $id || $user->admin || $user->rights->api->apikey->generate)) {
+			if (!empty($conf->api->enabled) && ($user->id == $id || $user->admin || $user->hasRight("api", "apikey", "generate"))) {
 				print '<tr><td>'.$langs->trans("ApiKey").'</td>';
 				print '<td>';
 				print '<input class="minwidth300" maxsize="32" type="text" id="api_key" name="api_key" value="'.$object->api_key.'" autocomplete="off">';
@@ -2444,7 +2508,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 			}
 			print '</td></tr>';
 
-			if (!empty($conf->socialnetworks->enabled)) {
+			if (isModEnabled('socialnetworks')) {
 				foreach ($socialnetworks as $key => $value) {
 					if ($value['active']) {
 						print '<tr><td>'.$langs->trans($value['label']).'</td>';
@@ -2453,7 +2517,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 							print '<span class="fa '.$value['icon'].' pictofixedwidth"></span>';
 						}
 						if ($caneditfield && empty($object->ldap_sid)) {
-							print '<input type="text" name="'.$key.'" class="flat maxwidth200" value="'.$object->socialnetworks[$key].'">';
+							print '<input type="text" name="'.$key.'" class="flat maxwidth200" value="'.(isset($object->socialnetworks[$key])?$object->socialnetworks[$key]:'').'">';
 						} else {
 							print '<input type="hidden" name="'.$key.'" value="'.$object->socialnetworks[$key].'">';
 							print $object->socialnetworks[$key];
@@ -2461,7 +2525,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 						print '</td></tr>';
 					} else {
 						// if social network is not active but value exist we do not want to loose it
-						print '<input type="hidden" name="'.$key.'" value="'.$object->socialnetworks[$key].'">';
+						print '<input type="hidden" name="'.$key.'" value="'.(isset($object->socialnetworks[$key])?$object->socialnetworks[$key]:'').'">';
 					}
 				}
 			}
@@ -2469,7 +2533,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 			print '</table><hr><table class="border centpercent">';
 
 			// Default warehouse
-			if (!empty($conf->stock->enabled) && !empty($conf->global->MAIN_DEFAULT_WAREHOUSE_USER)) {
+			if (isModEnabled('stock') && !empty($conf->global->MAIN_DEFAULT_WAREHOUSE_USER)) {
 				print '<tr><td class="titlefield">'.$langs->trans("DefaultWarehouse").'</td><td>';
 				print $formproduct->selectWarehouses($object->fk_warehouse, 'fk_warehouse', 'warehouseopen', 1);
 				print ' <a href="'.DOL_URL_ROOT.'/product/stock/card.php?action=create&token='.newToken().'&backtopage='.urlencode($_SERVER['PHP_SELF'].'?id='.$object->id.'&action=edit&token='.newToken()).'"><span class="fa fa-plus-circle valignmiddle paddingleft" title="'.$langs->trans("AddWarehouse").'"></span></a>';
@@ -2477,7 +2541,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 			}
 
 			// Accountancy code
-			if (!empty($conf->accounting->enabled)) {
+			if (isModEnabled('accounting')) {
 				print "<tr>";
 				print '<td class="titlefieldcreate">'.$langs->trans("AccountancyCode").'</td>';
 				print '<td>';
@@ -2492,7 +2556,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 			}
 
 			// User color
-			if (!empty($conf->agenda->enabled)) {
+			if (isModEnabled('agenda')) {
 				print '<tr><td class="titlefieldcreate">'.$langs->trans("ColorUser").'</td>';
 				print '<td>';
 				if ($caneditfield) {
@@ -2512,13 +2576,14 @@ if ($action == 'create' || $action == 'adduserldap') {
 			print '</tr>';
 
 			// Categories
-			if (!empty($conf->categorie->enabled) && !empty($user->rights->categorie->lire)) {
+			if (isModEnabled('categorie') && $user->hasRight("categorie", "read")) {
 				print '<tr><td>'.$form->editfieldkey('Categories', 'usercats', '', $object, 0).'</td>';
 				print '<td>';
 				print img_picto('', 'category', 'class="pictofixedwidth"');
 				$cate_arbo = $form->select_all_categories(Categorie::TYPE_USER, null, null, null, null, 1);
 				$c = new Categorie($db);
 				$cats = $c->containing($object->id, Categorie::TYPE_USER);
+				$arrayselected = array();
 				foreach ($cats as $cat) {
 					$arrayselected[] = $cat->id;
 				}
@@ -2531,7 +2596,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 			}
 
 			// Default language
-			if (!empty($conf->global->MAIN_MULTILANGS)) {
+			if (getDolGlobalInt('MAIN_MULTILANGS')) {
 				print '<tr><td>'.$form->editfieldkey('DefaultLang', 'default_lang', '', $object, 0, 'string', '', 0, 0, 'id', $langs->trans("WarningNotLangOfInterface", $langs->transnoentitiesnoconv("UserGUISetup"))).'</td><td colspan="3">'."\n";
 				print img_picto('', 'language', 'class="pictofixedwidth"').$formadmin->select_language($object->lang, 'default_lang', 0, null, '1', 0, 0, 'widthcentpercentminusx maxwidth300');
 				print '</td>';
@@ -2545,7 +2610,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 			print '</td></tr>';
 
 			// Company / Contact
-			if (!empty($conf->societe->enabled)) {
+			if (isModEnabled("societe")) {
 				print '<tr><td>'.$langs->trans("LinkToCompanyContact").'</td>';
 				print '<td>';
 				if ($object->socid > 0) {
@@ -2566,7 +2631,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 			}
 
 			// Module Adherent
-			if (!empty($conf->adherent->enabled)) {
+			if (isModEnabled('adherent')) {
 				$langs->load("members");
 				print '<tr><td>'.$langs->trans("LinkedToDolibarrMember").'</td>';
 				print '<td>';
@@ -2584,7 +2649,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 
 			// Multicompany
 			// TODO check if user not linked with the current entity before change entity (thirdparty, invoice, etc.) !!
-			if (!empty($conf->multicompany->enabled) && is_object($mc)) {
+			if (isModEnabled('multicompany') && is_object($mc)) {
 				// This is now done with hook formObjectOptions. Keep this code for backward compatibility with old multicompany module
 				if (!method_exists($mc, 'formObjectOptions')) {
 					if (empty($conf->multicompany->transverse_mode) && $conf->entity == 1 && $user->admin && !$user->entity) {
@@ -2657,8 +2722,8 @@ if ($action == 'create' || $action == 'adduserldap') {
 
 			// Sensitive salary/value information
 			if ((empty($user->socid) && in_array($id, $childids))	// A user can always see salary/value information for its subordinates
-				|| (!empty($conf->salaries->enabled) && !empty($user->rights->salaries->readall))
-				|| (!empty($conf->hrm->enabled) && !empty($user->rights->hrm->employee->read))) {
+				|| (!empty($conf->salaries->enabled) && $user->hasRight("salaries", "readall"))
+				|| (isModEnabled('hrm') && $user->hasRight("hrm", "employee", "read"))) {
 					$langs->load("salaries");
 
 				// Salary
@@ -2722,9 +2787,9 @@ if ($action == 'create' || $action == 'adduserldap') {
 			print '<tr><td>'.$langs->trans("DateOfBirth").'</td>';
 			print '<td>';
 			if ($caneditfield) {
-				echo $form->selectDate($dateofbirth ? $dateofbirth : $object->birth, 'dateofbirth', 0, 0, 1, 'updateuser', 1, 0);
+				echo $form->selectDate($dateofbirth ? $dateofbirth : $object->birth, 'dateofbirth', 0, 0, 1, 'updateuser', 1, 0, 0, '', '', '', '', 1, '', '', 'tzserver');
 			} else {
-				print dol_print_date($object->birth, 'day');
+				print dol_print_date($object->birth, 'day', 'tzserver');
 			}
 			print '</td>';
 			print "</tr>\n";
@@ -2749,8 +2814,8 @@ if ($action == 'create' || $action == 'adduserldap') {
 			$filename = dol_sanitizeFileName($object->ref);
 			$filedir = $conf->user->dir_output."/".dol_sanitizeFileName($object->ref);
 			$urlsource = $_SERVER["PHP_SELF"]."?id=".$object->id;
-			$genallowed = $user->rights->user->user->lire;
-			$delallowed = $user->rights->user->user->creer;
+			$genallowed = $user->hasRight("user", "user", "read");
+			$delallowed = $user->hasRight("user", "user", "write");
 
 			print $formfile->showdocuments('user', $filename, $filedir, $urlsource, $genallowed, $delallowed, $object->model_pdf, 1, 0, 0, 28, 0, '', 0, '', empty($soc->default_lang) ? '' : $soc->default_lang);
 			$somethingshown = $formfile->numoffiles;
@@ -2775,20 +2840,12 @@ if ($action == 'create' || $action == 'adduserldap') {
 	}
 }
 
-if (!empty($conf->api->enabled) && !empty($conf->use_javascript_ajax)) {
-	print "\n".'<script type="text/javascript">';
-	print '$(document).ready(function () {
-            $("#generate_api_key").click(function() {
-                $.get( "'.DOL_URL_ROOT.'/core/ajax/security.php", {
-                    action: \'getrandompassword\',
-                    generic: true
-                },
-                function(token) {
-                    $("#api_key").val(token);
-                });
-            });
-    });';
-	print '</script>';
+if (!empty($conf->api->enabled)) {
+	$constname = 'api_key';
+
+	// Add button to autosuggest a key
+	include_once DOL_DOCUMENT_ROOT.'/core/lib/security2.lib.php';
+	print dolJSToSetRandomPassword($constname, 'generate_api_key');
 }
 
 // End of page

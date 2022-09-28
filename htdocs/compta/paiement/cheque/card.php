@@ -27,6 +27,7 @@
  *	\brief		Page for cheque deposits
  */
 
+// Load Dolibarr environment
 require '../../../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formfile.class.php';
 require_once DOL_DOCUMENT_ROOT.'/compta/paiement/class/paiement.class.php';
@@ -59,8 +60,15 @@ $limit = GETPOST('limit', 'int') ?GETPOST('limit', 'int') : $conf->liste_limit;
 $offset = $limit * $page;
 
 $upload_dir = $conf->bank->multidir_output[$object->entity ? $object->entity : $conf->entity]."/checkdeposits";
-
-$filterdate = dol_mktime(0, 0, 0, GETPOST('fdmonth'), GETPOST('fdday'), GETPOST('fdyear'));
+// filter by dates from / to
+$search_date_start_day = GETPOST('search_date_start_day', 'int');
+$search_date_start_month = GETPOST('search_date_start_month', 'int');
+$search_date_start_year = GETPOST('search_date_start_year', 'int');
+$search_date_end_day = GETPOST('search_date_end_day', 'int');
+$search_date_end_month = GETPOST('search_date_end_month', 'int');
+$search_date_end_year = GETPOST('search_date_end_year', 'int');
+$search_date_start = dol_mktime(0, 0, 0, $search_date_start_month, $search_date_start_day, $search_date_start_year);
+$search_date_end = dol_mktime(23, 59, 59, $search_date_end_month, $search_date_end_day, $search_date_end_year);
 $filteraccountid = GETPOST('accountid', 'int');
 
 // Security check
@@ -83,8 +91,7 @@ $usercandelete = $user->rights->banque->cheque;
 if ($action == 'setdate' && $user->rights->banque->cheque) {
 	$result = $object->fetch(GETPOST('id', 'int'));
 	if ($result > 0) {
-		//print "x ".$_POST['liv_month'].", ".$_POST['liv_day'].", ".$_POST['liv_year'];
-		$date = dol_mktime(0, 0, 0, $_POST['datecreate_month'], $_POST['datecreate_day'], $_POST['datecreate_year']);
+		$date = dol_mktime(0, 0, 0, GETPOST('datecreate_month', 'int'), GETPOST('datecreate_day', 'int'), GETPOST('datecreate_year', 'int'));
 
 		$result = $object->set_date($user, $date);
 		if ($result < 0) {
@@ -124,7 +131,7 @@ if ($action == 'setref' && $user->rights->banque->cheque) {
 }
 
 if ($action == 'create' && GETPOST("accountid", "int") > 0 && $user->rights->banque->cheque) {
-	if (is_array($_POST['toRemise'])) {
+	if (is_array(GETPOST('toRemise'))) {
 		$result = $object->create($user, GETPOST("accountid", "int"), 0, GETPOST('toRemise'));
 		if ($result > 0) {
 			if ($object->statut == 1) {     // If statut is validated, we build doc
@@ -132,10 +139,10 @@ if ($action == 'create' && GETPOST("accountid", "int") > 0 && $user->rights->ban
 				// Define output language
 				$outputlangs = $langs;
 				$newlang = '';
-				if ($conf->global->MAIN_MULTILANGS && empty($newlang) && GETPOST('lang_id', 'aZ09')) {
+				if (getDolGlobalInt('MAIN_MULTILANGS') && empty($newlang) && GETPOST('lang_id', 'aZ09')) {
 					$newlang = GETPOST('lang_id', 'aZ09');
 				}
-				//if ($conf->global->MAIN_MULTILANGS && empty($newlang)) $newlang=$object->client->default_lang;
+				//if (getDolGlobalInt('MAIN_MULTILANGS') && empty($newlang)) $newlang=$object->client->default_lang;
 				if (!empty($newlang)) {
 					$outputlangs = new Translate("", $conf);
 					$outputlangs->setDefaultLang($newlang);
@@ -183,10 +190,10 @@ if ($action == 'confirm_validate' && $confirm == 'yes' && $user->rights->banque-
 		// Define output language
 		$outputlangs = $langs;
 		$newlang = '';
-		if ($conf->global->MAIN_MULTILANGS && empty($newlang) && GETPOST('lang_id', 'aZ09')) {
+		if (getDolGlobalInt('MAIN_MULTILANGS') && empty($newlang) && GETPOST('lang_id', 'aZ09')) {
 			$newlang = GETPOST('lang_id', 'aZ09');
 		}
-		//if ($conf->global->MAIN_MULTILANGS && empty($newlang)) $newlang=$object->client->default_lang;
+		//if (getDolGlobalInt('MAIN_MULTILANGS') && empty($newlang)) $newlang=$object->client->default_lang;
 		if (!empty($newlang)) {
 			$outputlangs = new Translate("", $conf);
 			$outputlangs->setDefaultLang($newlang);
@@ -225,10 +232,10 @@ if ($action == 'builddoc' && $user->rights->banque->cheque) {
 
 	$outputlangs = $langs;
 	$newlang = '';
-	if ($conf->global->MAIN_MULTILANGS && empty($newlang) && GETPOST('lang_id', 'aZ09')) {
+	if (getDolGlobalInt('MAIN_MULTILANGS') && empty($newlang) && GETPOST('lang_id', 'aZ09')) {
 		$newlang = GETPOST('lang_id', 'aZ09');
 	}
-	//if ($conf->global->MAIN_MULTILANGS && empty($newlang)) $newlang=$object->client->default_lang;
+	//if (getDolGlobalInt('MAIN_MULTILANGS') && empty($newlang)) $newlang=$object->client->default_lang;
 	if (!empty($newlang)) {
 		$outputlangs = new Translate("", $conf);
 		$outputlangs->setDefaultLang($newlang);
@@ -266,7 +273,15 @@ if ($action == 'builddoc' && $user->rights->banque->cheque) {
  */
 
 if (GETPOST('removefilter')) {
-	$filterdate = '';
+	// filter by dates from / to
+	$search_date_start_day = '';
+	$search_date_start_month = '';
+	$search_date_start_year = '';
+	$search_date_end_day = '';
+	$search_date_end_month = '';
+	$search_date_end_year = '';
+	$search_date_start = '';
+	$search_date_end = '';
 	$filteraccountid = 0;
 }
 
@@ -353,7 +368,13 @@ if ($action == 'new') {
 	//print '<tr><td width="30%">'.$langs->trans('Date').'</td><td width="70%">'.dol_print_date($now,'day').'</td></tr>';
 	// Filter
 	print '<tr><td class="titlefieldcreate">'.$langs->trans("DateChequeReceived").'</td><td>';
-	print $form->selectDate($filterdate, 'fd', 0, 0, 1, '', 1, 1);
+	// filter by dates from / to
+	print '<div class="nowrap">';
+	print $form->selectDate($search_date_start, 'search_date_start_', 0, 0, 1, '', 1, 1, 0, '', '', '', '', 1, '', $langs->trans('From'));
+	print '</div>';
+	print '<div class="nowrap">';
+	print $form->selectDate($search_date_end, 'search_date_end_', 0, 0, 1, '', 1, 1, 0, '', '', '', '', 1, '', $langs->trans('to'));
+	print '</div>';
 	print '</td></tr>';
 	print '<tr><td>'.$langs->trans("BankAccount").'</td><td>';
 	$form->select_comptes($filteraccountid, 'accountid', 0, 'courant <> 2', 1);
@@ -364,7 +385,7 @@ if ($action == 'new') {
 
 	print '<div class="center">';
 	print '<input type="submit" class="button" name="filter" value="'.dol_escape_htmltag($langs->trans("ToFilter")).'">';
-	if ($filterdate || $filteraccountid > 0) {
+	if ($search_date_start || $search_date_end || $filteraccountid > 0) {
 		print ' &nbsp; ';
 		print '<input type="submit" class="button" name="removefilter" value="'.dol_escape_htmltag($langs->trans("RemoveFilter")).'">';
 	}
@@ -383,8 +404,11 @@ if ($action == 'new') {
 	$sql .= " AND ba.entity IN (".getEntity('bank_account').")";
 	$sql .= " AND b.fk_bordereau = 0";
 	$sql .= " AND b.amount > 0";
-	if ($filterdate) {
-		$sql .= " AND b.dateo = '".$db->idate($filterdate)."'";
+	if ($search_date_start) {
+		$sql .= " AND b.dateo >= '".$db->idate($search_date_start)."'";
+	}
+	if ($search_date_end) {
+		$sql .= " AND b.dateo <= '".$db->idate($search_date_end)."'";
 	}
 	if ($filteraccountid > 0) {
 		$sql .= " AND ba.rowid = ".((int) $filteraccountid);

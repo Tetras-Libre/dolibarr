@@ -150,7 +150,7 @@ if ($id > 0 || !empty($ref)) {
 				$sql .= ", ".MAIN_DB_PREFIX."societe_commerciaux as sc";
 			}
 			$sql .= " WHERE c.fk_soc = s.rowid";
-			$sql .= " AND c.entity = ".$conf->entity;
+			$sql .= " AND c.entity IN (".getEntity('supplier_order').")";
 			$sql .= " AND d.fk_commande = c.rowid";
 			$sql .= " AND d.fk_product = ".((int) $product->id);
 			if (!empty($search_month)) {
@@ -198,6 +198,7 @@ if ($id > 0 || !empty($ref)) {
 				}
 
 				print '<form method="post" action="'.$_SERVER['PHP_SELF'].'?id='.$product->id.'" name="search_form">'."\n";
+				print '<input type="hidden" name="token" value="'.newToken().'">';
 				if (!empty($sortfield)) {
 					print '<input type="hidden" name="sortfield" value="'.$sortfield.'"/>';
 				}

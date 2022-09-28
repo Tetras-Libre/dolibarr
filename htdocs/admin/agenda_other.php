@@ -26,6 +26,7 @@
  *      \brief      Autocreate actions for agenda module setup page
  */
 
+// Load Dolibarr environment
 require '../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/agenda.lib.php';
@@ -41,6 +42,8 @@ $langs->loadLangs(array('admin', 'other', 'agenda', 'users'));
 
 $action = GETPOST('action', 'aZ09');
 $value = GETPOST('value', 'alpha');
+$modulepart = GETPOST('modulepart', 'aZ09');	// Used by actions_setmoduleoptions.inc.php
+
 $param = GETPOST('param', 'alpha');
 $cancel = GETPOST('cancel', 'alpha');
 $scandir = GETPOST('scan_dir', 'alpha');

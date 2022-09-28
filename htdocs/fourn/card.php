@@ -29,6 +29,7 @@
  *	\brief      Page for supplier third party card (view, edit)
  */
 
+// Load Dolibarr environment
 require '../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/fourn/class/fournisseur.class.php';
 require_once DOL_DOCUMENT_ROOT.'/fourn/class/fournisseur.facture.class.php';
@@ -36,10 +37,10 @@ require_once DOL_DOCUMENT_ROOT.'/supplier_proposal/class/supplier_proposal.class
 require_once DOL_DOCUMENT_ROOT.'/contact/class/contact.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/company.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/extrafields.class.php';
-if (!empty($conf->adherent->enabled)) {
+if (isModEnabled('adherent')) {
 	require_once DOL_DOCUMENT_ROOT.'/adherents/class/adherent.class.php';
 }
-if (!empty($conf->categorie->enabled)) {
+if (isModEnabled('categorie')) {
 	require_once DOL_DOCUMENT_ROOT.'/categories/class/categorie.class.php';
 }
 
@@ -70,7 +71,7 @@ $extrafields = new ExtraFields($db);
 $extrafields->fetch_name_optionals_label($object->table_element);
 
 // Initialize technical object to manage hooks of page. Note that conf->hooks_modules contains array of hook context
-$hookmanager->initHooks(array('suppliercard', 'globalcard'));
+$hookmanager->initHooks(array('thirdpartysupplier', 'globalcard'));
 
 // Security check
 $result = restrictedArea($user, 'societe', $id, '&societe', '', 'fk_soc', 'rowid', 0);
@@ -147,6 +148,7 @@ if (empty($reshook)) {
 		if (!$error) {
 			$result = $object->insertExtraFields('COMPANY_MODIFY');
 			if ($result < 0) {
+				setEventMessages($object->error, $object->errors, 'errors');
 				$error++;
 			}
 		}
@@ -170,6 +172,7 @@ if ($id > 0 && empty($object->id)) {
 	$res = $object->fetch($id);
 	if ($object->id <= 0) {
 		dol_print_error($db, $object->error);
+		exit(-1);
 	}
 }
 
@@ -266,7 +269,7 @@ if ($object->id > 0) {
 	print '</tr></table>';
 	print '</td><td>';
 	if ($action == 'editconditions') {
-		$form->form_conditions_reglement($_SERVER['PHP_SELF'].'?socid='.$object->id, $object->cond_reglement_supplier_id, 'cond_reglement_supplier_id', -1, 1);
+		$form->form_conditions_reglement($_SERVER['PHP_SELF'].'?socid='.$object->id, $object->cond_reglement_supplier_id, 'cond_reglement_supplier_id', 1);
 	} else {
 		$form->form_conditions_reglement($_SERVER['PHP_SELF'].'?socid='.$object->id, $object->cond_reglement_supplier_id, 'none');
 	}
@@ -326,7 +329,7 @@ if ($object->id > 0) {
 	print '</td>';
 	print '</tr>';
 
-	if (((!empty($conf->fournisseur->enabled) && empty($conf->global->MAIN_USE_NEW_SUPPLIERMOD)) || !empty($conf->supplier_order->enabled)) && !empty($conf->global->ORDER_MANAGE_MIN_AMOUNT)) {
+	if (((isModEnabled("fournisseur") && empty($conf->global->MAIN_USE_NEW_SUPPLIERMOD)) || isModEnabled("supplier_order")) && !empty($conf->global->ORDER_MANAGE_MIN_AMOUNT)) {
 		print '<tr class="nowrap">';
 		print '<td>';
 		print $form->editfieldkey("OrderMinAmount", 'supplier_order_min_amount', $object->supplier_order_min_amount, $object, $user->rights->societe->creer);
@@ -338,7 +341,7 @@ if ($object->id > 0) {
 	}
 
 	// Categories
-	if (!empty($conf->categorie->enabled)) {
+	if (isModEnabled('categorie')) {
 		$langs->load("categories");
 		print '<tr><td>'.$langs->trans("SuppliersCategoriesShort").'</td>';
 		print '<td>';
@@ -351,7 +354,7 @@ if ($object->id > 0) {
 	include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_view.tpl.php';
 
 	// Module Adherent
-	if (!empty($conf->adherent->enabled)) {
+	if (isModEnabled('adherent')) {
 		$langs->load("members");
 		$langs->load("users");
 		print '<tr><td>'.$langs->trans("LinkedToDolibarrMember").'</td>';
@@ -378,14 +381,14 @@ if ($object->id > 0) {
 	// Nbre max d'elements des petites listes
 	$MAXLIST = $conf->global->MAIN_SIZE_SHORTLIST_LIMIT;
 
-	print '<div class="underbanner clearboth"></div>';
+	print '<div class="underbanner underbanner-before-box clearboth"></div>';
 
 	// Lien recap
-	$boxstat .= '<div class="box">';
+	$boxstat .= '<div class="box box-halfright">';
 	$boxstat .= '<table summary="'.dol_escape_htmltag($langs->trans("DolibarrStateBoard")).'" class="border boxtable boxtablenobottom boxtablenotop" width="100%">';
 	$boxstat .= '<tr class="impair nohover"><td colspan="2" class="tdboxstats nohover">';
 
-	if (!empty($conf->supplier_proposal->enabled)) {
+	if (isModEnabled('supplier_proposal')) {
 		// Box proposals
 		$tmp = $object->getOutstandingProposals('supplier');
 		$outstandingOpened = $tmp['opened'];
@@ -406,7 +409,7 @@ if ($object->id > 0) {
 		}
 	}
 
-	if ((!empty($conf->fournisseur->enabled) && empty($conf->global->MAIN_USE_NEW_SUPPLIERMOD)) || !empty($conf->supplier_order->enabled)) {
+	if ((isModEnabled("fournisseur") && empty($conf->global->MAIN_USE_NEW_SUPPLIERMOD)) || isModEnabled("supplier_order")) {
 		// Box proposals
 		$tmp = $object->getOutstandingOrders('supplier');
 		$outstandingOpened = $tmp['opened'];
@@ -427,7 +430,7 @@ if ($object->id > 0) {
 		}
 	}
 
-	if ((!empty($conf->fournisseur->enabled) && empty($conf->global->MAIN_USE_NEW_SUPPLIERMOD)) || !empty($conf->supplier_invoice->enabled)) {
+	if ((isModEnabled("fournisseur") && empty($conf->global->MAIN_USE_NEW_SUPPLIERMOD)) || isModEnabled("supplier_invoice")) {
 		$warn = '';
 		$tmp = $object->getOutstandingBills('supplier');
 		$outstandingOpened = $tmp['opened'];
@@ -512,7 +515,7 @@ if ($object->id > 0) {
 	/*
 	 * List of products
 	 */
-	if (!empty($conf->product->enabled) || !empty($conf->service->enabled)) {
+	if (isModEnabled("product") || isModEnabled("service")) {
 		$langs->load("products");
 		//Query from product/liste.php
 		$sql = 'SELECT p.rowid, p.ref, p.label, p.fk_product_type, p.entity, p.tosell as status, p.tobuy as status_buy, p.tobatch as status_batch,';
@@ -837,24 +840,24 @@ if ($object->id > 0) {
 	// modified by hook
 	if (empty($reshook)) {
 		if ($object->status != 1) {
-			print '<div class="inline-block divButAction"><a class="butActionRefused classfortooltip" title="'.dol_escape_js($langs->trans("ThirdPartyIsClosed")).'" href="#">'.$langs->trans("ThirdPartyIsClosed").'</a></div>';
+			print dolGetButtonAction($langs->trans('ThirdPartyIsClosed'), $langs->trans('ThirdPartyIsClosed'), 'default', $_SERVER['PHP_SELF'].'#', '', false);
 		}
 
-		if (!empty($conf->supplier_proposal->enabled) && !empty($user->rights->supplier_proposal->creer)) {
+		if (isModEnabled('supplier_proposal') && !empty($user->rights->supplier_proposal->creer)) {
 			$langs->load("supplier_proposal");
 			if ($object->status == 1) {
-				print '<a class="butAction" href="'.DOL_URL_ROOT.'/supplier_proposal/card.php?action=create&socid='.$object->id.'">'.$langs->trans("AddSupplierProposal").'</a>';
+				print dolGetButtonAction('', $langs->trans('AddSupplierProposal'), 'default', DOL_URL_ROOT.'/supplier_proposal/card.php?action=create&amp;socid='.$object->id, '');
 			} else {
-				print '<a class="butActionRefused classfortooltip" title="'.dol_escape_js($langs->trans("ThirdPartyIsClosed")).'" href="#">'.$langs->trans("AddSupplierProposal").'</a>';
+				print dolGetButtonAction($langs->trans('ThirdPartyIsClosed'), $langs->trans('AddSupplierProposalGR'),  'default', $_SERVER['PHP_SELF'].'#', '', false);
 			}
 		}
 
 		if ($user->rights->fournisseur->commande->creer || $user->rights->supplier_order->creer) {
 			$langs->load("orders");
 			if ($object->status == 1) {
-				print '<a class="butAction" href="'.DOL_URL_ROOT.'/fourn/commande/card.php?action=create&socid='.$object->id.'">'.$langs->trans("AddSupplierOrderShort").'</a>';
+				print dolGetButtonAction('', $langs->trans('AddSupplierOrderShort'), 'default', DOL_URL_ROOT.'/fourn/commande/card.php?action=create&amp;token='.newToken().'&amp;socid='.$object->id, '');
 			} else {
-				print '<a class="butActionRefused classfortooltip" title="'.dol_escape_js($langs->trans("ThirdPartyIsClosed")).'" href="#">'.$langs->trans("AddSupplierOrderShort").'</a>';
+				print dolGetButtonAction($langs->trans('ThirdPartyIsClosed'), $langs->trans('AddSupplierOrderShort'),  'default', $_SERVER['PHP_SELF'].'#', '', false);
 			}
 		}
 
@@ -862,30 +865,30 @@ if ($object->id > 0) {
 			if (!empty($orders2invoice) && $orders2invoice > 0) {
 				if ($object->status == 1) {
 					// Company is open
-					print '<div class="inline-block divButAction"><a class="butAction" href="'.DOL_URL_ROOT.'/fourn/commande/list.php?socid='.$object->id.'&search_billed=0&autoselectall=1">'.$langs->trans("CreateInvoiceForThisSupplier").'</a></div>';
+					print dolGetButtonAction('', $langs->trans('CreateInvoiceForThisSupplierGR'), 'default', DOL_URL_ROOT.'/fourn/commande/list.php?socid='.$object->id.'&amp;search_billed=0&amp;autoselectall=1', '');
 				} else {
-					print '<div class="inline-block divButAction"><a class="butActionRefused classfortooltip" href="#">'.$langs->trans("CreateInvoiceForThisCustomer").'</a></div>';
+					print dolGetButtonAction('', $langs->trans('CreateInvoiceForThisCustomer'),  'default', $_SERVER['PHP_SELF'].'#', '', false);
 				}
 			} else {
-				print '<div class="inline-block divButAction"><a class="butActionRefused classfortooltip" title="'.dol_escape_js($langs->trans("NoOrdersToInvoice").' ('.$langs->trans("WithReceptionFinished").')').'" href="#">'.$langs->trans("CreateInvoiceForThisCustomer").'</a></div>';
+				print dolGetButtonAction($langs->trans("NoOrdersToInvoice").' ('.$langs->trans("WithReceptionFinished").')', $langs->trans('CreateInvoiceForThisCustomer'),  'default', $_SERVER['PHP_SELF'].'#', '', false);
 			}
 		}
 
 		if ($user->rights->fournisseur->facture->creer || $user->rights->supplier_invoice->creer) {
 			$langs->load("bills");
 			if ($object->status == 1) {
-				print '<a class="butAction" href="'.DOL_URL_ROOT.'/fourn/facture/card.php?action=create&socid='.$object->id.'">'.$langs->trans("AddBill").'</a>';
+				print dolGetButtonAction('', $langs->trans('AddBill'), 'default', DOL_URL_ROOT.'/fourn/facture/card.php?action=create&amp;socid='.$object->id, '');
 			} else {
-				print '<a class="butActionRefused classfortooltip" title="'.dol_escape_js($langs->trans("ThirdPartyIsClosed")).'" href="#">'.$langs->trans("AddBill").'</a>';
+				print dolGetButtonAction($langs->trans('ThirdPartyIsClosed'), $langs->trans('AddBill'),  'default', $_SERVER['PHP_SELF'].'#', '', false);
 			}
 		}
 
 		// Add action
-		if (!empty($conf->agenda->enabled) && !empty($conf->global->MAIN_REPEATTASKONEACHTAB) && $object->status == 1) {
+		if (isModEnabled('agenda') && !empty($conf->global->MAIN_REPEATTASKONEACHTAB) && $object->status == 1) {
 			if ($user->rights->agenda->myactions->create) {
-				print '<a class="butAction" href="'.DOL_URL_ROOT.'/comm/action/card.php?action=create&socid='.$object->id.'">'.$langs->trans("AddAction").'</a>';
+				print dolGetButtonAction('', $langs->trans('AddAction'), 'default', DOL_URL_ROOT.'/comm/action/card.php?action=create&amp;socid='.$object->id, '');
 			} else {
-				print '<a class="butAction" title="'.dol_escape_js($langs->trans("NotAllowed")).'" href="#">'.$langs->trans("AddAction").'</a>';
+				print dolGetButtonAction($langs->trans('NotAllowed'), $langs->trans('AddAction'),  'default', $_SERVER['PHP_SELF'].'#', '', false);
 			}
 		}
 	}

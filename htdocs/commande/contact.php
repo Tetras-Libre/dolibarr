@@ -2,7 +2,7 @@
 /* Copyright (C) 2005      Patrick Rouillon     <patrick@rouillon.net>
  * Copyright (C) 2005-2011 Laurent Destailleur  <eldy@users.sourceforge.net>
  * Copyright (C) 2005-2012 Regis Houssin        <regis.houssin@inodbox.com>
- * Copyright (C) 2011-2015 Philippe Grand       <philippe.grand@atoo-net.com>
+ * Copyright (C) 2011-2022 Philippe Grand       <philippe.grand@atoo-net.com>
  * Copyright (C) 2021 		Frédéric France		<frederic.france@netlogic.fr>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -25,6 +25,7 @@
  *     \brief      Onglet de gestion des contacts de commande
  */
 
+// Load Dolibarr environment
 require '../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/commande/class/commande.class.php';
 require_once DOL_DOCUMENT_ROOT.'/contact/class/contact.class.php';
@@ -91,22 +92,11 @@ if ($action == 'addcontact' && $user->rights->commande->creer) {
 		setEventMessages($object->error, $object->errors, 'errors');
 	}
 }
-/*
-elseif ($action == 'setaddress' && $user->rights->commande->creer)
-{
-	$object->fetch($id);
-	$result=$object->setDeliveryAddress($_POST['fk_address']);
-	if ($result < 0) dol_print_error($db,$object->error);
-}*/
 
 
 /*
  * View
  */
-$title = $langs->trans('Order')." - ".$langs->trans('ContactsAddresses');
-$help_url = 'EN:Customers_Orders|FR:Commandes_Clients|ES:Pedidos de clientes|DE:Modul_Kundenaufträge';
-llxHeader('', $title, $help_url);
-
 $form = new Form($db);
 $formcompany = new FormCompany($db);
 $formother = new FormOther($db);
@@ -124,6 +114,10 @@ if ($id > 0 || !empty($ref)) {
 	if ($object->fetch($id, $ref) > 0) {
 		$object->fetch_thirdparty();
 
+		$title = $object->ref." - ".$langs->trans('ContactsAddresses');
+		$help_url = 'EN:Customers_Orders|FR:Commandes_Clients|ES:Pedidos de clientes|DE:Modul_Kundenaufträge';
+		llxHeader('', $title, $help_url);
+
 		$head = commande_prepare_head($object);
 		print dol_get_fiche_head($head, 'contact', $langs->trans("CustomerOrder"), -1, 'order');
 
@@ -138,7 +132,7 @@ if ($id > 0 || !empty($ref)) {
 		// Thirdparty
 		$morehtmlref .= '<br>'.$langs->trans('ThirdParty').' : '.$object->thirdparty->getNomUrl(1);
 		// Project
-		if (!empty($conf->projet->enabled)) {
+		if (isModEnabled('project')) {
 			$langs->load("projects");
 			$morehtmlref .= '<br>'.$langs->trans('Project').' ';
 			if ($user->rights->commande->creer) {

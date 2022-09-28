@@ -26,6 +26,7 @@
  *  \brief      Page of members events
  */
 
+// Load Dolibarr environment
 require '../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/contact/class/contact.class.php';
 require_once DOL_DOCUMENT_ROOT.'/adherents/class/adherent.class.php';
@@ -64,6 +65,9 @@ if (GETPOST('actioncode', 'array')) {
 	$actioncode = GETPOST("actioncode", "alpha", 3) ?GETPOST("actioncode", "alpha", 3) : (GETPOST("actioncode") == '0' ? '0' : (empty($conf->global->AGENDA_DEFAULT_FILTER_TYPE_FOR_OBJECT) ? '' : $conf->global->AGENDA_DEFAULT_FILTER_TYPE_FOR_OBJECT));
 }
 $search_agenda_label = GETPOST('search_agenda_label');
+
+// Get object canvas (By default, this is not defined, so standard usage of dolibarr)
+$objcanvas = null;
 
 // Security check
 $result = restrictedArea($user, 'adherent', $id);
@@ -127,7 +131,7 @@ if ($object->id > 0) {
 
 	llxHeader("", $title, $help_url);
 
-	if (!empty($conf->notification->enabled)) {
+	if (isModEnabled('notification')) {
 		$langs->load("mails");
 	}
 	$head = member_prepare_head($object);
@@ -159,11 +163,11 @@ if ($object->id > 0) {
 
 
 	$newcardbutton = '';
-	if (!empty($conf->agenda->enabled)) {
-		$newcardbutton .= dolGetButtonTitle($langs->trans('AddAction'), '', 'fa fa-plus-circle', DOL_URL_ROOT.'/comm/action/card.php?action=create&backtopage=1&origin=member&originid='.$id);
+	if (isModEnabled('agenda')) {
+		$newcardbutton .= dolGetButtonTitle($langs->trans('AddAction'), '', 'fa fa-plus-circle', DOL_URL_ROOT.'/comm/action/card.php?action=create&backtopage='.urlencode($_SERVER['PHP_SELF']).($object->id > 0 ? '?id='.$object->id : '').'&origin=member&originid='.$id);
 	}
 
-	if (!empty($conf->agenda->enabled) && (!empty($user->rights->agenda->myactions->read) || !empty($user->rights->agenda->allactions->read))) {
+	if (isModEnabled('agenda') && (!empty($user->rights->agenda->myactions->read) || !empty($user->rights->agenda->allactions->read))) {
 		print '<br>';
 
 		$param = '&id='.$id;

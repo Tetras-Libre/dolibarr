@@ -20,9 +20,9 @@
  */
 
 /**
- *   	\file       evaluation_card.php
- *		\ingroup    hrm
- *		\brief      Page to create/edit/view evaluation
+ *    \file       htdocs/hrm/evaluation_card.php
+ *    \ingroup    hrm
+ *    \brief      Page to create/edit/view evaluation
  */
 
 // Load Dolibarr environment
@@ -32,14 +32,15 @@ require_once DOL_DOCUMENT_ROOT.'/core/class/html.formcompany.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formfile.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formprojet.class.php';
 require_once DOL_DOCUMENT_ROOT.'/hrm/class/evaluation.class.php';
+require_once DOL_DOCUMENT_ROOT.'/hrm/class/job.class.php';
 require_once DOL_DOCUMENT_ROOT.'/hrm/class/skill.class.php';
 require_once DOL_DOCUMENT_ROOT.'/hrm/class/skillrank.class.php';
 require_once DOL_DOCUMENT_ROOT.'/hrm/lib/hrm_evaluation.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/hrm/lib/hrm_skillrank.lib.php';
-require_once DOL_DOCUMENT_ROOT . '/hrm/class/job.class.php';
+
 
 // Load translation files required by the page
-$langs->loadLangs(array("hrm", "other", 'products'));
+$langs->loadLangs(array('hrm', 'other', 'products'));  // why products?
 
 // Get parameters
 $id = GETPOST('id', 'int');
@@ -79,7 +80,7 @@ if (empty($action) && empty($id) && empty($ref)) {
 // Load object
 include DOL_DOCUMENT_ROOT.'/core/actions_fetchobject.inc.php'; // Must be include, not include_once.
 
-
+// Permissions
 $permissiontoread = $user->rights->hrm->evaluation->read;
 $permissiontoadd = $user->rights->hrm->evaluation->write; // Used by the include of actions_addupdatedelete.inc.php and actions_lineupdown.inc.php
 $permissiontovalidate = $user->rights->hrm->evaluation_advance->validate;
@@ -159,6 +160,7 @@ if (empty($reshook)) {
 				$line->rankorder = $TNote[$line->fk_skill];
 				$line->update($user);
 			}
+			setEventMessage($langs->trans("SaveLevelSkill"));
 		}
 	}
 
@@ -269,9 +271,6 @@ if ($action == 'create') {
 
 	print dol_get_fiche_head(array(), '');
 
-	// Set some default values
-	//if (! GETPOSTISSET('fieldname')) $_POST['fieldname'] = 'myvalue';
-
 	print '<table class="border centpercent tableforfieldcreate">'."\n";
 
 	// Common attributes
@@ -355,7 +354,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 		}
 
 		$text = $langs->trans('ConfirmValidateEvaluation', $numref);
-		if (!empty($conf->notification->enabled)) {
+		if (isModEnabled('notification')) {
 			require_once DOL_DOCUMENT_ROOT.'/core/class/notify.class.php';
 			$notify = new Notify($db);
 			$text .= '<br>';
@@ -572,7 +571,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 			print '<th style="width:auto;text-align:auto" class="liste_titre">' . $langs->trans("Description") . '</th>';
 			print '<th style="width:auto;text-align:center" class="liste_titre">' . $langs->trans("EmployeeRank") . '</th>';
 			print '<th style="width:auto;text-align:center" class="liste_titre">' . $langs->trans("RequiredRank") . '</th>';
-			print '<th style="width:auto;text-align:auto" class="liste_titre">' . $langs->trans("Result") . '</th>';
+			print '<th style="width:auto;text-align:auto" class="liste_titre">' . $langs->trans("Result") . ' ' .$form->textwithpicto('', GetLegendSkills(), 1) .'</th>';
 			print '</tr>';
 
 			$sk = new Skill($db);
@@ -682,7 +681,7 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 
 		$MAXEVENT = 10;
 
-		$morehtmlcenter = dolGetButtonTitle($langs->trans('SeeAll'), '', 'fa fa-list-alt imgforviewmode', DOL_URL_ROOT.'/hrm/evaluation_agenda.php?id='.$object->id);
+		$morehtmlcenter = dolGetButtonTitle($langs->trans('SeeAll'), '', 'fa fa-bars imgforviewmode', DOL_URL_ROOT.'/hrm/evaluation_agenda.php?id='.$object->id);
 
 		// List of actions on element
 		include_once DOL_DOCUMENT_ROOT.'/core/class/html.formactions.class.php';

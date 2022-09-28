@@ -31,9 +31,6 @@ if (!defined('NOREQUIRESOC')) {
 	define('NOREQUIRESOC', '1');
 }
 //if (! defined('NOREQUIRETRAN')) define('NOREQUIRETRAN','1');	// Not disabled because need to do translations
-if (!defined('NOCSRFCHECK')) {
-	define('NOCSRFCHECK', 1);
-}
 if (!defined('NOTOKENRENEWAL')) {
 	define('NOTOKENRENEWAL', 1);
 }
@@ -141,7 +138,9 @@ button.calcbutton2 {
 	margin: 1px;
 	border-radius: 3px;
 }
-
+button.calcbutton2.clicked {
+	background-color: #8855AA;
+}
 button.calcbutton2 .iconwithlabel {
 	padding-bottom: 10px;
 }
@@ -311,7 +310,7 @@ table.postablelines tr td {
 
 .posinvoiceline td {
 	height: 40px !important;
-	background-color: var(--colorbacklineimpair1);
+	background-color: var(--colorbacklineimpair2);
 }
 
 .postablelines td.linecolht {
@@ -436,8 +435,9 @@ tr.selected, tr.selected td {
 	/* font-weight: bold; */
 	background-color: rgb(240,230,210) !important;
 }
-.order {
-	color: limegreen;
+.order td {
+	color: green;
+	/* background-color: #f5f5f5; */
 }
 
 .colorwhite {
@@ -794,7 +794,8 @@ div#moreinfo, div#infowarehouse {
 .headersplit {
 	height: 10%;
 	width: 100%;
-	padding: 10px;
+	padding-top: 20px;
+	padding-bottom: 2px;
 }
 
 .headercontent {
@@ -805,6 +806,19 @@ div#moreinfo, div#infowarehouse {
 	font-size: 150%;
 	background-color: rgb(233,234,237);
 }
+
+
+@media only screen and (max-width: 767px)
+{
+	.headercontent {
+		width: 80%;
+	}
+
+	.headersplit .headercontent {
+		font-size: 1em;
+	}
+}
+
 
 .row:after {
   content: "";

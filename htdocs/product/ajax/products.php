@@ -38,20 +38,19 @@ if (!defined('NOREQUIREAJAX')) {
 if (!defined('NOREQUIRESOC')) {
 	define('NOREQUIRESOC', '1');
 }
-if (!defined('NOCSRFCHECK')) {
-	define('NOCSRFCHECK', '1');
-}
 if (empty($_GET['keysearch']) && !defined('NOREQUIREHTML')) {
 	define('NOREQUIREHTML', '1');
 }
 
+// Load Dolibarr environment
 require '../../main.inc.php';
 
 $htmlname = GETPOST('htmlname', 'aZ09');
 $socid = GETPOST('socid', 'int');
 $type = GETPOST('type', 'int');
 $mode = GETPOST('mode', 'int');
-$status = ((GETPOST('status', 'int') >= 0) ? GETPOST('status', 'int') : - 1);
+$status = ((GETPOST('status', 'int') >= 0) ? GETPOST('status', 'int') : - 1);	// status buy when mode = customer , status purchase when mode = supplier
+$status_purchase = ((GETPOST('status_purchase', 'int') >= 0) ? GETPOST('status_purchase', 'int') : - 1);	// status purchase when mode = customer
 $outjson = (GETPOST('outjson', 'int') ? GETPOST('outjson', 'int') : 0);
 $price_level = GETPOST('price_level', 'int');
 $action = GETPOST('action', 'aZ09');
@@ -77,6 +76,8 @@ if ($action == 'fetch' && !empty($id)) {
 	// action='fetch' is used to get product information on a product. So when action='fetch', id must be the product id.
 	require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
 	require_once DOL_DOCUMENT_ROOT.'/societe/class/societe.class.php';
+
+	top_httphead('application/json');
 
 	$outjson = array();
 
@@ -105,7 +106,7 @@ if ($action == 'fetch' && !empty($id)) {
 			$thirdpartytemp->fetch($socid);
 
 			//Load translation description and label
-			if (!empty($conf->global->MAIN_MULTILANGS) && !empty($conf->global->PRODUIT_TEXTS_IN_THIRDPARTY_LANGUAGE)) {
+			if (getDolGlobalInt('MAIN_MULTILANGS') && !empty($conf->global->PRODUIT_TEXTS_IN_THIRDPARTY_LANGUAGE)) {
 				$newlang = $thirdpartytemp->default_lang;
 
 				if (!empty($newlang)) {
@@ -260,7 +261,7 @@ if ($action == 'fetch' && !empty($id)) {
 	}
 
 	if (empty($mode) || $mode == 1) {  // mode=1: customer
-		$arrayresult = $form->select_produits_list("", $htmlname, $type, 0, $price_level, $searchkey, $status, $finished, $outjson, $socid, '1', 0, '', $hidepriceinlabel, $warehouseStatus);
+		$arrayresult = $form->select_produits_list("", $htmlname, $type, 0, $price_level, $searchkey, $status, $finished, $outjson, $socid, '1', 0, '', $hidepriceinlabel, $warehouseStatus, $status_purchase);
 	} elseif ($mode == 2) {            // mode=2: supplier
 		$arrayresult = $form->select_produits_fournisseurs_list($socid, "", $htmlname, $type, "", $searchkey, $status, $outjson, 0, $alsoproductwithnosupplierprice);
 	}

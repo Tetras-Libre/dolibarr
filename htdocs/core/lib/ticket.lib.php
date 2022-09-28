@@ -1,7 +1,7 @@
 <?php
 /* Copyright (C) 2013-2018	Jean-François FERRY	<hello@librethic.io>
  * Copyright (C) 2016		Christophe Battarel	<christophe@altairis.fr>
- * Copyright (C) 2019-2020  Frédéric France     <frederic.france@netlogic.fr>
+ * Copyright (C) 2019-2022  Frédéric France     <frederic.france@netlogic.fr>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,9 @@
  */
 
 /**
- *    \file       core/lib/ticket.lib.php
- *    \ingroup    ticket
- *    \brief        This file is a library for Ticket module
+ * \file       core/lib/ticket.lib.php
+ * \ingroup    ticket
+ * \brief      This file is a library for Ticket module
  */
 
 /**
@@ -30,7 +30,10 @@
  */
 function ticketAdminPrepareHead()
 {
-	global $langs, $conf;
+	global $langs, $conf, $db;
+
+	$extrafields = new ExtraFields($db);
+	$extrafields->fetch_name_optionals_label('ticket');
 
 	$langs->load("ticket");
 
@@ -44,6 +47,10 @@ function ticketAdminPrepareHead()
 
 	$head[$h][0] = DOL_URL_ROOT.'/admin/ticket_extrafields.php';
 	$head[$h][1] = $langs->trans("ExtraFieldsTicket");
+	$nbExtrafields = $extrafields->attributes['ticket']['count'];
+	if ($nbExtrafields > 0) {
+		$head[$h][1] .= '<span class="badge marginleftonlyshort">'.$nbExtrafields.'</span>';
+	}
 	$head[$h][2] = 'attributes';
 	$h++;
 
@@ -84,7 +91,7 @@ function ticket_prepare_head($object)
 	$head[$h][2] = 'tabTicket';
 	$h++;
 
-	if (empty($conf->global->MAIN_DISABLE_CONTACTS_TAB) && empty($user->socid) && $conf->societe->enabled) {
+	if (empty($conf->global->MAIN_DISABLE_CONTACTS_TAB) && empty($user->socid) && isModEnabled("societe")) {
 		$nbContact = count($object->liste_contact(-1, 'internal')) + count($object->liste_contact(-1, 'external'));
 		$head[$h][0] = DOL_URL_ROOT.'/ticket/contact.php?track_id='.$object->track_id;
 		$head[$h][1] = $langs->trans('ContactsAddresses');
@@ -95,7 +102,7 @@ function ticket_prepare_head($object)
 		$h++;
 	}
 
-	complete_head_from_modules($conf, $langs, $object, $head, $h, 'ticket');
+	complete_head_from_modules($conf, $langs, $object, $head, $h, 'ticket', 'add', 'core');
 
 	// Attached files
 	include_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
@@ -126,12 +133,15 @@ function ticket_prepare_head($object)
 		$head[$h][0] = DOL_URL_ROOT.'/ticket/agenda.php?track_id='.$object->track_id;
 	}
 	$head[$h][1] = $langs->trans('Events');
-	if (!empty($conf->agenda->enabled) && (!empty($user->rights->agenda->myactions->read) || !empty($user->rights->agenda->allactions->read))) {
+	if (isModEnabled('agenda') && (!empty($user->rights->agenda->myactions->read) || !empty($user->rights->agenda->allactions->read))) {
 		$head[$h][1] .= '/';
 		$head[$h][1] .= $langs->trans("Agenda");
 	}
 	$head[$h][2] = 'tabTicketLogs';
 	$h++;
+
+
+	complete_head_from_modules($conf, $langs, $object, $head, $h, 'ticket', 'add', 'external');
 
 	complete_head_from_modules($conf, $langs, $object, $head, $h, 'ticket', 'remove');
 
@@ -206,7 +216,7 @@ function generate_random_id($car = 16)
 function llxHeaderTicket($title, $head = "", $disablejs = 0, $disablehead = 0, $arrayofjs = '', $arrayofcss = '')
 {
 	global $user, $conf, $langs, $mysoc;
-
+	$urllogo = "";
 	top_htmlhead($head, $title, $disablejs, $disablehead, $arrayofjs, $arrayofcss, 0, 1); // Show html headers
 
 	print '<body id="mainbody" class="publicnewticketform">';
@@ -233,7 +243,7 @@ function llxHeaderTicket($title, $head = "", $disablejs = 0, $disablehead = 0, $
 		print '<div class="backgreypublicpayment">';
 		print '<div class="logopublicpayment">';
 		if ($urllogo) {
-			print '<a href="'.($conf->global->TICKET_URL_PUBLIC_INTERFACE ? $conf->global->TICKET_URL_PUBLIC_INTERFACE : dol_buildpath('/public/ticket/index.php', 1)).'">';
+			print '<a href="'.($conf->global->TICKET_URL_PUBLIC_INTERFACE ? $conf->global->TICKET_URL_PUBLIC_INTERFACE : dol_buildpath('/public/ticket/index.php?entity='.$conf->entity, 1)).'">';
 			print '<img id="dolpaymentlogo" src="'.$urllogo.'"';
 			print '>';
 			print '</a>';
@@ -250,7 +260,7 @@ function llxHeaderTicket($title, $head = "", $disablejs = 0, $disablehead = 0, $
 
 	if (!empty($conf->global->TICKET_IMAGE_PUBLIC_INTERFACE)) {
 		print '<div class="backimagepublicticket">';
-		print '<img id="idRECRUITMENT_IMAGE_PUBLIC_INTERFACE" src="'.$conf->global->MEMBER_IMAGE_PUBLIC_REGISTRATION.'">';
+		print '<img id="idTICKET_IMAGE_PUBLIC_INTERFACE" src="'.$conf->global->TICKET_IMAGE_PUBLIC_INTERFACE.'">';
 		print '</div>';
 	}
 
@@ -304,7 +314,7 @@ function show_ticket_messaging($conf, $langs, $db, $filterobj, $objcon = '', $no
 	}
 	$sortfield_new = implode(',', $sortfield_new_list);
 
-	if (!empty($conf->agenda->enabled)) {
+	if (isModEnabled('agenda')) {
 		// Search histo on actioncomm
 		if (is_object($objcon) && $objcon->id > 0) {
 			$sql = "SELECT DISTINCT a.id, a.label as label,";
@@ -440,7 +450,7 @@ function show_ticket_messaging($conf, $langs, $db, $filterobj, $objcon = '', $no
 	}
 
 	// Add also event from emailings. TODO This should be replaced by an automatic event ? May be it's too much for very large emailing.
-	if (!empty($conf->mailing->enabled) && !empty($objcon->email)
+	if (isModEnabled('mailing') && !empty($objcon->email)
 		&& (empty($actioncode) || $actioncode == 'AC_OTH_AUTO' || $actioncode == 'AC_EMAILING')) {
 		$langs->load("mails");
 
@@ -476,7 +486,7 @@ function show_ticket_messaging($conf, $langs, $db, $filterobj, $objcon = '', $no
 	if ($sql) {	// May not be defined if module Agenda is not enabled and mailing module disabled too
 		$sql .= $db->order($sortfield_new, $sortorder);
 
-		dol_syslog("company.lib::show_actions_done", LOG_DEBUG);
+		dol_syslog("ticket.lib::show_ticket_messaging", LOG_DEBUG);
 		$resql = $db->query($sql);
 		if ($resql) {
 			$i = 0;
@@ -491,7 +501,7 @@ function show_ticket_messaging($conf, $langs, $db, $filterobj, $objcon = '', $no
 					$result = $contactaction->fetchResources();
 					if ($result < 0) {
 						dol_print_error($db);
-						setEventMessage("company.lib::show_actions_done Error fetch ressource", 'errors');
+						setEventMessage("ticket.lib::show_ticket_messaging Error fetch ressource", 'errors');
 					}
 
 					//if ($donetodo == 'todo') $sql.= " AND ((a.percent >= 0 AND a.percent < 100) OR (a.percent = -1 AND a.datep > '".$db->idate($now)."'))";
@@ -560,12 +570,12 @@ function show_ticket_messaging($conf, $langs, $db, $filterobj, $objcon = '', $no
 	// Set $out to sow events
 	$out = '';
 
-	if (empty($conf->agenda->enabled)) {
+	if (!isModEnabled('agenda')) {
 		$langs->loadLangs(array("admin", "errors"));
 		$out = info_admin($langs->trans("WarningModuleXDisabledSoYouMayMissEventHere", $langs->transnoentitiesnoconv("Module2400Name")), 0, 0, 'warning');
 	}
 
-	if (!empty($conf->agenda->enabled) || (!empty($conf->mailing->enabled) && !empty($objcon->email))) {
+	if (isModEnabled('agenda') || (isModEnabled('mailing') && !empty($objcon->email))) {
 		$delay_warning = $conf->global->MAIN_DELAY_ACTIONS_TODO * 24 * 60 * 60;
 
 		require_once DOL_DOCUMENT_ROOT.'/comm/action/class/actioncomm.class.php';
@@ -697,8 +707,8 @@ function show_ticket_messaging($conf, $langs, $db, $filterobj, $objcon = '', $no
 			//	$out.='<a href="'.$url.'" class="timeline-btn" title="'.$langs->trans('Show').'" ><i class="fa fa-calendar" ></i>'.$langs->trans('Show').'</a>';
 			//}
 
-			if ($user->rights->agenda->allactions->create ||
-				(($actionstatic->authorid == $user->id || $actionstatic->userownerid == $user->id) && $user->rights->agenda->myactions->create)) {
+			if (!empty($user->rights->agenda->allactions->create) ||
+				(($actionstatic->authorid == $user->id || $actionstatic->userownerid == $user->id) && !empty($user->rights->agenda->myactions->create))) {
 				$out .= '<a class="timeline-btn" href="'.DOL_MAIN_URL_ROOT.'/comm/action/card.php?action=edit&token='.newToken().'&id='.$actionstatic->id.'"><i class="fa fa-pencil" title="'.$langs->trans("Modify").'" ></i></a>';
 			}
 

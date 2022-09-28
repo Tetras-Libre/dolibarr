@@ -18,17 +18,18 @@
  */
 
 /**
- *	\file       htdocs/opensurvey/card.php
- *	\ingroup    opensurvey
- *	\brief      Page to edit survey
+ *    \file       htdocs/opensurvey/card.php
+ *    \ingroup    opensurvey
+ *    \brief      Page to edit survey
  */
 
+// Load Dolibarr environment
 require '../main.inc.php';
+require_once DOL_DOCUMENT_ROOT."/core/class/doleditor.class.php";
 require_once DOL_DOCUMENT_ROOT."/core/lib/admin.lib.php";
 require_once DOL_DOCUMENT_ROOT."/core/lib/files.lib.php";
-require_once DOL_DOCUMENT_ROOT."/core/class/doleditor.class.php";
 require_once DOL_DOCUMENT_ROOT."/opensurvey/class/opensurveysondage.class.php";
-require_once DOL_DOCUMENT_ROOT."/opensurvey/fonctions.php";
+require_once DOL_DOCUMENT_ROOT."/opensurvey/lib/opensurvey.lib.php";
 
 
 // Security check
@@ -36,7 +37,7 @@ if (empty($user->rights->opensurvey->read)) {
 	accessforbidden();
 }
 
-// Initialisation des variables
+// Initialize Variables
 $action = GETPOST('action', 'aZ09');
 $cancel = GETPOST('cancel', 'alpha');
 
@@ -46,6 +47,7 @@ if (GETPOST('id')) {
 	$numsondage = (string) GETPOST('id', 'alpha');
 }
 
+// Initialize objects
 $object = new Opensurveysondage($db);
 
 $result = $object->fetch(0, $numsondage);
@@ -137,18 +139,18 @@ if (empty($reshook)) {
 	if (GETPOST('ajoutcomment')) {
 		$error = 0;
 
-		if (!GETPOST('comment')) {
+		if (!GETPOST('comment', "alphanohtml")) {
 			$error++;
 			setEventMessages($langs->trans("ErrorFieldRequired", $langs->transnoentitiesnoconv("Comment")), null, 'errors');
 		}
-		if (!GETPOST('commentuser')) {
+		if (!GETPOST('commentuser', "alphanohtml")) {
 			$error++;
 			setEventMessages($langs->trans("ErrorFieldRequired", $langs->transnoentitiesnoconv("User")), null, 'errors');
 		}
 
 		if (!$error) {
-			$comment = (string) GETPOST("comment", "restricthtml");
-			$comment_user = (string) GETPOST('commentuser', "restricthtml");
+			$comment = (string) GETPOST("comment", "alphanohtml");
+			$comment_user = (string) GETPOST('commentuser', "alphanohtml");
 
 			$resql = $object->addComment($comment, $comment_user);
 
@@ -404,7 +406,7 @@ print load_fiche_titre($langs->trans("CommentsOfVoters"), '', '');
 // Comment list
 $comments = $object->getComments();
 
-if ($comments) {
+if (!empty($comments)) {
 	foreach ($comments as $comment) {
 		if ($user->rights->opensurvey->write) {
 			print '<a class="reposition" href="'.DOL_URL_ROOT.'/opensurvey/card.php?action=deletecomment&token='.newToken().'&idcomment='.((int) $comment->id_comment).'&id='.urlencode($numsondage).'"> '.img_picto('', 'delete.png', '', false, 0, 0, '', '', 0).'</a> ';
@@ -422,7 +424,7 @@ print '<br>';
 if ($object->allow_comments) {
 	print $langs->trans("AddACommentForPoll").'<br>';
 	print '<textarea name="comment" rows="2" class="quatrevingtpercent"></textarea><br>'."\n";
-	print $langs->trans("Name").': <input type="text" class="minwidth300" name="commentuser" value="'.$user->getFullName($langs).'"> '."\n";
+	print $langs->trans("Name").': <input type="text" class="minwidth300" name="commentuser" value="'.dol_escape_htmltag($user->getFullName($langs)).'"> '."\n";
 	print '<input type="submit" class="button reposition" name="ajoutcomment" value="'.dol_escape_htmltag($langs->trans("AddComment")).'"><br>'."\n";
 }
 
