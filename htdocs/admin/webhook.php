@@ -150,10 +150,10 @@ $dirmodels = array_merge(array('/'), (array) $conf->modules_parts['models']);
 include DOL_DOCUMENT_ROOT.'/core/actions_setmoduleoptions.inc.php';
 
 if ($action == 'updateMask') {
-	$maskconst = GETPOST('maskconst', 'alpha');
+	$maskconst = GETPOST('maskconst', 'aZ09');
 	$maskvalue = GETPOST('maskvalue', 'alpha');
 
-	if ($maskconst) {
+	if ($maskconst && preg_match('/_MASK$/', $maskconst)) {
 		$res = dolibarr_set_const($db, $maskconst, $maskvalue, 'chaine', 0, '', $conf->entity);
 		if (!($res > 0)) {
 			$error++;
@@ -338,23 +338,12 @@ if ($action == 'edit') {
 					if (!empty($conf->use_javascript_ajax)) {
 						print '&nbsp;'.img_picto($langs->trans('Generate'), 'refresh', 'id="generate_token'.$constname.'" class="linkobject"');
 					}
-					if (!empty($conf->use_javascript_ajax)) {
-						print "\n".'<script type="text/javascript">';
-						print '$(document).ready(function () {
-                        $("#generate_token'.$constname.'").click(function() {
-                	        $.get( "'.DOL_URL_ROOT.'/core/ajax/security.php", {
-                		      action: \'getrandompassword\',
-                		      generic: true
-    				        },
-    				        function(token) {
-    					       $("#'.$constname.'").val(token);
-            				});
-                         });
-                    });';
-						print '</script>';
-					}
+
+					// Add button to autosuggest a key
+					include_once DOL_DOCUMENT_ROOT.'/core/lib/security2.lib.php';
+					print dolJSToSetRandomPassword($constname, 'generate_token'.$constname);
 				} elseif ($val['type'] == 'product') {
-					if (!empty($conf->product->enabled) || !empty($conf->service->enabled)) {
+					if (isModEnabled("product") || isModEnabled("service")) {
 						$selected = (empty($conf->global->$constname) ? '' : $conf->global->$constname);
 						$form->select_produits($selected, $constname, '', 0);
 					}

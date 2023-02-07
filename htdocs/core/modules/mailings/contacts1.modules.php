@@ -38,7 +38,7 @@ class mailing_contacts1 extends MailingTargets
 	public $require_module = array("societe"); // Module mailing actif si modules require_module actifs
 	public $require_admin = 0; // Module mailing actif pour user admin ou non
 
-	public $enabled = '$conf->societe->enabled';
+	public $enabled = 'isModEnabled("societe")';
 
 	/**
 	 * @var string String with name of icon for myobject. Must be the part after the 'object_' into object_myobject.png
@@ -307,9 +307,8 @@ class mailing_contacts1 extends MailingTargets
 
 		$s .= ajax_combobox("filter_category_supplier_contact");
 
-		// Choose language if multilangue active
-
-		if (getDolGlobalInt('MAIN_MULTILANGS') == 1) {
+		// Choose language
+		if (getDolGlobalInt('MAIN_MULTILANGS')) {
 			require_once DOL_DOCUMENT_ROOT.'/core/class/html.formadmin.class.php';
 			$formadmin = new FormAdmin($this->db);
 			$s .= '<span class="opacitymedium">'.$langs->trans("DefaultLang").':</span> ';
@@ -391,6 +390,7 @@ class mailing_contacts1 extends MailingTargets
 		}
 		$sql .= " WHERE sp.entity IN (".getEntity('contact').")";
 		$sql .= " AND sp.email <> ''";
+
 		$sql .= " AND (SELECT count(*) FROM ".MAIN_DB_PREFIX."mailing_unsubscribe WHERE email = sp.email) = 0";
 		// Exclude unsubscribed email adresses
 		$sql .= " AND sp.statut = 1";
@@ -420,7 +420,7 @@ class mailing_contacts1 extends MailingTargets
 
 		//print "xx".$key;
 		if ($key == 'prospects') {
-			$sql .= " AND s.client=2";
+			$sql .= " AND s.client = 2";
 		}
 		foreach ($prospectlevel as $codelevel => $valuelevel) {
 			if ($key == 'prospectslevel'.$codelevel) {
@@ -428,10 +428,10 @@ class mailing_contacts1 extends MailingTargets
 			}
 		}
 		if ($key == 'customers') {
-			$sql .= " AND s.client=1";
+			$sql .= " AND s.client = 1";
 		}
 		if ($key == 'suppliers') {
-			$sql .= " AND s.fournisseur=1";
+			$sql .= " AND s.fournisseur = 1";
 		}
 
 		// Filter on job position

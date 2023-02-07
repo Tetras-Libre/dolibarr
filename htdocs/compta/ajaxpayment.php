@@ -23,9 +23,6 @@
 if (!defined('NOREQUIRESOC')) {
 	define('NOREQUIRESOC', '1');
 }
-if (!defined('NOCSRFCHECK')) {
-	define('NOCSRFCHECK', '1');
-}
 if (!defined('NOTOKENRENEWAL')) {
 	define('NOTOKENRENEWAL', '1');
 }
@@ -36,6 +33,7 @@ if (!defined('NOREQUIREHTML')) {
 	define('NOREQUIREHTML', '1'); // If we don't need to load the html.form.class.php
 }
 
+// Load Dolibarr environment
 require '../main.inc.php';
 
 $langs->load('compta');
@@ -74,6 +72,10 @@ if (is_array($remains)) {
 			unset($remains[$key]);
 		}
 	}
+} elseif ($remains) {
+	$remains = array(price2num($remains));
+} else {
+	$remains = array();
 }
 
 // Treatment

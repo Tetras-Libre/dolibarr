@@ -232,10 +232,13 @@ class DolibarrModules // Can not be abstract, because we need to instantiate it 
 	 */
 	public $export_label;
 
+	public $export_icon;
+
 	public $export_permission;
 	public $export_fields_array;
 	public $export_TypeFields_array; // Array of key=>type where type can be 'Numeric', 'Date', 'Text', 'Boolean', 'Status', 'List:xxx:login:rowid'
 	public $export_entities_array;
+	public $export_help_array;
 	public $export_special_array; // special or computed field
 	public $export_dependencies_array;
 	public $export_sql_start;
@@ -254,6 +257,17 @@ class DolibarrModules // Can not be abstract, because we need to instantiate it 
 	 * @var string Module import label
 	 */
 	public $import_label;
+
+	public $import_icon;
+
+	public $import_entities_array;
+	public $import_tables_array;
+	public $import_fields_array;
+	public $import_fieldshidden_array;
+	public $import_convertvalue_array;
+	public $import_regex_array;
+	public $import_examplevalues_array;
+	public $import_updatekeys_array;
 
 
 	/**
@@ -333,7 +347,7 @@ class DolibarrModules // Can not be abstract, because we need to instantiate it 
 
 	/**
 	 * @var array Minimum version of PHP required by module.
-	 * e.g.: PHP ≥ 5.6 = array(5, 6)
+	 * e.g.: PHP ≥ 7.0 = array(7, 0)
 	 */
 	public $phpmin;
 
@@ -962,8 +976,8 @@ class DolibarrModules // Can not be abstract, because we need to instantiate it 
 					$tmp = json_decode($obj->note, true);
 				}
 				return array(
-					'authorid' => $tmp['authorid'],
-					'ip' => $tmp['ip'],
+					'authorid' => empty($tmp['authorid']) ? '' : $tmp['authorid'],
+					'ip' => empty($tmp['ip']) ? '' : $tmp['ip'],
 					'lastactivationdate' => $this->db->jdate($obj->tms),
 					'lastactivationversion' => (!empty($tmp['lastactivationversion']) ? $tmp['lastactivationversion'] : 'unknown'),
 				);
@@ -1368,7 +1382,7 @@ class DolibarrModules // Can not be abstract, because we need to instantiate it 
 				// For the moment, we manage this with hard coded exception
 				//print "Remove box ".$file.'<br>';
 				if ($file == 'box_graph_product_distribution.php') {
-					if (!empty($conf->product->enabled) || !empty($conf->service->enabled)) {
+					if (isModEnabled("product") || isModEnabled("service")) {
 						dol_syslog("We discard deleting module ".$file." because another module still active requires it.");
 						continue;
 					}
@@ -1881,7 +1895,7 @@ class DolibarrModules // Can not be abstract, because we need to instantiate it 
 							$i = 0;
 							while ($i < $num) {
 								$obj2 = $this->db->fetch_object($resqlseladmin);
-								dol_syslog(get_class($this)."::insert_permissions Add permission id '.$r_id.' to user id=".$obj2->rowid);
+								dol_syslog(get_class($this)."::insert_permissions Add permission id ".$r_id." to user id=".$obj2->rowid);
 
 								$tmpuser = new User($this->db);
 								$result = $tmpuser->fetch($obj2->rowid);
@@ -1968,13 +1982,14 @@ class DolibarrModules // Can not be abstract, because we need to instantiate it 
 			$menu->menu_handler = 'all';
 
 			//$menu->module=strtolower($this->name);    TODO When right_class will be same than module name
-			$menu->module = empty($this->rights_class) ?strtolower($this->name) : $this->rights_class;
+			$menu->module = (empty($this->rights_class) ? strtolower($this->name) : $this->rights_class);
 
 			if (!$this->menu[$key]['fk_menu']) {
 				$menu->fk_menu = 0;
 			} else {
 				$foundparent = 0;
 				$fk_parent = $this->menu[$key]['fk_menu'];
+				$reg = array();
 				if (preg_match('/^r=/', $fk_parent)) {    // old deprecated method
 					$fk_parent = str_replace('r=', '', $fk_parent);
 					if (isset($this->menu[$fk_parent]['rowid'])) {
