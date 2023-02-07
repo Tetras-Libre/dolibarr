@@ -88,9 +88,9 @@ class DolibarrApi
 		// phpcs:enable
 		// TODO Use type detected in $object->fields
 		if (in_array($field, array('note', 'note_private', 'note_public', 'desc', 'description'))) {
-			return checkVal($value, 'restricthtml');
+			return sanitizeVal($value, 'restricthtml');
 		} else {
-			return checkVal($value, 'alphanohtml');
+			return sanitizeVal($value, 'alphanohtml');
 		}
 	}
 
@@ -160,6 +160,8 @@ class DolibarrApi
 		unset($object->statuts_short);
 		unset($object->statuts_logo);
 		unset($object->statuts_long);
+		unset($object->statutshorts);
+		unset($object->statutshort);
 		unset($object->labelStatus);
 		unset($object->labelStatusShort);
 
@@ -173,6 +175,7 @@ class DolibarrApi
 		unset($object->stats_mrptoproduce);
 
 		unset($object->element);
+		unset($object->element_for_permission);
 		unset($object->fk_element);
 		unset($object->table_element);
 		unset($object->table_element_line);
@@ -180,6 +183,7 @@ class DolibarrApi
 		unset($object->picto);
 
 		unset($object->fieldsforcombobox);
+		unset($object->regeximgext);
 
 		unset($object->skip_update_total);
 		unset($object->context);
@@ -255,6 +259,11 @@ class DolibarrApi
 		if (!empty($object->thirdparty) && is_object($object->thirdparty)) {
 			$this->_cleanObjectDatas($object->thirdparty);
 		}
+
+		if (!empty($object->product) && is_object($object->product)) {
+			$this->_cleanObjectDatas($object->product);
+		}
+
 		return $object;
 	}
 

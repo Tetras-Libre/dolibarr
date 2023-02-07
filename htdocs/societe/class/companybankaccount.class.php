@@ -232,8 +232,7 @@ class CompanyBankAccount extends Account
 		$sql .= " FROM ".MAIN_DB_PREFIX."societe_rib";
 		if ($id) {
 			$sql .= " WHERE rowid = ".((int) $id);
-		}
-		if ($socid) {
+		} elseif ($socid > 0) {
 			$sql .= " WHERE fk_soc  = ".((int) $socid);
 			if ($default > -1) {
 				$sql .= " AND default_rib = ".((int) $default);
@@ -289,8 +288,6 @@ class CompanyBankAccount extends Account
 	 */
 	public function delete(User $user = null, $notrigger = 0)
 	{
-		global $conf;
-
 		$error = 0;
 
 		dol_syslog(get_class($this)."::delete ".$this->id, LOG_DEBUG);

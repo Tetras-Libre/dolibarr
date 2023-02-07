@@ -59,7 +59,7 @@ function product_prepare_head($object)
 
 	if (!empty($object->status_buy) || (!empty($conf->margin->enabled) && !empty($object->status))) {   // If margin is on and product on sell, we may need the cost price even if product os not on purchase
 		if ((((!empty($conf->fournisseur->enabled) && empty($conf->global->MAIN_USE_NEW_SUPPLIERMOD)) || !empty($conf->supplier_order->enabled) || !empty($conf->supplier_invoice->enabled)) && $user->rights->fournisseur->lire)
-		|| (!empty($conf->margin->enabled) && $user->rights->margin->liretous)
+		|| (!empty($conf->margin->enabled) && $user->rights->margins->liretous)
 		) {
 			$head[$h][0] = DOL_URL_ROOT."/product/fournisseurs.php?id=".$object->id;
 			$head[$h][1] = $langs->trans("BuyingPrices");
@@ -201,7 +201,7 @@ function product_prepare_head($object)
 	// Log
 	$head[$h][0] = DOL_URL_ROOT.'/product/agenda.php?id='.$object->id;
 	$head[$h][1] = $langs->trans("Events");
-	if (!empty($conf->agenda->enabled) && (!empty($user->rights->agenda->myactions->read) || !empty($user->rights->agenda->allactions->read))) {
+	if (isModEnabled('agenda') && (!empty($user->rights->agenda->myactions->read) || !empty($user->rights->agenda->allactions->read))) {
 		$head[$h][1] .= '/';
 		$head[$h][1] .= $langs->trans("Agenda");
 	}
@@ -450,7 +450,7 @@ function show_stats_for_company($product, $socid)
 		print '</tr>';
 	}
 	// Customer invoices
-	if (!empty($conf->facture->enabled) && $user->rights->facture->lire) {
+	if (isModEnabled('facture') && $user->rights->facture->lire) {
 		$nblines++;
 		$ret = $product->load_stats_facture($socid);
 		if ($ret < 0) {
@@ -465,6 +465,25 @@ function show_stats_for_company($product, $socid)
 		print $product->stats_facture['nb'];
 		print '</td><td class="right">';
 		print $product->stats_facture['qty'];
+		print '</td>';
+		print '</tr>';
+	}
+	// Customer template invoices
+	if (!empty($conf->facture->enabled) && $user->rights->facture->lire) {
+		$nblines++;
+		$ret = $product->load_stats_facturerec($socid);
+		if ($ret < 0) {
+			dol_print_error($db);
+		}
+		$langs->load("bills");
+		print '<tr><td>';
+		print '<a href="facturerec.php?id='.$product->id.'">'.img_object('', 'bill', 'class="pictofixedwidth"').$langs->trans("RecurringInvoiceTemplate").'</a>';
+		print '</td><td class="right">';
+		print $product->stats_facture['customers'];
+		print '</td><td class="right">';
+		print $product->stats_facturerec['nb'];
+		print '</td><td class="right">';
+		print $product->stats_facturerec['qty'];
 		print '</td>';
 		print '</tr>';
 	}

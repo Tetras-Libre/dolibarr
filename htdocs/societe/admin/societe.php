@@ -51,19 +51,15 @@ $formcompany = new FormCompany($db);
 include DOL_DOCUMENT_ROOT.'/core/actions_setmoduleoptions.inc.php';
 
 if ($action == 'setcodeclient') {
-	if (dolibarr_set_const($db, "SOCIETE_CODECLIENT_ADDON", $value, 'chaine', 0, '', $conf->entity) > 0) {
-		header("Location: ".$_SERVER["PHP_SELF"]);
-		exit;
-	} else {
+	$result = dolibarr_set_const($db, "SOCIETE_CODECLIENT_ADDON", $value, 'chaine', 0, '', $conf->entity);
+	if ($result <= 0) {
 		dol_print_error($db);
 	}
 }
 
 if ($action == 'setcodecompta') {
-	if (dolibarr_set_const($db, "SOCIETE_CODECOMPTA_ADDON", $value, 'chaine', 0, '', $conf->entity) > 0) {
-		header("Location: ".$_SERVER["PHP_SELF"]);
-		exit;
-	} else {
+	$result = dolibarr_set_const($db, "SOCIETE_CODECOMPTA_ADDON", $value, 'chaine', 0, '', $conf->entity);
+	if ($result <= 0) {
 		dol_print_error($db);
 	}
 }
@@ -170,6 +166,20 @@ if ($action == 'setdoc') {
 	}
 }
 
+//Activate Set accountancy code customer invoice mandatory
+if ($action == "setaccountancycodecustomerinvoicemandatory") {
+	$setaccountancycodecustomerinvoicemandatory = GETPOST('value', 'int');
+	$res = dolibarr_set_const($db, "SOCIETE_ACCOUNTANCY_CODE_CUSTOMER_INVOICE_MANDATORY", $setaccountancycodecustomerinvoicemandatory, 'yesno', 0, '', $conf->entity);
+	if (!($res > 0)) {
+		$error++;
+	}
+	if (!$error) {
+		setEventMessages($langs->trans("SetupSaved"), null, 'mesgs');
+	} else {
+		setEventMessages($langs->trans("Error"), null, 'errors');
+	}
+}
+
 //Activate Set ref in list
 if ($action == "setaddrefinlist") {
 	$setaddrefinlist = GETPOST('value', 'int');
@@ -259,10 +269,8 @@ if ($action == 'setprofid') {
 	$status = GETPOST('status', 'alpha');
 
 	$idprof = "SOCIETE_".$value."_UNIQUE";
-	if (dolibarr_set_const($db, $idprof, $status, 'chaine', 0, '', $conf->entity) > 0) {
-		//header("Location: ".$_SERVER["PHP_SELF"]);
-		//exit;
-	} else {
+	$result = dolibarr_set_const($db, $idprof, $status, 'chaine', 0, '', $conf->entity);
+	if ($result <= 0) {
 		dol_print_error($db);
 	}
 }
@@ -272,10 +280,8 @@ if ($action == 'setprofidmandatory') {
 	$status = GETPOST('status', 'alpha');
 
 	$idprof = "SOCIETE_".$value."_MANDATORY";
-	if (dolibarr_set_const($db, $idprof, $status, 'chaine', 0, '', $conf->entity) > 0) {
-		//header("Location: ".$_SERVER["PHP_SELF"]);
-		//exit;
-	} else {
+	$result = dolibarr_set_const($db, $idprof, $status, 'chaine', 0, '', $conf->entity);
+	if ($result <= 0) {
 		dol_print_error($db);
 	}
 }
@@ -285,10 +291,8 @@ if ($action == 'setprofidinvoicemandatory') {
 	$status = GETPOST('status', 'alpha');
 
 	$idprof = "SOCIETE_".$value."_INVOICE_MANDATORY";
-	if (dolibarr_set_const($db, $idprof, $status, 'chaine', 0, '', $conf->entity) > 0) {
-		//header("Location: ".$_SERVER["PHP_SELF"]);
-		//exit;
-	} else {
+	$result = dolibarr_set_const($db, $idprof, $status, 'chaine', 0, '', $conf->entity);
+	if ($result <= 0) {
 		dol_print_error($db);
 	}
 }
@@ -297,10 +301,8 @@ if ($action == 'setprofidinvoicemandatory') {
 if ($action == 'sethideinactivethirdparty') {
 	$status = GETPOST('status', 'alpha');
 
-	if (dolibarr_set_const($db, "COMPANY_HIDE_INACTIVE_IN_COMBOBOX", $status, 'chaine', 0, '', $conf->entity) > 0) {
-		header("Location: ".$_SERVER["PHP_SELF"]);
-		exit;
-	} else {
+	$result = dolibarr_set_const($db, "COMPANY_HIDE_INACTIVE_IN_COMBOBOX", $status, 'chaine', 0, '', $conf->entity);
+	if ($result <= 0) {
 		dol_print_error($db);
 	}
 }
@@ -316,6 +318,7 @@ if ($action == 'setonsearchandlistgooncustomerorsuppliercard') {
 		setEventMessages($langs->trans("Error"), null, 'errors');
 	}
 }
+
 
 /*
  * 	View
@@ -561,7 +564,7 @@ foreach ($dirsociete as $dirroot) {
 
 				if ($modulequalified) {
 					print '<tr class="oddeven"><td width="100">';
-					print $module->name;
+					print dol_escape_htmltag($module->name);
 					print "</td><td>\n";
 					if (method_exists($module, 'info')) {
 						print $module->info($langs);
@@ -575,7 +578,7 @@ foreach ($dirsociete as $dirroot) {
 						print "<td class=\"center\">\n";
 						//if ($conf->global->COMPANY_ADDON_PDF != "$name")
 						//{
-							print '<a href="'.$_SERVER["PHP_SELF"].'?action=del&token='.newToken().'&value='.urlencode($name).'&token='.newToken().'&scan_dir='.$module->scandir.'&label='.urlencode($module->name).'">';
+							print '<a class="reposition" href="'.$_SERVER["PHP_SELF"].'?action=del&token='.newToken().'&value='.urlencode($name).'&token='.newToken().'&scan_dir='.$module->scandir.'&label='.urlencode($module->name).'">';
 							print img_picto($langs->trans("Enabled"), 'switch_on');
 							print '</a>';
 						//}
@@ -591,7 +594,7 @@ foreach ($dirsociete as $dirroot) {
 							print "</td>";
 						} else {
 							print '<td class="center">'."\n";
-							print '<a href="'.$_SERVER["PHP_SELF"].'?action=set&value='.urlencode($name).'&token='.newToken().'&scan_dir='.urlencode($module->scandir).'&label='.urlencode($module->name).'">'.img_picto($langs->trans("Disabled"), 'switch_off').'</a>';
+							print '<a class="reposition" href="'.$_SERVER["PHP_SELF"].'?action=set&value='.urlencode($name).'&token='.newToken().'&scan_dir='.urlencode($module->scandir).'&label='.urlencode($module->name).'">'.img_picto($langs->trans("Disabled"), 'switch_off').'</a>';
 							print "</td>";
 						}
 					}
@@ -612,7 +615,7 @@ foreach ($dirsociete as $dirroot) {
 					// Preview
 					print '<td class="center nowrap">';
 					if ($module->type == 'pdf') {
-						$linkspec = '<a href="'.$_SERVER["PHP_SELF"].'?action=specimen&token='.newToken().'&module='.$name.'">'.img_object($langs->trans("Preview"), 'pdf').'</a>';
+						$linkspec = '<a class="reposition" href="'.$_SERVER["PHP_SELF"].'?action=specimen&token='.newToken().'&module='.$name.'">'.img_object($langs->trans("Preview"), 'pdf').'</a>';
 					} else {
 						$linkspec = img_object($langs->trans("PreviewNotAvailable"), 'generic');
 					}
@@ -710,6 +713,23 @@ foreach ($profid as $key => $val) {
 	$i++;
 }
 
+if ($conf->accounting->enabled) {
+	print '<tr class="oddeven">';
+	print '<td colspan="2">'.$langs->trans('CustomerAccountancyCodeShort')."</td>\n";
+	print '<td colspan="2"></td>';
+
+	if (!empty($conf->global->SOCIETE_ACCOUNTANCY_CODE_CUSTOMER_INVOICE_MANDATORY)) {
+		print '<td class="center"><a class="reposition" href="'.$_SERVER['PHP_SELF'].'?action=setaccountancycodecustomerinvoicemandatory&token='.newToken().'&value=0">';
+		print img_picto($langs->trans("Activated"), 'switch_on');
+		print '</a></td>';
+	} else {
+		print '<td class="center"><a class="reposition" href="'.$_SERVER['PHP_SELF'].'?action=setaccountancycodecustomerinvoicemandatory&token='.newToken().'&value=1">';
+		print img_picto($langs->trans("Disabled"), 'switch_off');
+		print '</a></td>';
+	}
+	print "</tr>\n";
+}
+
 print "</table>\n";
 print '</div>';
 
@@ -749,7 +769,7 @@ if (!$conf->use_javascript_ajax) {
 	);
 	print $form->selectarray("activate_COMPANY_USE_SEARCH_TO_SELECT", $arrval, (property_exists($conf->global, 'COMPANY_USE_SEARCH_TO_SELECT')?$conf->global->COMPANY_USE_SEARCH_TO_SELECT:''), 0, 0, 0, '', 0, 0, 0, '', 'minwidth75imp');
 	print '</td><td class="right">';
-	print '<input type="submit" class="button reposition" name="COMPANY_USE_SEARCH_TO_SELECT" value="'.$langs->trans("Modify").'">';
+	print '<input type="submit" class="button small reposition" name="COMPANY_USE_SEARCH_TO_SELECT" value="'.$langs->trans("Modify").'">';
 	print "</td>";
 }
 print '</tr>';
@@ -770,7 +790,7 @@ if (!$conf->use_javascript_ajax) {
 	);
 	print $form->selectarray("activate_CONTACT_USE_SEARCH_TO_SELECT", $arrval, (property_exists($conf->global, 'CONTACT_USE_SEARCH_TO_SELECT')?$conf->global->CONTACT_USE_SEARCH_TO_SELECT:''), 0, 0, 0, '', 0, 0, 0, '', 'minwidth75imp');
 	print '</td><td class="right">';
-	print '<input type="submit" class="button reposition" name="CONTACT_USE_SEARCH_TO_SELECT" value="'.$langs->trans("Modify").'">';
+	print '<input type="submit" class="button small eposition" name="CONTACT_USE_SEARCH_TO_SELECT" value="'.$langs->trans("Modify").'">';
 	print "</td>";
 }
 print '</tr>';
@@ -874,7 +894,7 @@ if (empty($conf->global->SOCIETE_DISABLE_PROSPECTSCUSTOMERS)) {
 	print $formcompany->selectProspectCustomerType((property_exists($conf->global, 'THIRDPARTY_CUSTOMERTYPE_BY_DEFAULT')?$conf->global->THIRDPARTY_CUSTOMERTYPE_BY_DEFAULT:''), 'defaultcustomertype', 'defaultcustomertype', 'admin');
 	print '</td>';
 	print '<td class="center">';
-	print '<input type="submit" class="button reposition" name="THIRDPARTY_CUSTOMERTYPE_BY_DEFAULT" value="'.$langs->trans("Modify").'">';
+	print '<input type="submit" class="button small reposition" name="THIRDPARTY_CUSTOMERTYPE_BY_DEFAULT" value="'.$langs->trans("Modify").'">';
 	print '</td>';
 	print '</tr>';
 }

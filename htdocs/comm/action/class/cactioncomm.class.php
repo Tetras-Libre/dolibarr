@@ -198,7 +198,7 @@ class CActionComm
 						//var_dump($obj->type.' '.$obj->module.' '); var_dump($user->rights->facture->lire);
 						$qualified = 0;
 						// Special cases
-						if ($obj->module == 'invoice' && !empty($conf->facture->enabled) && !empty($user->rights->facture->lire)) {
+						if ($obj->module == 'invoice' && isModEnabled('facture') && !empty($user->rights->facture->lire)) {
 							$qualified = 1;
 						}
 						if ($obj->module == 'order' && !empty($conf->commande->enabled) && empty($user->rights->commande->lire)) {
@@ -214,6 +214,11 @@ class CActionComm
 							$qualified = 1;
 						}
 						if ($obj->module == 'shipping' && !empty($conf->expedition->enabled) && !empty($user->rights->expedition->lire)) {
+							$qualified = 1;
+						}
+						// For case module = 'myobject@eventorganization'
+						$tmparray = preg_split("/@/", $obj->module, -1);
+						if (count($tmparray) > 1 && $tmparray[1] == 'eventorganization' && !empty($conf->eventorganization->enabled)) {
 							$qualified = 1;
 						}
 						// For the generic case with type = 'module...' and module = 'myobject@mymodule'

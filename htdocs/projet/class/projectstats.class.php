@@ -28,6 +28,10 @@ class ProjectStats extends Stats
 	public $userid;
 	public $socid;
 	public $year;
+	public $yearmonth;
+	public $status;
+	public $opp_status;
+
 
 	/**
 	 * Constructor
@@ -180,7 +184,25 @@ class ProjectStats extends Stats
 		}
 
 		if (!empty($this->status)) {
-			$sqlwhere[] = " t.fk_opp_status IN (".$this->db->sanitize($this->status).")";
+			$sqlwhere[] = " t.fk_statut IN (".$this->db->sanitize($this->status).")";
+		}
+
+		if (!empty($this->opp_status)) {
+			if (is_numeric($this->opp_status) && $this->opp_status > 0) {
+				$sqlwhere[] = " t.fk_opp_status = ".((int) $this->opp_status);
+			}
+			if ($this->opp_status == 'all') {
+				$sqlwhere[] = " (t.fk_opp_status IS NOT NULL AND t.fk_opp_status <> -1)";
+			}
+			if ($this->opp_status == 'openedopp') {
+				$sqlwhere[] = " (t.fk_opp_status IS NOT NULL AND t.fk_opp_status <> -1 AND t.fk_opp_status NOT IN (SELECT rowid FROM ".MAIN_DB_PREFIX."c_lead_status WHERE code IN ('WON','LOST')))";
+			}
+			if ($this->opp_status == 'notopenedopp') {
+				$sqlwhere[] = " (t.fk_opp_status IS NULL OR t.fk_opp_status = -1 OR t.fk_opp_status IN (SELECT rowid FROM ".MAIN_DB_PREFIX."c_lead_status WHERE code = 'WON'))";
+			}
+			if ($this->opp_status == 'none') {
+				$sqlwhere[] = " (t.fk_opp_status IS NULL OR t.fk_opp_status = -1)";
+			}
 		}
 
 		if (empty($user->rights->projet->all->lire)) {
@@ -505,5 +527,23 @@ class ProjectStats extends Stats
 		}
 		// var_dump($res);print '<br>';
 		return $res;
+	}
+
+	/**
+	 * Return average of entity by month
+	 * @param	int     $year           year number
+	 * @return 	int						value
+	 */
+	protected function getAverageByMonth($year)
+	{
+		$sql = "SELECT date_format(datef,'%m') as dm, AVG(f.".$this->field.")";
+		$sql .= " FROM ".$this->from;
+		$sql .= $this->join;
+		$sql .= " WHERE f.datef BETWEEN '".$this->db->idate(dol_get_first_day($year))."' AND '".$this->db->idate(dol_get_last_day($year))."'";
+		$sql .= " AND ".$this->where;
+		$sql .= " GROUP BY dm";
+		$sql .= $this->db->order('dm', 'DESC');
+
+		return $this->_getAverageByMonth($year, $sql);
 	}
 }

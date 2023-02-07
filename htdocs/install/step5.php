@@ -222,13 +222,13 @@ if ($action == "set" || empty($action) || preg_match('/upgrade/i', $action)) {
 				print $langs->trans("AdminLoginCreatedSuccessfuly", $login)."<br>";
 				$success = 1;
 			} else {
-				if ($newuser->error == 'ErrorLoginAlreadyExists') {
+				if ($result == -6) {	//login or email already exists
 					dolibarr_install_syslog('step5: AdminLoginAlreadyExists', LOG_WARNING);
-					print '<br><div class="warning">'.$langs->trans("AdminLoginAlreadyExists", $login)."</div><br>";
+					print '<br><div class="warning">'.$newuser->error."</div><br>";
 					$success = 1;
 				} else {
 					dolibarr_install_syslog('step5: FailedToCreateAdminLogin '.$newuser->error, LOG_ERR);
-					setEventMessage($langs->trans("FailedToCreateAdminLogin").' '.$newuser->error, null, 'errors');
+					setEventMessages($langs->trans("FailedToCreateAdminLogin").' '.$newuser->error, null, 'errors');
 					//header("Location: step4.php?error=3&selectlang=$setuplang".(isset($login) ? '&login='.$login : ''));
 					print '<br><div class="error">'.$langs->trans("FailedToCreateAdminLogin").': '.$newuser->error.'</div><br><br>';
 					print $langs->trans("ErrorGoBackAndCorrectParameters").'<br><br>';
@@ -450,7 +450,7 @@ if ($action == "set") {
 		$morehtml .= '</a></div>';
 	}
 } else {
-	dol_print_error('', 'step5.php: unknown choice of action');
+	dol_print_error('', 'step5.php: unknown choice of action='.$action.' in create lock file seaction');
 }
 
 // Clear cache files

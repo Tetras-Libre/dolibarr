@@ -476,6 +476,8 @@ print $hookmanager->resPrint;
 print "</tr>\n";
 
 $totalbuyingprice = 0;
+$totalcurrentstock = 0;
+$totalvirtualstock = 0;
 
 $i = 0;
 while ($i < ($limit ? min($num, $limit) : $num)) {
@@ -550,6 +552,7 @@ while ($i < ($limit ? min($num, $limit) : $num)) {
 		if ($mode == 'future') {
 			// Current stock
 			print '<td class="right">'.$currentstock.'</td>';
+			$totalcurrentstock += $currentstock;
 
 			print '<td class="right"></td>';
 
@@ -558,6 +561,7 @@ while ($i < ($limit ? min($num, $limit) : $num)) {
 
 			// Final virtual stock
 			print '<td class="right">'.$virtualstock.'</td>';
+			$totalvirtualstock += $virtualstock;
 		} else {
 			// Stock at date
 			print '<td class="right">'.($stock ? $stock : '<span class="opacitymedium">'.$stock.'</span>').'</td>';
@@ -565,7 +569,7 @@ while ($i < ($limit ? min($num, $limit) : $num)) {
 			// PMP value
 			print '<td class="right">';
 			if (price2num($objp->estimatedvalue, 'MT')) {
-				print price(price2num($objp->estimatedvalue, 'MT'), 1);
+				print '<span class="amount">'.price(price2num($objp->estimatedvalue, 'MT'), 1).'</span>';
 			} else {
 				print '';
 			}
@@ -578,7 +582,7 @@ while ($i < ($limit ? min($num, $limit) : $num)) {
 				print price(price2num($objp->sellvalue, 'MT'), 1);
 			} else {
 				$htmltext = $langs->trans("OptionMULTIPRICESIsOn");
-				print $form->textwithtooltip($langs->trans("Variable"), $htmltext);
+				print $form->textwithtooltip('<span class="opacitymedium">'.$langs->trans("Variable").'</span>', $htmltext);
 			}
 			print'</td>';
 
@@ -591,6 +595,7 @@ while ($i < ($limit ? min($num, $limit) : $num)) {
 
 			// Current stock
 			print '<td class="right">'.($currentstock ? $currentstock : '<span class="opacitymedium">0</span>').'</td>';
+			$totalcurrentstock += $currentstock;
 		}
 
 		// Action
@@ -615,11 +620,27 @@ if ($mode == 'future') {
 	$colspan++;
 }
 
-print '<tr class="liste_total"><td>'.$langs->trans("Totalforthispage").'</td>';
-print '<td></td><td></td><td class="right">'.price(price2num($totalbuyingprice, 'MT')).'</td><td></td><td></td><td></td><td></td></tr>';
 
 if (empty($date) || !$dateIsValid) {
 	print '<tr><td colspan="'.$colspan.'"><span class="opacitymedium">'.$langs->trans("EnterADateCriteria").'</span></td></tr>';
+} else {
+	print '<tr class="liste_total">';
+	print '<td>'.$langs->trans("Totalforthispage").'</td>';
+	print '<td></td>';
+	if ($mode == 'future') {
+		print '<td class="right">'.price(price2num($totalcurrentstock, 'MS')).'</td>';
+		print '<td></td>';
+		print '<td></td>';
+		print '<td class="right">'.price(price2num($totalvirtualstock, 'MS')).'</td>';
+	} else {
+		print '<td></td>';
+		print '<td class="right">'.price(price2num($totalbuyingprice, 'MT')).'</td>';
+		print '<td></td>';
+		print '<td></td>';
+		print '<td class="right">'.($productid > 0 ? price(price2num($totalcurrentstock, 'MS')) : '').'</td>';
+	}
+	print '<td></td>';
+	print '</tr>';
 }
 
 print '</table>';

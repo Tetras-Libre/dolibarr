@@ -383,14 +383,18 @@ class Members extends DolibarrApi
 			throw new RestException(401, 'Access not allowed for login '.DolibarrApiAccess::$user->login);
 		}
 
-		if (!$member->delete($member->id, DolibarrApiAccess::$user)) {
-			throw new RestException(401, 'error when deleting member');
+
+		$res = $member->delete($member->id, DolibarrApiAccess::$user);
+		if ($res < 0) {
+			throw new RestException(500, "Can't delete, error occurs");
+		} elseif ($res == 0) {
+			throw new RestException(409, "Can't delete, that product is probably used");
 		}
 
 		return array(
 			'success' => array(
 				'code' => 200,
-				'message' => 'member deleted'
+				'message' => 'Member deleted'
 			)
 		);
 	}
@@ -480,11 +484,11 @@ class Members extends DolibarrApi
 	/**
 	 * Add a subscription for a member
 	 *
-	 * @param int $id               ID of member
-	 * @param int $start_date       Start date {@from body} {@type timestamp}
-	 * @param int $end_date         End date {@from body} {@type timestamp}
-	 * @param float $amount         Amount (may be 0) {@from body}
-	 * @param string $label         Label {@from body}
+	 * @param int 		$id             ID of member
+	 * @param string 	$start_date     Start date {@from body} {@type timestamp}
+	 * @param string 	$end_date       End date {@from body} {@type timestamp}
+	 * @param float 	$amount         Amount (may be 0) {@from body}
+	 * @param string 	$label         	Label {@from body}
 	 * @return int  ID of subscription
 	 *
 	 * @url POST {id}/subscriptions

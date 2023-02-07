@@ -244,7 +244,7 @@ print '</td><td class="maxwidthhalf"><span class="opacitymedium">'.$langs->trans
 // Pass
 print '<!-- LDAP_ADMIN_PASS -->';
 print '<tr class="oddeven"><td>'.$langs->trans("LDAPPassword").'</td><td>';
-print '<input class="minwidth150" type="password" name="pass" value="'.$conf->global->LDAP_ADMIN_PASS.'">';
+print '<input class="minwidth150" type="password" name="pass" value="'.dol_escape_htmltag($conf->global->LDAP_ADMIN_PASS).'">';
 print '</td><td><span class="opacitymedium">'.$langs->trans('Password').' (ex: secret)</span></td></tr>';
 
 print '</table>';
@@ -263,7 +263,7 @@ print '<br>';
  */
 if (function_exists("ldap_connect")) {
 	if (!empty($conf->global->LDAP_SERVER_HOST)) {
-		print '<a class="butAction" href="'.$_SERVER["PHP_SELF"].'?action=test">'.$langs->trans("LDAPTestConnect").'</a><br><br>';
+		print '<a class="butAction reposition" href="'.$_SERVER["PHP_SELF"].'?action=test">'.$langs->trans("LDAPTestConnect").'</a><br><br>';
 	}
 
 	if ($action == 'test') {

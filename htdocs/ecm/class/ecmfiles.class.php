@@ -240,12 +240,9 @@ class EcmFiles extends CommonObject
 		}
 
 		// If ref not defined
-		$ref = '';
-		if (!empty($this->ref)) {
-			$ref = $this->ref;
-		} else {
+		if (empty($this->ref)) {
 			include_once DOL_DOCUMENT_ROOT.'/core/lib/security.lib.php';
-			$ref = dol_hash($this->filepath.'/'.$this->filename, 3);
+			$this->ref = dol_hash($this->filepath.'/'.$this->filename, 3);
 		}
 
 		$maxposition = 0;
@@ -300,7 +297,7 @@ class EcmFiles extends CommonObject
 		$sql .= 'src_object_type,';
 		$sql .= 'src_object_id';
 		$sql .= ') VALUES (';
-		$sql .= " '".$this->db->escape($ref)."', ";
+		$sql .= " '".$this->db->escape($this->ref)."', ";
 		$sql .= ' '.(!isset($this->label) ? 'NULL' : "'".$this->db->escape($this->label)."'").',';
 		$sql .= ' '.(!isset($this->share) ? 'NULL' : "'".$this->db->escape($this->share)."'").',';
 		$sql .= ' '.((int) $this->entity).',';
@@ -569,7 +566,7 @@ class EcmFiles extends CommonObject
 				$line = new EcmfilesLine();
 
 				$line->id = $obj->rowid;
-				$line->ref = $obj->ref;
+				$line->ref = $obj->rowid;
 				$line->label = $obj->label;
 				$line->share = $obj->share;
 				$line->entity = $obj->entity;
@@ -839,7 +836,7 @@ class EcmFiles extends CommonObject
 	{
 		global $db, $conf, $langs;
 		global $dolibarr_main_authentication, $dolibarr_main_demo;
-		global $menumanager;
+		global $menumanager, $hookmanager;
 
 		if (!empty($conf->dol_no_mouse_hover)) {
 			$notooltip = 1; // Force disable tooltips
@@ -876,6 +873,16 @@ class EcmFiles extends CommonObject
 			}
 		}
 		$result .= $linkstart.$this->ref.$linkend;
+
+		global $action;
+		$hookmanager->initHooks(array($this->element . 'dao'));
+		$parameters = array('id'=>$this->id, 'getnomurl' => &$result);
+		$reshook = $hookmanager->executeHooks('getNomUrl', $parameters, $this, $action); // Note that $action and $object may have been modified by some hooks
+		if ($reshook > 0) {
+			$result = $hookmanager->resPrint;
+		} else {
+			$result .= $hookmanager->resPrint;
+		}
 		return $result;
 	}
 

@@ -22,7 +22,7 @@
 /**
  * \file scripts/cron/cron_run_jobs.php
  * \ingroup cron
- * \brief Execute pendings jobs
+ * \brief Execute pendings jobs from command line
  */
 
 if (!defined('NOTOKENRENEWAL')) {
@@ -42,6 +42,11 @@ if (!defined('NOLOGIN')) {
 }
 if (!defined('NOSESSION')) {
 	define('NOSESSION', '1');
+}
+
+// So log file will have a suffix
+if (!defined('USESUFFIXINLOG')) {
+	define('USESUFFIXINLOG', '_cron');
 }
 
 $sapi_type = php_sapi_name();
@@ -75,6 +80,8 @@ $userlogin = $argv[2];
 // Global variables
 $version = DOL_VERSION;
 $error = 0;
+
+$hookmanager->initHooks(array('cli'));
 
 
 /*
@@ -171,32 +178,24 @@ if (!empty($id)) {
 	$filter['t.rowid'] = $id;
 }
 
-$result = $object->fetch_all('ASC,ASC,ASC', 't.priority,t.entity,t.rowid', 0, 0, 1, $filter, 0);
+$result = $object->fetchAll('ASC,ASC,ASC', 't.priority,t.entity,t.rowid', 0, 0, 1, $filter, 0);
 if ($result < 0) {
 	echo "Error: ".$object->error;
 	dol_syslog("cron_run_jobs.php fetch Error ".$object->error, LOG_ERR);
 	exit(-1);
 }
 
-$qualifiedjobs = array();
-foreach ($object->lines as $val) {
-	if (!verifCond($val->test)) {
-		continue;
-	}
-	$qualifiedjobs[] = $val;
-}
-
 // TODO Duplicate code. This sequence of code must be shared with code into public/cron/cron_run_jobs.php php page.
 
-$nbofjobs = count($qualifiedjobs);
+$nbofjobs = count($object->lines);
 $nbofjobslaunchedok = 0;
 $nbofjobslaunchedko = 0;
 
-if (is_array($qualifiedjobs) && (count($qualifiedjobs) > 0)) {
+if (is_array($object->lines) && (count($object->lines) > 0)) {
 	$savconf = dol_clone($conf);
 
 	// Loop over job
-	foreach ($qualifiedjobs as $line) {
+	foreach ($object->lines as $line) {
 		dol_syslog("cron_run_jobs.php cronjobid: ".$line->id." priority=".$line->priority." entity=".$line->entity." label=".$line->label, LOG_DEBUG);
 		echo "cron_run_jobs.php cronjobid: ".$line->id." priority=".$line->priority." entity=".$line->entity." label=".$line->label;
 
@@ -236,6 +235,10 @@ if (is_array($qualifiedjobs) && (count($qualifiedjobs) > 0)) {
 				$langs->tab_translate = array();
 				$langs->loadLangs(array('main', 'admin', 'cron', 'dict'));
 			}
+		}
+
+		if (!verifCond($line->test)) {
+			continue;
 		}
 
 		//If date_next_jobs is less of current date, execute the program, and store the execution time of the next execution in database

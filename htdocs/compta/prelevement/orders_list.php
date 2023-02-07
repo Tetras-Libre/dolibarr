@@ -132,6 +132,9 @@ if ($result) {
 	if (!empty($contextpage) && $contextpage != $_SERVER["PHP_SELF"]) {
 		$param .= '&contextpage='.urlencode($contextpage);
 	}
+	if ($type == 'bank-transfer') {
+		$param .= '&amp;type=bank-transfer';
+	}
 	if ($limit > 0 && $limit != $conf->liste_limit) {
 		$param .= '&limit='.urlencode($limit);
 	}
@@ -155,7 +158,9 @@ if ($result) {
 	print '<input type="hidden" name="sortfield" value="'.$sortfield.'">';
 	print '<input type="hidden" name="sortorder" value="'.$sortorder.'">';
 	print '<input type="hidden" name="contextpage" value="'.$contextpage.'">';
-
+	if ($type != '') {
+		print '<input type="hidden" name="type" value="'.$type.'">';
+	}
 	$titlekey = "WithdrawalsReceipts";
 	$title = $langs->trans("WithdrawalsReceipts");
 	if ($type == 'bank-transfer') {

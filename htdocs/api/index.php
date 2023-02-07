@@ -100,7 +100,7 @@ require_once DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php';
 
 $url = $_SERVER['PHP_SELF'];
 if (preg_match('/api\/index\.php$/', $url)) {	// sometimes $_SERVER['PHP_SELF'] is 'api\/index\.php' instead of 'api\/index\.php/explorer.php' or 'api\/index\.php/method'
-	$url = $_SERVER['PHP_SELF'].$_SERVER['PATH_INFO'];
+	$url = $_SERVER['PHP_SELF'].(empty($_SERVER['PATH_INFO']) ? $_SERVER['ORIG_PATH_INFO'] : $_SERVER['PATH_INFO']);
 }
 // Fix for some NGINX setups (this should not be required even with NGINX, however setup of NGINX are often mysterious and this may help is such cases)
 if (!empty($conf->global->MAIN_NGINX_FIX)) {
@@ -120,7 +120,7 @@ if (empty($conf->global->MAIN_MODULE_API)) {
 // Test if explorer is not disabled
 if (preg_match('/api\/index\.php\/explorer/', $url) && !empty($conf->global->API_EXPLORER_DISABLED)) {
 	$langs->load("admin");
-	dol_syslog("Call Dolibarr API interfaces with module REST disabled");
+	dol_syslog("Call Dolibarr API interfaces with module API REST disabled");
 	print $langs->trans("WarningAPIExplorerDisabled").'.<br><br>';
 	//session_destroy();
 	exit(0);
@@ -153,10 +153,33 @@ preg_match('/index\.php\/([^\/]+)(.*)$/', $url, $reg);
 $refreshcache = (empty($conf->global->API_PRODUCTION_DO_NOT_ALWAYS_REFRESH_CACHE) ? true : false);
 if (!empty($reg[1]) && $reg[1] == 'explorer' && ($reg[2] == '/swagger.json' || $reg[2] == '/swagger.json/root' || $reg[2] == '/resources.json' || $reg[2] == '/resources.json/root')) {
 	$refreshcache = true;
+	if (!is_writable($conf->api->dir_temp)) {
+		print 'Erreur temp dir api/temp not writable';
+		exit(0);
+	}
 }
 
 $api = new DolibarrApi($db, '', $refreshcache);
 //var_dump($api->r->apiVersionMap);
+
+// If MAIN_API_DEBUG is set to 1, we save logs into file "dolibarr_api.log"
+if (!empty($conf->global->MAIN_API_DEBUG)) {
+	$r = $api->r;
+	$r->onCall(function () use ($r) {
+		// Don't log Luracast Restler Explorer recources calls
+		//if (!preg_match('/^explorer/', $r->url)) {
+		//	'method'  => $api->r->requestMethod,
+		//	'url'     => $api->r->url,
+		//	'route'   => $api->r->apiMethodInfo->className.'::'.$api->r->apiMethodInfo->methodName,
+		//	'version' => $api->r->getRequestedApiVersion(),
+		//	'data'    => $api->r->getRequestData(),
+		//dol_syslog("Debug API input ".var_export($r, true), LOG_DEBUG, 0, '_api');
+		dol_syslog("Debug API url ".var_export($r->url, true), LOG_DEBUG, 0, '_api');
+		dol_syslog("Debug API input ".var_export($r->getRequestData(), true), LOG_DEBUG, 0, '_api');
+		//}
+	});
+}
+
 
 // Enable the Restler API Explorer.
 // See https://github.com/Luracast/Restler-API-Explorer for more info.

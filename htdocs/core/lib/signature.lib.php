@@ -59,7 +59,7 @@ function showOnlineSignatureUrl($type, $ref)
  */
 function getOnlineSignatureUrl($mode, $type, $ref = '', $localorexternal = 1)
 {
-	global $conf, $db, $langs, $dolibarr_main_url_root;
+	global $conf, $object, $dolibarr_main_url_root;
 
 	$ref = str_replace(' ', '', $ref);
 	$out = '';
@@ -77,7 +77,7 @@ function getOnlineSignatureUrl($mode, $type, $ref = '', $localorexternal = 1)
 	$securekeyseed = '';
 
 	if ($type == 'proposal') {
-		$securekeyseed = $conf->global->PROPOSAL_ONLINE_SIGNATURE_SECURITY_TOKEN;
+		$securekeyseed = isset($conf->global->PROPOSAL_ONLINE_SIGNATURE_SECURITY_TOKEN) ? $conf->global->PROPOSAL_ONLINE_SIGNATURE_SECURITY_TOKEN : '';
 
 		$out = $urltouse.'/public/onlinesign/newonlinesign.php?source=proposal&ref='.($mode ? '<span style="color: #666666">' : '');
 		if ($mode == 1) {
@@ -90,7 +90,7 @@ function getOnlineSignatureUrl($mode, $type, $ref = '', $localorexternal = 1)
 		if ($mode == 1) {
 			$out .= "hash('".$securekeyseed."' + '".$type."' + proposal_ref)";
 		} else {
-			$out .= '&securekey='.dol_hash($securekeyseed.$type.$ref, '0');
+			$out .= '&securekey='.dol_hash($securekeyseed.$type.$ref.(empty($conf->multicompany->enabled) ? '' : $object->entity), '0');
 		}
 		/*
 		if ($mode == 1) {

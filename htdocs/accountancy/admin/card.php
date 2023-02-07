@@ -168,10 +168,13 @@ if ($action == 'add' && $user->rights->accounting->chartofaccount) {
 			$object->labelshort = GETPOST('labelshort', 'alpha');
 
 			$result = $object->update($user);
+
 			if ($result > 0) {
 				$urltogo = $backtopage ? $backtopage : ($_SERVER["PHP_SELF"] . "?id=" . $id);
 				header("Location: " . $urltogo);
 				exit();
+			} elseif ($result == -2) {
+				setEventMessages($langs->trans("ErrorAccountNumberAlreadyExists", $object->account_number), null, 'errors');
 			} else {
 				setEventMessages($object->error, null, 'errors');
 			}
@@ -300,7 +303,7 @@ if ($action == 'create') {
 
 		// Edit mode
 		if ($action == 'update') {
-			print dol_get_fiche_head($head, 'card', $langs->trans('AccountAccounting'), 0, 'billr');
+			print dol_get_fiche_head($head, 'card', $langs->trans('AccountAccounting'), 0, 'accounting_account');
 
 			print '<form name="update" action="'.$_SERVER["PHP_SELF"].'" method="POST">'."\n";
 			print '<input type="hidden" name="token" value="'.newToken().'">';
@@ -368,7 +371,7 @@ if ($action == 'create') {
 			// View mode
 			$linkback = '<a href="'.DOL_URL_ROOT.'/accountancy/admin/account.php?restore_lastsearch_values=1">'.$langs->trans("BackToList").'</a>';
 
-			print dol_get_fiche_head($head, 'card', $langs->trans('AccountAccounting'), -1, 'billr');
+			print dol_get_fiche_head($head, 'card', $langs->trans('AccountAccounting'), -1, 'accounting_account');
 
 			dol_banner_tab($object, 'ref', $linkback, 1, 'account_number', 'ref');
 

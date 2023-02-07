@@ -124,7 +124,7 @@ function check_user_password_dolibarr($usertotest, $passwordtotest, $entitytotes
 				if ($passok) {
 					$login = $obj->login;
 				} else {
-					sleep(2); // Anti brut force protection
+					sleep(1); // Anti brut force protection
 					dol_syslog("functions_dolibarr::check_user_password_dolibarr Authentication KO bad password for '".$usertotest."', cryptType=".$cryptType, LOG_NOTICE);
 
 					// Load translation files required by the page
@@ -143,7 +143,11 @@ function check_user_password_dolibarr($usertotest, $passwordtotest, $entitytotes
 						$ret = $mc->checkRight($obj->rowid, $entitytotest);
 						if ($ret < 0) {
 							dol_syslog("functions_dolibarr::check_user_password_dolibarr Authentication KO entity '".$entitytotest."' not allowed for user '".$obj->rowid."'", LOG_NOTICE);
+
 							$login = ''; // force authentication failure
+							if ($mc->db->lasterror()) {
+								$_SESSION["dol_loginmesg"] = $mc->db->lasterror();
+							}
 						}
 					}
 				}
