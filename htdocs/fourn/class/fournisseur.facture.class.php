@@ -2782,6 +2782,9 @@ class FactureFournisseur extends CommonInvoice
 		if (!empty($this->date)) {
 			$label .= '<br><b>'.$langs->trans('Date').':</b> '.dol_print_date($this->date, 'day');
 		}
+		if (!empty($this->date_echeance)) {
+			$label .= '<br><b>'.$langs->trans('DateDue').':</b> '.dol_print_date($this->date_echeance, 'day');
+		}
 		if (!empty($this->total_ht)) {
 			$label .= '<br><b>'.$langs->trans('AmountHT').':</b> '.price($this->total_ht, 0, $langs, 0, -1, -1, $conf->currency);
 		}
@@ -3069,15 +3072,16 @@ class FactureFournisseur extends CommonInvoice
 		$object->fk_facture_source  = 0;
 		$object->date_creation      = '';
 		$object->date_validation    = '';
-		$object->date               = (empty($this->date) ? '' : $this->date);
-		$object->date_echeance      = '';
+		$object->date               = (empty($this->date) ? dol_now() : $this->date);
 		$object->ref_client         = '';
 		$object->close_code         = '';
 		$object->close_note         = '';
-		if ($conf->global->MAIN_DONT_KEEP_NOTE_ON_CLONING == 1) {
+		if (getDolGlobalInt('MAIN_DONT_KEEP_NOTE_ON_CLONING') == 1) {
 			$object->note_private = '';
 			$object->note_public = '';
 		}
+
+		$object->date_echeance = $object->calculate_date_lim_reglement();
 
 		// Loop on each line of new invoice
 		foreach ($object->lines as $i => $line) {

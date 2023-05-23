@@ -113,12 +113,14 @@ function dolGetRandomBytes($length)
  *	@param   string		$chain		string to encode
  *	@param   string		$key		If '', we use $dolibarr_main_instance_unique_id
  *  @param	 string		$ciphering	Default ciphering algorithm
+ *  @param	 string		$forceseed	To force the seed
  *	@return  string					encoded string
  *  @see dolDecrypt(), dol_hash()
  */
-function dolEncrypt($chain, $key = '', $ciphering = "AES-256-CTR")
+function dolEncrypt($chain, $key = '', $ciphering = 'AES-256-CTR', $forceseed = '')
 {
 	global $dolibarr_main_instance_unique_id;
+	global $dolibarr_disable_dolcrypt_for_debug;
 
 	if ($chain === '' || is_null($chain)) {
 		return '';
@@ -133,10 +135,13 @@ function dolEncrypt($chain, $key = '', $ciphering = "AES-256-CTR")
 	if (empty($key)) {
 		$key = $dolibarr_main_instance_unique_id;
 	}
+	if (empty($ciphering)) {
+		$ciphering = 'AES-256-CTR';
+	}
 
 	$newchain = $chain;
 
-	if (function_exists('openssl_encrypt')) {
+	if (function_exists('openssl_encrypt') && empty($dolibarr_disable_dolcrypt_for_debug)) {
 		$ivlen = 16;
 		if (function_exists('openssl_cipher_iv_length')) {
 			$ivlen = openssl_cipher_iv_length($ciphering);
@@ -144,7 +149,11 @@ function dolEncrypt($chain, $key = '', $ciphering = "AES-256-CTR")
 		if ($ivlen === false || $ivlen < 1 || $ivlen > 32) {
 			$ivlen = 16;
 		}
-		$ivseed = dolGetRandomBytes($ivlen);
+		if (empty($forceseed)) {
+			$ivseed = dolGetRandomBytes($ivlen);
+		} else {
+			$ivseed = dol_trunc(md5($forceseed), $ivlen, 'right', 'UTF-8', 1);
+		}
 
 		$newchain = openssl_encrypt($chain, $ciphering, $key, 0, $ivseed);
 		return 'dolcrypt:'.$ciphering.':'.$ivseed.':'.$newchain;
@@ -256,11 +265,11 @@ function dol_verifyHash($chain, $hash, $type = '0')
 	global $conf;
 
 	if ($type == '0' && !empty($conf->global->MAIN_SECURITY_HASH_ALGO) && $conf->global->MAIN_SECURITY_HASH_ALGO == 'password_hash' && function_exists('password_verify')) {
-		if ($hash[0] == '$') {
+		if (! empty($hash[0]) && $hash[0] == '$') {
 			return password_verify($chain, $hash);
-		} elseif (strlen($hash) == 32) {
+		} elseif (dol_strlen($hash) == 32) {
 			return dol_verifyHash($chain, $hash, '3'); // md5
-		} elseif (strlen($hash) == 40) {
+		} elseif (dol_strlen($hash) == 40) {
 			return dol_verifyHash($chain, $hash, '2'); // sha1md5
 		}
 
@@ -421,6 +430,9 @@ function restrictedArea(User $user, $features, $object = 0, $tableandshare = '',
 		$featureforlistofmodule = $feature;
 		if ($featureforlistofmodule == 'produit') {
 			$featureforlistofmodule = 'product';
+		}
+		if ($featureforlistofmodule == 'supplier_proposal') {
+			$featureforlistofmodule = 'supplierproposal';
 		}
 		if (!empty($user->socid) && !empty($conf->global->MAIN_MODULES_FOR_EXTERNAL) && !in_array($featureforlistofmodule, $listofmodules)) {	// If limits on modules for external users, module must be into list of modules for external users
 			$readok = 0;
@@ -802,12 +814,15 @@ function checkUserAccessToObject($user, array $featuresarray, $object = 0, $tabl
 			$feature = 'projet_task';
 		}
 
+		if ($feature == 'payment_sc') {
+			$feature = "chargesociales";
+		}
 		$checkonentitydone = 0;
 
 		// Array to define rules of checks to do
-		$check = array('adherent', 'banque', 'bom', 'don', 'mrp', 'user', 'usergroup', 'payment', 'payment_supplier', 'product', 'produit', 'service', 'produit|service', 'categorie', 'resource', 'expensereport', 'holiday', 'salaries', 'website', 'recruitment'); // Test on entity only (Objects with no link to company)
+		$check = array('adherent', 'banque', 'bom', 'don', 'mrp', 'user', 'usergroup', 'payment', 'payment_supplier', 'product', 'produit', 'service', 'produit|service', 'categorie', 'resource', 'expensereport', 'holiday', 'salaries', 'website', 'recruitment','chargesociales'); // Test on entity only (Objects with no link to company)
 		$checksoc = array('societe'); // Test for object Societe
-		$checkother = array('contact', 'agenda'); // Test on entity + link to third party on field $dbt_keyfield. Allowed if link is empty (Ex: contacts...).
+		$checkother = array('contact', 'agenda', 'contrat'); // Test on entity + link to third party on field $dbt_keyfield. Allowed if link is empty (Ex: contacts...).
 		$checkproject = array('projet', 'project'); // Test for project object
 		$checktask = array('projet_task'); // Test for task object
 		$checkhierarchy = array('expensereport', 'holiday');	// check permission among the hierarchy of user

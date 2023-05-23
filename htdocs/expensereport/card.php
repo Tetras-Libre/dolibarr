@@ -2025,6 +2025,7 @@ if ($action == 'create') {
 			print '<input type="hidden" name="action" value="'.$actiontouse.'">';
 			print '<input type="hidden" name="id" value="'.$object->id.'">';
 			print '<input type="hidden" name="fk_expensereport" value="'.$object->id.'" />';
+			print '<input type="hidden" name="page_y" value="">';
 
 			print '<div class="div-table-responsive-no-min">';
 			print '<table id="tablelines" class="noborder centpercent">';
@@ -2043,7 +2044,7 @@ if ($action == 'create') {
 				if (!empty($conf->global->MAIN_USE_EXPENSE_IK)) {
 					print '<td class="center linecolcarcategory">'.$langs->trans('CarCategory').'</td>';
 				}
-				print '<td class="center linecoldescription">'.$langs->trans('Description').'</td>';
+				print '<td class="linecoldescription">'.$langs->trans('Description').'</td>';
 				print '<td class="right linecolvat">'.$langs->trans('VAT').'</td>';
 				print '<td class="right linecolpriceuht">'.$langs->trans('PriceUHT').'</td>';
 				print '<td class="right linecolpriceuttc">'.$langs->trans('PriceUTTC').'</td>';
@@ -2082,7 +2083,7 @@ if ($action == 'create') {
 
 						// Project
 						if (isModEnabled('project')) {
-							print '<td class="center dateproject">';
+							print '<td class="lineproject">';
 							if ($line->fk_project > 0) {
 								$projecttmp->id = $line->fk_project;
 								$projecttmp->ref = $line->projet_ref;
@@ -2475,7 +2476,7 @@ if ($action == 'create') {
 				if (!empty($conf->global->MAIN_USE_EXPENSE_IK)) {
 					print '<td>'.$langs->trans('CarCategory').'</td>';
 				}
-				print '<td class="right expensereportcreatedescription">'.$langs->trans('Description').'</td>';
+				print '<td class="expensereportcreatedescription">'.$langs->trans('Description').'</td>';
 				print '<td class="right expensereportcreatevat">'.$langs->trans('VAT').'</td>';
 				print '<td class="right expensereportcreatepriceuth">'.$langs->trans('PriceUHT').'</td>';
 				print '<td class="right expensereportcreatepricettc">'.$langs->trans('PriceUTTC').'</td>';
@@ -2554,7 +2555,7 @@ if ($action == 'create') {
 				}
 
 				print '<td class="center inputbuttons">';
-				print $form->buttonsSaveCancel("Add", '', '', 1);
+				print $form->buttonsSaveCancel("Add", '', '', 1, 'reposition');
 				print '</td>';
 
 				print '</tr>';
@@ -2562,8 +2563,8 @@ if ($action == 'create') {
 
 			print '</table>';
 			print '</div>';
-			//var_dump($object);
-			print '<script javascript>
+
+			print '<script>
 
 			/* JQuery for product free or predefined select */
 			jQuery(document).ready(function() {
@@ -2579,6 +2580,10 @@ if ($action == 'create') {
 						jQuery("#value_unit_ht").val("");
 					}
 				});
+			';
+
+			if (! empty($conf->global->MAIN_USE_EXPENSE_IK)) {
+				print '
 
                 /* unit price coéf calculation */
                 jQuery(".input_qty, #fk_c_type_fees, #select_fk_c_exp_tax_cat, #vatrate ").change(function(event) {
@@ -2607,10 +2612,22 @@ if ($action == 'create') {
 							,async:false
 							,dataType:"json"
 							,success:function(response) {
-                                if (response.response_status == "success"){
-                                jQuery("#value_unit_ht").val(response.data);
-                                jQuery("#value_unit_ht").trigger("change");
-                                jQuery("#value_unit").val("");
+								if (response.response_status == "success"){';
+
+				if (!empty($conf->global->EXPENSEREPORT_FORCE_LINE_AMOUNTS_INCLUDING_TAXES_ONLY)) {
+					print '
+									jQuery("#value_unit").val(parseFloat(response.data) * (100 + parseFloat(tva)) / 100);
+									jQuery("#value_unit").trigger("change");
+				                    ';
+				} else {
+					print '
+									jQuery("#value_unit_ht").val(response.data);
+									jQuery("#value_unit_ht").trigger("change");
+									jQuery("#value_unit").val("");
+									';
+				}
+
+				print '
                                 } else if(response.response_status == "error" && response.errorMessage != undefined && response.errorMessage.length > 0 ){
                                     $.jnotify(response.errorMessage, "error", {timeout: 0, type: "error"},{ remove: function (){} } );
                                 }
@@ -2624,6 +2641,10 @@ if ($action == 'create') {
 						jQuery("#value_unit_ht").val("");
 					}*/
 				});
+				';
+			}
+
+			print '
 
 			});
 

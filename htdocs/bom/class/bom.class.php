@@ -1,5 +1,6 @@
 <?php
-/* Copyright (C) 2019  Laurent Destailleur <eldy@users.sourceforge.net>
+/* Copyright (C) 2019	Laurent Destailleur	<eldy@users.sourceforge.net>
+ * Copyright (C) 2023	Benjamin Falière	<benjamin.faliere@altairis.fr>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1365,7 +1366,11 @@ class BOM extends CommonObject
 						$line->unit_cost = price2num((!empty($tmpproduct->cost_price)) ? $tmpproduct->cost_price : $tmpproduct->pmp);
 						if (empty($line->unit_cost)) {
 							if ($productFournisseur->find_min_price_product_fournisseur($line->fk_product) > 0) {
-								$line->unit_cost = $productFournisseur->fourn_unitprice;
+								if ($productFournisseur->fourn_remise_percent != "0") {
+									$line->unit_cost = $productFournisseur->fourn_unitprice_with_discount;
+								} else {
+									$line->unit_cost = $productFournisseur->fourn_unitprice;
+								}
 							}
 						}
 
@@ -1386,21 +1391,32 @@ class BOM extends CommonObject
 						}
 					}
 				} else {
-					//Convert qty to hour
-					$unit = measuringUnitString($line->fk_unit, '', '', 1);
-					$qty = convertDurationtoHour($line->qty, $unit);
+					// Convert qty of line into hours
+					$unitforline = measuringUnitString($line->fk_unit, '', '', 1);
+					$qtyhourforline = convertDurationtoHour($line->qty, $unitforline);
 
 					if (isModEnabled('workstation') && !empty($tmpproduct->fk_default_workstation)) {
 						$workstation = new Workstation($this->db);
 						$res = $workstation->fetch($tmpproduct->fk_default_workstation);
 
-						if ($res > 0) $line->total_cost = price2num($qty * ($workstation->thm_operator_estimated + $workstation->thm_machine_estimated), 'MT');
+						if ($res > 0) $line->total_cost = price2num($qtyhourforline * ($workstation->thm_operator_estimated + $workstation->thm_machine_estimated), 'MT');
 						else {
 							$this->error = $workstation->error;
 								return -3;
 						}
 					} else {
-						$line->total_cost = price2num($qty * $tmpproduct->cost_price, 'MT');
+						$defaultdurationofservice = $tmpproduct->duration;
+						$reg = array();
+						$qtyhourservice = 0;
+						if (preg_match('/^(\d+)([a-z]+)$/', $defaultdurationofservice, $reg)) {
+							$qtyhourservice = convertDurationtoHour($reg[1], $reg[2]);
+						}
+
+						if ($qtyhourservice) {
+							$line->total_cost = price2num($qtyhourforline / $qtyhourservice * $tmpproduct->cost_price, 'MT');
+						} else {
+							$line->total_cost = price2num($line->qty * $tmpproduct->cost_price, 'MT');
+						}
 					}
 
 					$this->total_cost += $line->total_cost;

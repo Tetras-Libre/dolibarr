@@ -513,7 +513,7 @@ $tabcond[25] = isModEnabled('website');
 $tabcond[27] = isModEnabled("societe");
 $tabcond[28] = isModEnabled('holiday');
 $tabcond[29] = isModEnabled('project');
-$tabcond[30] = isModEnabled('label');
+$tabcond[30] = (isModEnabled('label') || isModEnabled('barcode') || isModEnabled('adherent'));	// stickers format dictionary
 //$tabcond[31]= isModEnabled('accounting');
 $tabcond[32] = (isModEnabled('holiday') || isModEnabled('hrm'));
 $tabcond[33] = isModEnabled('hrm');
@@ -1201,7 +1201,7 @@ if ($search_country_id > 0) {
 	$param .= '&search_country_id='.urlencode($search_country_id);
 }
 if ($search_code != '') {
-	$param .= '&search_code='.urlencode($search_country_id);
+	$param .= '&search_code='.urlencode($search_code);
 }
 if ($entity != '') {
 	$param .= '&entity='.(int) $entity;
@@ -1251,6 +1251,8 @@ if ($id > 0) {
 		$sql .= natural_search("f.code", $search_code);
 	} elseif ($search_code != '' && $id == 2) {
 		$sql .= natural_search("d.code_departement", $search_code);
+	} elseif ($search_code != '' && $id == 14) {
+		$sql .= natural_search("e.code", $search_code);
 	} elseif ($search_code != '' && $id != 9) {
 		$sql .= natural_search("code", $search_code);
 	}
@@ -1570,7 +1572,6 @@ if ($id > 0) {
 		if ($id == 3) {
 			unset($fieldlist[2]); // Remove field ??? if dictionary Regions
 		}
-
 
 		if (empty($reshook)) {
 			fieldList($fieldlist, $obj, $tabname[$id], 'add');
@@ -1927,8 +1928,8 @@ if ($id > 0) {
 					if (!is_null($withentity)) {
 						print '<input type="hidden" name="entity" value="'.$withentity.'">';
 					}
-					print '<input type="submit" class="button button-edit" name="actionmodify" value="'.$langs->trans("Modify").'">';
-					print '<input type="submit" class="button button-cancel" name="actioncancel" value="'.$langs->trans("Cancel").'">';
+					print '<input type="submit" class="button button-edit small" name="actionmodify" value="'.$langs->trans("Modify").'">';
+					print '<input type="submit" class="button button-cancel small" name="actioncancel" value="'.$langs->trans("Cancel").'">';
 					print '</td>';
 				} else {
 					$tmpaction = 'view';
@@ -2531,7 +2532,7 @@ function fieldList($fieldlist, $obj = '', $tabname = '', $context = '')
 				$classtd = 'right'; $class = 'maxwidth50 right';
 			}
 			if (in_array($fieldlist[$field], array('pos', 'position'))) {
-				$classtd = 'center'; $class = 'maxwidth50 center';
+				$classtd = 'right'; $class = 'maxwidth50 right';
 			}
 			if (in_array($fieldlist[$field], array('dayrule', 'day', 'month', 'year', 'use_default', 'affect', 'delay', 'public', 'sortorder', 'sens', 'category_type', 'fk_parent'))) {
 				$class = 'maxwidth50 center';

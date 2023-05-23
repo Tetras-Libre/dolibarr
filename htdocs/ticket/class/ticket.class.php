@@ -214,6 +214,11 @@ class Ticket extends CommonObject
 	public $email_date;
 
 	/**
+	 * @var string 	IP address
+	 */
+	public $ip;
+
+	/**
 	 * @var Ticket $oldcopy  State of this ticket as it was stored before an update operation (for triggers)
 	 */
 	public $oldcopy;
@@ -605,6 +610,7 @@ class Ticket extends CommonObject
 		$sql .= " t.date_last_msg_sent,";
 		$sql .= " t.date_close,";
 		$sql .= " t.tms,";
+		$sql .= " t.ip,";
 		$sql .= " type.label as type_label, category.label as category_label, severity.label as severity_label";
 		$sql .= " FROM ".MAIN_DB_PREFIX."ticket as t";
 		$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."c_ticket_type as type ON type.code=t.type_code";
@@ -644,6 +650,7 @@ class Ticket extends CommonObject
 				$this->email_date = $this->db->jdate($obj->email_date);
 				$this->subject = $obj->subject;
 				$this->message = $obj->message;
+				$this->ip = $obj->ip;
 
 				$this->status = $obj->status;
 				$this->fk_statut = $this->status; // For backward compatibility
@@ -1235,13 +1242,14 @@ class Ticket extends CommonObject
 	/**
 	 *      Load into a cache array, the list of ticket categories (setup done into dictionary)
 	 *
-	 *      @return int             Number of lines loaded, 0 if already loaded, <0 if KO
+	 *      @param	int		$publicgroup	0=No public group, 1=Public group only, -1=All
+	 *      @return int             		Number of lines loaded, 0 if already loaded, <0 if KO
 	 */
-	public function loadCacheCategoriesTickets()
+	public function loadCacheCategoriesTickets($publicgroup = -1)
 	{
 		global $conf, $langs;
 
-		if (!empty($this->cache_category_ticket) && count($this->cache_category_tickets)) {
+		if ($publicgroup == -1 && !empty($this->cache_category_ticket) && count($this->cache_category_tickets)) {
 			// Cache already loaded
 			return 0;
 		}
@@ -1249,8 +1257,13 @@ class Ticket extends CommonObject
 		$sql = "SELECT rowid, code, label, use_default, pos, description, public, active, force_severity, fk_parent";
 		$sql .= " FROM ".MAIN_DB_PREFIX."c_ticket_category";
 		$sql .= " WHERE active > 0 AND entity = ".((int) $conf->entity);
+		if ($publicgroup > -1) {
+			$sql .= " AND public = ".((int) $publicgroup);
+		}
 		$sql .= " ORDER BY pos";
+
 		dol_syslog(get_class($this)."::load_cache_categories_tickets", LOG_DEBUG);
+
 		$resql = $this->db->query($sql);
 		if ($resql) {
 			$num = $this->db->num_rows($resql);
@@ -1346,7 +1359,7 @@ class Ticket extends CommonObject
 	public function LibStatut($status, $mode = 0, $notooltip = 0, $progress = 0)
 	{
 		// phpcs:enable
-		global $langs;
+		global $langs, $hookmanager;
 
 		$labelStatus = $this->statuts[$status];
 		$labelStatusShort = $this->statuts_short[$status];
@@ -1372,6 +1385,18 @@ class Ticket extends CommonObject
 			$labelStatusShort = 'Unknown';
 			$statusType = 'status0';
 			$mode = 0;
+		}
+
+		$parameters = array(
+			'status'          => $status,
+			'mode'            => $mode,
+		);
+
+		// Note that $action and $object may have been modified by hook
+		$reshook = $hookmanager->executeHooks('LibStatut', $parameters, $this);
+
+		if ($reshook > 0) {
+			return $hookmanager->resPrint;
 		}
 
 		$params = array();
@@ -1853,29 +1878,27 @@ class Ticket extends CommonObject
 	{
 		$contacts = array();
 
-		// Generation requete recherche
+		// Forge the search SQL
 		$sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."socpeople";
 		$sql .= " WHERE entity IN (".getEntity('contact').")";
 		if (!empty($socid)) {
-			$sql .= " AND fk_soc='".$this->db->escape($socid)."'";
+			$sql .= " AND fk_soc = ".((int) $socid);
 		}
-
 		if (!empty($email)) {
 			$sql .= " AND ";
-
 			if (!$case) {
-				$sql .= "email LIKE '".$this->db->escape($email)."'";
+				$sql .= "email = '".$this->db->escape($email)."'";
 			} else {
-				$sql .= "email LIKE BINARY '".$this->db->escape($email)."'";
+				$sql .= "email LIKE BINARY '".$this->db->escape($this->db->escapeforlike($email))."'";
 			}
 		}
 
 		$res = $this->db->query($sql);
 		if ($res) {
-			while ($rec = $this->db->fetch_array($res)) {
+			while ($rec = $this->db->fetch_object($res)) {
 				include_once DOL_DOCUMENT_ROOT.'/contact/class/contact.class.php';
 				$contactstatic = new Contact($this->db);
-				$contactstatic->fetch($rec['rowid']);
+				$contactstatic->fetch($rec->rowid);
 				$contacts[] = $contactstatic;
 			}
 
@@ -2248,9 +2271,10 @@ class Ticket extends CommonObject
 	 * Used for files linked into messages.
 	 * Files may be renamed during copy to avoid overwriting existing files.
 	 *
-	 * @return	array		Array with final path/name/mime of files.
+	 * @param	string		$forcetrackid	Force trackid used for $keytoavoidconflict into get_attached_files()
+	 * @return	array|int					Array with final path/name/mime of files.
 	 */
-	public function copyFilesForTicket()
+	public function copyFilesForTicket($forcetrackid = null)
 	{
 		global $conf;
 
@@ -2265,10 +2289,10 @@ class Ticket extends CommonObject
 		$maxheightmini = 72;
 
 		$formmail = new FormMail($this->db);
-
+		$formmail->trackid = (is_null($forcetrackid) ? 'tic'.$this->id : '');
 		$attachedfiles = $formmail->get_attached_files();
 
-		$filepath = $attachedfiles['paths'];
+		$filepath = $attachedfiles['paths'];	// path is for example user->dir_temp.'/'.$user->id.'/'...
 		$filename = $attachedfiles['names'];
 		$mimetype = $attachedfiles['mimes'];
 
@@ -2290,17 +2314,24 @@ class Ticket extends CommonObject
 				$destfile = $destdir.'/'.$pathinfo['filename'].' - '.dol_print_date($now, 'dayhourlog').'.'.$pathinfo['extension'];
 			}
 
-			$res = dol_move($filepath[$i], $destfile, 0, 1);
-
-			if (image_format_supported($destfile) == 1) {
-				// Create small thumbs for image (Ratio is near 16/9)
-				// Used on logon for example
-				$imgThumbSmall = vignette($destfile, $maxwidthsmall, $maxheightsmall, '_small', 50, "thumbs");
-				// Create mini thumbs for image (Ratio is near 16/9)
-				// Used on menu or for setup page for example
-				$imgThumbMini = vignette($destfile, $maxwidthmini, $maxheightmini, '_mini', 50, "thumbs");
+			$res = dol_move($filepath[$i], $destfile, 0, 1, 0, 1);
+			if (!$res) {
+				// Move has failed
+				$this->error = "Failed to move file ".dirbasename($filepath[$i])." into ".dirbasename($destfile);
+				return -1;
+			} else {
+				// If file is an image, we create thumbs
+				if (image_format_supported($destfile) == 1) {
+					// Create small thumbs for image (Ratio is near 16/9)
+					// Used on logon for example
+					$imgThumbSmall = vignette($destfile, $maxwidthsmall, $maxheightsmall, '_small', 50, "thumbs");
+					// Create mini thumbs for image (Ratio is near 16/9)
+					// Used on menu or for setup page for example
+					$imgThumbMini = vignette($destfile, $maxwidthmini, $maxheightmini, '_mini', 50, "thumbs");
+				}
 			}
 
+			// Clear variables into session
 			$formmail->remove_attached_files($i);
 
 			// Fill array with new names
@@ -2361,11 +2392,11 @@ class Ticket extends CommonObject
 	 * Add new message on a ticket (private/public area).
 	 * Can also send it be email if GETPOST('send_email', 'int') is set. For such email, header and footer is added.
 	 *
-	 * @param   User    $user       User for action
-	 * @param   string  $action     Action string
-	 * @param   int     $private    1=Message is private. TODO Implement this. What does this means ?
-	 * @param   int     $public_area    				1=Is the public area
-	 * @return  int
+	 * @param   User    $user       	User for action
+	 * @param   string  $action     	Action string
+	 * @param   int     $private    	1=Message is private. TODO Implement this. What does this means ?
+	 * @param   int     $public_area    1=Is the public area
+	 * @return  int						<0 if KO, >= 0 if OK
 	 */
 	public function newMessage($user, &$action, $private = 1, $public_area = 0)
 	{
@@ -2402,6 +2433,10 @@ class Ticket extends CommonObject
 
 			// Copy attached files (saved into $_SESSION) as linked files to ticket. Return array with final name used.
 			$resarray = $object->copyFilesForTicket();
+			if (is_numeric($resarray) && $resarray == -1) {
+				setEventMessages($object->error, $object->errors, 'errors');
+				return -1;
+			}
 
 			$listofpaths = $resarray['listofpaths'];
 			$listofnames = $resarray['listofnames'];
@@ -2434,24 +2469,24 @@ class Ticket extends CommonObject
 							$assigned_user = new User($this->db);
 							$assigned_user->fetch($this->fk_user_assign);
 							if (!empty($assigned_user->email)) {
-								$sendto[] = $assigned_user->getFullName($langs)." <".$assigned_user->email.">";
+								$sendto[$assigned_user->email] = $assigned_user->getFullName($langs)." <".$assigned_user->email.">";
 							} else {
 								$assigned_user_dont_have_email = $assigned_user->getFullName($langs);
 							}
 						}
 						if (empty($sendto)) {
 							if (!empty($conf->global->TICKET_PUBLIC_NOTIFICATION_NEW_MESSAGE_DEFAULT_EMAIL)) {
-								$sendto[] = $conf->global->TICKET_PUBLIC_NOTIFICATION_NEW_MESSAGE_DEFAULT_EMAIL;
+								$sendto[$conf->global->TICKET_PUBLIC_NOTIFICATION_NEW_MESSAGE_DEFAULT_EMAIL] = $conf->global->TICKET_PUBLIC_NOTIFICATION_NEW_MESSAGE_DEFAULT_EMAIL;
 							} elseif (!empty($conf->global->TICKET_NOTIFICATION_EMAIL_TO)) {
-								$sendto[] = $conf->global->TICKET_NOTIFICATION_EMAIL_TO;
+								$sendto[$conf->global->TICKET_NOTIFICATION_EMAIL_TO] = $conf->global->TICKET_NOTIFICATION_EMAIL_TO;
 							}
 						}
 
 						// Add global email address recipient
 						if (!empty($conf->global->TICKET_NOTIFICATION_ALSO_MAIN_ADDRESS) &&
-							!empty($conf->global->TICKET_NOTIFICATION_EMAIL_TO) && !in_array($conf->global->TICKET_NOTIFICATION_EMAIL_TO, $sendto)
+							!empty($conf->global->TICKET_NOTIFICATION_EMAIL_TO) && !array_key_exists($conf->global->TICKET_NOTIFICATION_EMAIL_TO, $sendto)
 						) {
-							$sendto[] = $conf->global->TICKET_NOTIFICATION_EMAIL_TO;
+							$sendto[$conf->global->TICKET_NOTIFICATION_EMAIL_TO] = $conf->global->TICKET_NOTIFICATION_EMAIL_TO;
 						}
 
 						if (!empty($sendto)) {
@@ -2535,7 +2570,7 @@ class Ticket extends CommonObject
 
 								if ($info_sendto['email'] != '') {
 									if (!empty($info_sendto['email'])) {
-										$sendto[] = dolGetFirstLastname($info_sendto['firstname'], $info_sendto['lastname'])." <".$info_sendto['email'].">";
+										$sendto[$info_sendto['email']] = dolGetFirstLastname($info_sendto['firstname'], $info_sendto['lastname'])." <".$info_sendto['email'].">";
 									}
 
 									// Contact type
@@ -2551,9 +2586,9 @@ class Ticket extends CommonObject
 							$message .= '<br>'.$langs->trans('TicketNotificationEmailBodyInfosTrackUrlinternal').' : <a href="'.$url_internal_ticket.'">'.$object->track_id.'</a><br>';
 
 							// Add global email address recipient
-							if ($conf->global->TICKET_NOTIFICATION_ALSO_MAIN_ADDRESS && !in_array($conf->global->TICKET_NOTIFICATION_EMAIL_TO, $sendto)) {
+							if ($conf->global->TICKET_NOTIFICATION_ALSO_MAIN_ADDRESS && !array_key_exists($conf->global->TICKET_NOTIFICATION_EMAIL_TO, $sendto)) {
 								if (!empty($conf->global->TICKET_NOTIFICATION_EMAIL_TO)) {
-									$sendto[] = $conf->global->TICKET_NOTIFICATION_EMAIL_TO;
+									$sendto[$conf->global->TICKET_NOTIFICATION_EMAIL_TO] = $conf->global->TICKET_NOTIFICATION_EMAIL_TO;
 								}
 							}
 
@@ -2614,7 +2649,7 @@ class Ticket extends CommonObject
 
 									if ($info_sendto['email'] != '' && $info_sendto['email'] != $object->origin_email) {
 										if (!empty($info_sendto['email'])) {
-											$sendto[] = trim($info_sendto['firstname']." ".$info_sendto['lastname'])." <".$info_sendto['email'].">";
+											$sendto[$info_sendto['email']] = trim($info_sendto['firstname']." ".$info_sendto['lastname'])." <".$info_sendto['email'].">";
 										}
 
 										$recipient = dolGetFirstLastname($info_sendto['firstname'], $info_sendto['lastname'], '-1').' ('.strtolower($info_sendto['libelle']).')';
@@ -2634,21 +2669,21 @@ class Ticket extends CommonObject
 								$message .= '<br>'.$message_signature;
 
 								if (!empty($object->origin_email)) {
-									$sendto[] = $object->origin_email;
+									$sendto[$object->origin_email] = $object->origin_email;
 								}
 
-								if ($object->fk_soc > 0 && !in_array($object->origin_email, $sendto)) {
+								if ($object->fk_soc > 0 && !array_key_exists($object->origin_email, $sendto)) {
 									$object->socid = $object->fk_soc;
 									$object->fetch_thirdparty();
 									if (!empty($object->thirdparty->email)) {
-										$sendto[] = $object->thirdparty->email;
+										$sendto[$object->thirdparty->email] = $object->thirdparty->email;
 									}
 								}
 
 								// Add global email address recipient
-								if ($conf->global->TICKET_NOTIFICATION_ALSO_MAIN_ADDRESS && !in_array($conf->global->TICKET_NOTIFICATION_EMAIL_TO, $sendto)) {
+								if ($conf->global->TICKET_NOTIFICATION_ALSO_MAIN_ADDRESS && !array_key_exists($conf->global->TICKET_NOTIFICATION_EMAIL_TO, $sendto)) {
 									if (!empty($conf->global->TICKET_NOTIFICATION_EMAIL_TO)) {
-										$sendto[] = $conf->global->TICKET_NOTIFICATION_EMAIL_TO;
+										$sendto[$conf->global->TICKET_NOTIFICATION_EMAIL_TO] = $conf->global->TICKET_NOTIFICATION_EMAIL_TO;
 									}
 								}
 
