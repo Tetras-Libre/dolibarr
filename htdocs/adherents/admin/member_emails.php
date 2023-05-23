@@ -58,6 +58,7 @@ $constantes = array(
 	'ADHERENT_EMAIL_TEMPLATE_CANCELATION'			=>'emailtemplate:member',	// until Dolibarr 7 it was ADHERENT_MAIL_RESIL
 	'ADHERENT_EMAIL_TEMPLATE_EXCLUSION'				=>'emailtemplate:member',
 	'ADHERENT_MAIL_FROM'							=>'string',
+	'ADHERENT_CC_MAIL_FROM'							=>'string',
 	'ADHERENT_AUTOREGISTER_NOTIF_MAIL_SUBJECT'		=>'string',
 	'ADHERENT_AUTOREGISTER_NOTIF_MAIL'				=>'html',
 );
