@@ -5,6 +5,7 @@
  * Copyright (C) 2013		Cedric GROSS			<c.gross@kreiz-it.fr>
  * Copyright (C) 2014		Marcos García		<marcosgdf@gmail.com>
  * Copyright (C) 2015		Bahfir Abbes			<bafbes@gmail.com>
+ * Copyright (C) 2022		Ferran Marcet			<fmarcet@2byte.es>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -75,7 +76,7 @@ class InterfaceActionsAuto extends DolibarrTriggers
 	 */
 	public function runTrigger($action, $object, User $user, Translate $langs, Conf $conf)
 	{
-		if (empty($conf->agenda) || empty($conf->agenda->enabled)) {
+		if (!isModEnabled('agenda')) {
 			return 0; // Module not active, we do nothing
 		}
 
@@ -742,7 +743,7 @@ class InterfaceActionsAuto extends DolibarrTriggers
 			if (!is_object($member)) {	// This should not happen
 				include_once DOL_DOCUMENT_ROOT.'/adherents/class/adherent.class.php';
 				$member = new Adherent($this->db);
-				$member->fetch($this->fk_adherent);
+				$member->fetch($object->fk_adherent);
 			}
 
 			if (empty($object->actionmsg2)) {
@@ -762,14 +763,22 @@ class InterfaceActionsAuto extends DolibarrTriggers
 			// Load translation files required by the page
 			$langs->loadLangs(array("agenda", "other", "members"));
 
-			if (empty($object->actionmsg2)) {
-				$object->actionmsg2 = $langs->transnoentities("MemberSubscriptionDeletedInDolibarr", $object->ref, $object->getFullName($langs));
+			$member = $this->context['member'];
+			if (!is_object($member)) {	// This should not happen but it happen when deleting a subscription from adherents/subscription/card.php
+				dol_syslog("Execute a trigger MEMBER_SUBSCRIPTION_CREATE with context key 'member' not an object");
+				include_once DOL_DOCUMENT_ROOT.'/adherents/class/adherent.class.php';
+				$member = new Adherent($this->db);
+				$member->fetch($object->fk_adherent);
 			}
-			$object->actionmsg = $langs->transnoentities("MemberSubscriptionDeletedInDolibarr", $object->ref, $object->getFullName($langs));
-			$object->actionmsg .= "\n".$langs->transnoentities("Member").': '.$object->getFullName($langs);
+
+			$object->actionmsg = $langs->transnoentities("MemberSubscriptionDeletedInDolibarr", $object->ref, $member->getFullName($langs));
+			$object->actionmsg .= "\n".$langs->transnoentities("Member").': '.$member->getFullName($langs);
 			$object->actionmsg .= "\n".$langs->transnoentities("Type").': '.$object->fk_type;
 			$object->actionmsg .= "\n".$langs->transnoentities("Amount").': '.$object->amount;
 			$object->actionmsg .= "\n".$langs->transnoentities("Period").': '.dol_print_date($object->dateh, 'day').' - '.dol_print_date($object->datef, 'day');
+			if (empty($object->actionmsg2)) {
+				$object->actionmsg2 = $langs->transnoentities("MemberSubscriptionDeletedInDolibarr", $object->ref, $member->getFullName($langs));
+			}
 
 			$object->sendtoid = 0;
 			if (isset($object->fk_soc) && $object->fk_soc > 0) {
@@ -861,6 +870,16 @@ class InterfaceActionsAuto extends DolibarrTriggers
 
 			// Parameters $object->sendtoid defined by caller
 			//$object->sendtoid=0;
+		} elseif ($action == 'PROJECT_CLOSE') {
+			// Load translation files required by the page
+			$langs->loadLangs(array("agenda", "other", "projects"));
+
+			if (empty($object->actionmsg2)) {
+				$object->actionmsg2 = $langs->transnoentities("ProjectClosedInDolibarr", $object->ref);
+			}
+			$object->actionmsg = $langs->transnoentities("ProjectClosedInDolibarr", $object->ref);
+
+			$object->sendtoid = 0;
 		} elseif ($action == 'TASK_CREATE') {
 			// Project tasks
 			// Load translation files required by the page
@@ -920,7 +939,7 @@ class InterfaceActionsAuto extends DolibarrTriggers
 			$object->sendtoid = 0;
 		} else {
 			// TODO Merge all previous cases into this generic one
-			// $action = BILL_DELETE, TICKET_CREATE, TICKET_MODIFY, TICKET_DELETE, CONTACT_SENTBYMAIL, RECRUITMENTCANDIDATURE_MODIFY, ...
+			// $action = PASSWORD, BILL_DELETE, TICKET_CREATE, TICKET_MODIFY, TICKET_DELETE, CONTACT_SENTBYMAIL, RECRUITMENTCANDIDATURE_MODIFY, ...
 			// Can also be a value defined by an external module like SENTBYSMS, COMPANY_SENTBYSMS, MEMBER_SENTBYSMS, ...
 			// Note: We are here only if $conf->global->MAIN_AGENDA_ACTIONAUTO_action is on (tested at begining of this function).
 			// Note that these key can be set in agenda setup, only if defined into llx_c_action_trigger
@@ -981,6 +1000,8 @@ class InterfaceActionsAuto extends DolibarrTriggers
 				$object->trackid = 'sub'.$object->id;
 			} elseif (preg_match('/^MEMBER_/', $action)) {
 				$object->trackid = 'mem'.$object->id;
+			} elseif (preg_match('/^PARTNERSHIP_/', $action)) {
+				$object->trackid = 'pship'.$object->id;
 			} elseif (preg_match('/^PROJECT_/', $action)) {
 				$object->trackid = 'proj'.$object->id;
 			} elseif (preg_match('/^TASK_/', $action)) {
@@ -1079,7 +1100,7 @@ class InterfaceActionsAuto extends DolibarrTriggers
 			$actioncomm->errors_to     = empty($object->errors_to) ? null : $object->errors_to;
 		}
 
-		// Object linked (if link is for thirdparty, contact, project it is a recording error. We should not have links in link table
+		// Object linked (if link is for thirdparty, contact or project, it is a recording error. We should not have links in link table
 		// for such objects because there is already a dedicated field into table llx_actioncomm or llx_actioncomm_resources.
 		if (!in_array($elementtype, array('societe', 'contact', 'project'))) {
 			$actioncomm->fk_element  = $elementid;
@@ -1101,7 +1122,7 @@ class InterfaceActionsAuto extends DolibarrTriggers
 		$ret = $actioncomm->create($user); // User creating action
 
 		if ($ret > 0 && !empty($conf->global->MAIN_COPY_FILE_IN_EVENT_AUTO)) {
-			if (is_array($object->attachedfiles) && array_key_exists('paths', $object->attachedfiles) && count($object->attachedfiles['paths']) > 0) {
+			if (property_exists($object, 'attachedfiles') && is_array($object->attachedfiles) && array_key_exists('paths', $object->attachedfiles) && count($object->attachedfiles['paths']) > 0) {
 				foreach ($object->attachedfiles['paths'] as $key => $filespath) {
 					$srcfile = $filespath;
 					$destdir = $conf->agenda->dir_output.'/'.$ret;

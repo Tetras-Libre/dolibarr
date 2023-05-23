@@ -50,7 +50,7 @@ $socid = 0;
 $hookmanager->initHooks(array('projetnote'));
 $result = restrictedArea($user, 'projet', $id, 'projet&project');
 
-$permissionnote = $user->rights->projet->creer; // Used by the include of actions_setnotes.inc.php
+$permissionnote = $user->hasRight('projet', 'creer'); // Used by the include of actions_setnotes.inc.php
 
 
 /*
@@ -102,7 +102,7 @@ if ($id > 0 || !empty($ref)) {
 	$morehtmlref .= $object->title;
 	// Thirdparty
 	if (!empty($object->thirdparty->id) && $object->thirdparty->id > 0) {
-		$morehtmlref .= '<br>'.$langs->trans('ThirdParty').' : '.$object->thirdparty->getNomUrl(1, 'project');
+		$morehtmlref .= '<br>'.$object->thirdparty->getNomUrl(1, 'project');
 	}
 	$morehtmlref .= '</div>';
 

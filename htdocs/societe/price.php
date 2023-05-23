@@ -158,7 +158,7 @@ if (empty($reshook)) {
 		if ($result < 0) {
 			setEventMessages($prodcustprice->error, $prodcustprice->errors, 'mesgs');
 		} else {
-			setEventMessages($langs->trans('Delete'), null, 'errors');
+			setEventMessages($langs->trans('RecordDeleted'), null, 'errors');
 		}
 		$action = '';
 	}
@@ -214,6 +214,11 @@ print '<div class="fichecenter">';
 
 print '<div class="underbanner clearboth"></div>';
 print '<table class="border centpercent tableforfield">';
+
+// Type Prospect/Customer/Supplier
+print '<tr><td class="titlefield">'.$langs->trans('NatureOfThirdParty').'</td><td>';
+print $object->getTypeUrl(1);
+print '</td></tr>';
 
 if (!empty($conf->global->SOCIETE_USEPREFIX)) { // Old not used prefix field
 	print '<tr><td class="titlefield">'.$langs->trans('Prefix').'</td><td colspan="3">'.$object->prefix_comm.'</td></tr>';
@@ -316,7 +321,7 @@ if (!empty($conf->global->PRODUIT_CUSTOMER_PRICES)) {
 
 		// VAT
 		print '<tr><td>'.$langs->trans("VATRate").'</td><td>';
-		print $form->load_tva("tva_tx", $object->tva_tx, $mysoc, '', $object->id, $object->tva_npr, '', false, 1);
+		print $form->load_tva("tva_tx", GETPOST("tva_tx", "alpha"), $mysoc, '', $object->id, 0, '', false, 1);
 		print '</td></tr>';
 
 		// Price base
@@ -324,7 +329,7 @@ if (!empty($conf->global->PRODUIT_CUSTOMER_PRICES)) {
 		print $langs->trans('PriceBase');
 		print '</td>';
 		print '<td>';
-		print $form->selectPriceBaseType($object->price_base_type, "price_base_type");
+		print $form->selectPriceBaseType(GETPOST("price_base_type", "aZ09"), "price_base_type");
 		print '</td>';
 		print '</tr>';
 
@@ -451,7 +456,7 @@ if (!empty($conf->global->PRODUIT_CUSTOMER_PRICES)) {
 		if ($result < 0) {
 			setEventMessages($prodcustprice->error, $prodcustprice->errors, 'errors');
 		} else {
-			if (empty($conf->global->MAIN_DISABLE_FULL_SCANLIST)) {
+			if (!getDolGlobalInt('MAIN_DISABLE_FULL_SCANLIST')) {
 				$nbtotalofrecords = $result;
 			}
 		}
@@ -523,7 +528,7 @@ if (!empty($conf->global->PRODUIT_CUSTOMER_PRICES)) {
 		 */
 		print "\n".'<div class="tabsAction">'."\n";
 
-		if ($user->rights->produit->creer || $user->rights->service->creer) {
+		if ($user->hasRight('produit', 'creer') || $user->hasRight('service', 'creer')) {
 			print '<div class="inline-block divButAction"><a class="butAction" href="'.$_SERVER["PHP_SELF"].'?action=add_customer_price&token='.newToken().'&socid='.$object->id.'">'.$langs->trans("AddCustomerPrice").'</a></div>';
 		}
 		print "\n</div>\n";
@@ -531,11 +536,11 @@ if (!empty($conf->global->PRODUIT_CUSTOMER_PRICES)) {
 
 		// Count total nb of records
 		$nbtotalofrecords = '';
-		if (empty($conf->global->MAIN_DISABLE_FULL_SCANLIST)) {
-			$nbtotalofrecords = $prodcustprice->fetch_all('', '', 0, 0, $filter);
+		if (!getDolGlobalInt('MAIN_DISABLE_FULL_SCANLIST')) {
+			$nbtotalofrecords = $prodcustprice->fetchAll('', '', 0, 0, $filter);
 		}
 
-		$result = $prodcustprice->fetch_all($sortorder, $sortfield, $conf->liste_limit, $offset, $filter);
+		$result = $prodcustprice->fetchAll($sortorder, $sortfield, $conf->liste_limit, $offset, $filter);
 		if ($result < 0) {
 			setEventMessages($prodcustprice->error, $prodcustprice->errors, 'errors');
 		}
@@ -634,7 +639,7 @@ if (!empty($conf->global->PRODUIT_CUSTOMER_PRICES)) {
 			}
 		} else {
 			$colspan = 10;
-			if ($user->rights->produit->supprimer || $user->rights->service->supprimer) {
+			if ($user->hasRight('produit', 'supprimer') || $user->hasRight('service', 'supprimer')) {
 				$colspan += 1;
 			}
 			print '<tr class="oddeven"><td colspan="'.$colspan.'">'.$langs->trans('None').'</td></tr>';

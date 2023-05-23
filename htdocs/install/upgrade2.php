@@ -4,6 +4,7 @@
  * Copyright (C) 2005-2011  Regis Houssin           <regis.houssin@inodbox.com>
  * Copyright (C) 2010       Juanjo Menent           <jmenent@2byte.es>
  * Copyright (C) 2015-2016  Raphaël Doursenaud      <rdoursenaud@gpcsolutions.fr>
+ * Copyright (C) 2023      	Gauthier VERDOL       	<gauthier.verdol@atm-consulting.fr>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,6 +39,7 @@
  *	\brief      Upgrade some data
  */
 
+define('ALLOWED_IF_UPGRADE_UNLOCK_FOUND', 1);
 include_once 'inc.php';
 if (!file_exists($conffile)) {
 	print 'Error: Dolibarr config file was not found. This may means that Dolibarr is not installed yet. Please call the page "/install/index.php" instead of "/install/upgrade.php").';
@@ -338,7 +340,7 @@ if (!GETPOST('action', 'aZ09') || preg_match('/upgrade/i', GETPOST('action', 'aZ
 			$afterversionarray = explode('.', '2.8.9');
 			$beforeversionarray = explode('.', '2.9.9');
 			if (versioncompare($versiontoarray, $afterversionarray) >= 0 && versioncompare($versiontoarray, $beforeversionarray) <= 0) {
-				migrate_project_task_time($db, $langs, $conf);
+				migrate_element_time($db, $langs, $conf);
 
 				migrate_customerorder_shipping($db, $langs, $conf);
 
@@ -482,6 +484,20 @@ if (!GETPOST('action', 'aZ09') || preg_match('/upgrade/i', GETPOST('action', 'aZ
 			if (versioncompare($versiontoarray, $afterversionarray) >= 0 && versioncompare($versiontoarray, $beforeversionarray) <= 0) {
 				migrate_user_photospath();
 				migrate_user_photospath2();
+			}
+
+			// Scripts for 17.0
+			$afterversionarray = explode('.', '16.0.9');
+			$beforeversionarray = explode('.', '17.0.9');
+			if (versioncompare($versiontoarray, $afterversionarray) >= 0 && versioncompare($versiontoarray, $beforeversionarray) <= 0) {
+				migrate_contractdet_rank();
+			}
+
+			// Scripts for 18.0
+			$afterversionarray = explode('.', '17.0.9');
+			$beforeversionarray = explode('.', '18.0.9');
+			if (versioncompare($versiontoarray, $afterversionarray) >= 0 && versioncompare($versiontoarray, $beforeversionarray) <= 0) {
+				migrate_contractdet_rank();
 			}
 		}
 
@@ -2886,9 +2902,9 @@ function migrate_relationship_tables($db, $langs, $conf, $table, $fk_source, $so
  * @param	Conf		$conf	Object conf
  * @return	void
  */
-function migrate_project_task_time($db, $langs, $conf)
+function migrate_element_time($db, $langs, $conf)
 {
-	dolibarr_install_syslog("upgrade2::migrate_project_task_time");
+	dolibarr_install_syslog("upgrade2::migrate_element_time");
 
 	print '<tr><td colspan="4">';
 
@@ -2899,8 +2915,8 @@ function migrate_project_task_time($db, $langs, $conf)
 
 	$db->begin();
 
-	$sql = "SELECT rowid, fk_task, task_duration";
-	$sql .= " FROM ".MAIN_DB_PREFIX."projet_task_time";
+	$sql = "SELECT rowid, fk_element, element_duration";
+	$sql .= " FROM ".MAIN_DB_PREFIX."element_time";
 	$resql = $db->query($sql);
 	if ($resql) {
 		$i = 0;
@@ -2913,16 +2929,16 @@ function migrate_project_task_time($db, $langs, $conf)
 			while ($i < $num) {
 				$obj = $db->fetch_object($resql);
 
-				if ($obj->task_duration > 0) {
+				if ($obj->element_duration > 0) {
 					// convert to second
 					// only for int time and float time ex: 1,75 for 1h45
-					list($hour, $min) = explode('.', $obj->task_duration);
+					list($hour, $min) = explode('.', $obj->element_duration);
 					$hour = $hour * 60 * 60;
 					$min = ($min / 100) * 60 * 60;
 					$newtime = $hour + $min;
 
-					$sql2 = "UPDATE ".MAIN_DB_PREFIX."projet_task_time SET";
-					$sql2 .= " task_duration = ".((int) $newtime);
+					$sql2 = "UPDATE ".MAIN_DB_PREFIX."element_time SET";
+					$sql2 .= " element_duration = ".((int) $newtime);
 					$sql2 .= " WHERE rowid = ".((int) $obj->rowid);
 
 					$resql2 = $db->query($sql2);
@@ -2932,16 +2948,16 @@ function migrate_project_task_time($db, $langs, $conf)
 					}
 					print ". ";
 					$oldtime++;
-					if (!empty($totaltime[$obj->fk_task])) {
-						$totaltime[$obj->fk_task] += $newtime;
+					if (!empty($totaltime[$obj->fk_element])) {
+						$totaltime[$obj->fk_element] += $newtime;
 					} else {
-						$totaltime[$obj->fk_task] = $newtime;
+						$totaltime[$obj->fk_element] = $newtime;
 					}
 				} else {
-					if (!empty($totaltime[$obj->fk_task])) {
-						$totaltime[$obj->fk_task] += $obj->task_duration;
+					if (!empty($totaltime[$obj->fk_element])) {
+						$totaltime[$obj->fk_element] += $obj->element_duration;
 					} else {
-						$totaltime[$obj->fk_task] = $obj->task_duration;
+						$totaltime[$obj->fk_element] = $obj->element_duration;
 					}
 				}
 
@@ -4072,11 +4088,11 @@ function migrate_rename_directories($db, $langs, $conf, $oldname, $newname)
  * @param	DoliDB		$db			Database handler
  * @param	Translate	$langs		Object langs
  * @param	Conf		$conf		Object conf
- * @return	void
+ * @return	boolean
  */
 function migrate_delete_old_files($db, $langs, $conf)
 {
-	$result = true;
+	$ret = true;
 
 	dolibarr_install_syslog("upgrade2::migrate_delete_old_files");
 
@@ -4141,7 +4157,6 @@ function migrate_delete_old_files($db, $langs, $conf)
 
 	foreach ($filetodeletearray as $filetodelete) {
 		//print '<b>'DOL_DOCUMENT_ROOT.$filetodelete."</b><br>\n";
-		$result = 1;
 		if (file_exists(DOL_DOCUMENT_ROOT.$filetodelete)) {
 			$result = dol_delete_file(DOL_DOCUMENT_ROOT.$filetodelete, 0, 0, 0, null, true, false);
 			if (!$result) {
@@ -4153,7 +4168,8 @@ function migrate_delete_old_files($db, $langs, $conf)
 			}
 		}
 	}
-	return $result;
+
+	return $ret;
 }
 
 /**
@@ -4162,11 +4178,11 @@ function migrate_delete_old_files($db, $langs, $conf)
  * @param	DoliDB		$db			Database handler
  * @param	Translate	$langs		Object langs
  * @param	Conf		$conf		Object conf
- * @return	void
+ * @return	boolean
  */
 function migrate_delete_old_dir($db, $langs, $conf)
 {
-	$result = true;
+	$ret = true;
 
 	dolibarr_install_syslog("upgrade2::migrate_delete_old_dir");
 
@@ -4182,7 +4198,7 @@ function migrate_delete_old_dir($db, $langs, $conf)
 	}
 
 	foreach ($filetodeletearray as $filetodelete) {
-		//print '<b>'.$filetodelete."</b><br>\n";
+		$result = 1;
 		if (file_exists($filetodelete)) {
 			$result = dol_delete_dir_recursive($filetodelete);
 		}
@@ -4192,7 +4208,8 @@ function migrate_delete_old_dir($db, $langs, $conf)
 			print ' '.$langs->trans("RemoveItManuallyAndPressF5ToContinue").'</div>';
 		}
 	}
-	return $result;
+
+	return $ret;
 }
 
 
@@ -4206,12 +4223,19 @@ function migrate_delete_old_dir($db, $langs, $conf)
  * @param	Conf		$conf			Object conf
  * @param	array		$listofmodule	List of modules, like array('MODULE_KEY_NAME'=>', $reloadmode)
  * @param   int         $force          1=Reload module even if not already loaded
- * @return	int							<0 if KO, >0 if OK
+ * @return	int					<0 if KO, >0 if OK
  */
 function migrate_reload_modules($db, $langs, $conf, $listofmodule = array(), $force = 0)
 {
+	global $user;
+
 	if (count($listofmodule) == 0) {
-		return;
+		return 0;
+	}
+
+	if (!is_object($user)) {
+		include_once DOL_DOCUMENT_ROOT.'/user/class/user.class.php';
+		$user = new User($db);	// To avoid error during migration
 	}
 
 	dolibarr_install_syslog("upgrade2::migrate_reload_modules force=".$force.", listofmodule=".join(',', array_keys($listofmodule)));
@@ -4478,7 +4502,7 @@ function migrate_reload_modules($db, $langs, $conf, $listofmodule = array(), $fo
  * @param	DoliDB		$db			Database handler
  * @param	Translate	$langs		Object langs
  * @param	Conf		$conf		Object conf
- * @return	void
+ * @return	int						<0 if KO, >0 if OK
  */
 function migrate_reload_menu($db, $langs, $conf)
 {
@@ -4508,6 +4532,8 @@ function migrate_reload_menu($db, $langs, $conf)
 
 		print '</td></tr>';
 	}
+
+	return 1;
 }
 
 /**
@@ -4525,7 +4551,6 @@ function migrate_user_photospath()
 
 	include_once DOL_DOCUMENT_ROOT.'/user/class/user.class.php';
 	$fuser = new User($db);
-
 	if (!is_object($user)) {
 		$user = $fuser; // To avoid error during migration
 	}
@@ -4612,7 +4637,6 @@ function migrate_user_photospath2()
 
 	include_once DOL_DOCUMENT_ROOT.'/user/class/user.class.php';
 	$fuser = new User($db);
-
 	if (!is_object($user)) {
 		$user = $fuser; // To avoid error during migration
 	}
@@ -5134,6 +5158,64 @@ function migrate_export_import_profiles($mode = 'export')
 	if ($resultstring) {
 		print $resultstring;
 	} else {
+		print '<tr class="trforrunsql" style=""><td class="wordbreak" colspan="4">'.$langs->trans("NothingToDo")."</td></tr>\n";
+	}
+}
+
+/**
+ * Migrate Rank into contract  line
+ *
+ * @return  void
+ */
+function migrate_contractdet_rank()
+{
+
+	global $db, $langs;
+
+	$error = 0;
+	$resultstring = '';
+
+	$db->begin();
+	print '<tr class="trforrunsql"><td colspan="4">';
+	print '<b>'.$langs->trans('MigrationContractLineRank')."</b><br>\n";
+
+	$sql = "SELECT c.rowid as cid ,cd.rowid as cdid,cd.rang FROM ".$db->prefix()."contratdet as cd INNER JOIN ".$db->prefix()."contrat as c ON c.rowid=cd.fk_contrat AND cd.rang=0";
+	$sql .=" ORDER BY c.rowid,cd.rowid";
+
+	$resql = $db->query($sql);
+	if ($resql) {
+		$currentRank=0;
+		$current_contract=0;
+		while ($obj = $db->fetch_object($resql)) {
+			if (empty($current_contract) || $current_contract==$obj->cid) {
+				$currentRank++;
+			} else {
+				$currentRank=1;
+			}
+
+			$sqlUpd = "UPDATE ".$db->prefix()."contratdet SET rang=".(int) $currentRank." WHERE rowid=".(int) $obj->cdid;
+			$resultstring = '.';
+			print $resultstring;
+			$resqlUpd = $db->query($sqlUpd);
+			if (!$resqlUpd) {
+				dol_print_error($db);
+				$error++;
+			}
+
+			$current_contract =  $obj->cid;
+		}
+	} else {
+		$error++;
+	}
+	if (!$error) {
+		$db->commit();
+	} else {
+		$db->rollback();
+	}
+
+	print '</td></tr>';
+
+	if (!$resultstring) {
 		print '<tr class="trforrunsql" style=""><td class="wordbreak" colspan="4">'.$langs->trans("NothingToDo")."</td></tr>\n";
 	}
 }

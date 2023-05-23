@@ -85,14 +85,14 @@ class ExportExcel2007 extends ModeleExports
 		$this->extension = 'xlsx'; // Extension for generated file by this driver
 		$this->picto = 'mime/xls'; // Picto
 		$this->version = '1.30'; // Driver version
-		$this->phpmin = array(5, 6); // Minimum version of PHP required by module
+		$this->phpmin = array(7, 0); // Minimum version of PHP required by module
 
 		$this->disabled = 0;
 
 		if (empty($this->disabled)) {
 			require_once PHPEXCELNEW_PATH.'Spreadsheet.php';
 			$this->label_lib = 'PhpSpreadSheet';
-			$this->version_lib = '1.6.0'; // No way to get info from library
+			$this->version_lib = '1.12.0'; // No way to get info from library
 		}
 
 		$this->row = 0;
@@ -464,6 +464,7 @@ class ExportExcel2007 extends ModeleExports
 			return '';
 		}
 
+		$letter = '';
 		while ($c != 0) {
 			$p = ($c - 1) % 26;
 			$c = intval(($c - $p) / 26);

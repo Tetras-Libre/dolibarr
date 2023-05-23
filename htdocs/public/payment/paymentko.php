@@ -56,14 +56,14 @@ $hookmanager->initHooks(array('paymentko'));
 
 
 
-if (!empty($conf->paypal->enabled)) {
+if (isModEnabled('paypal')) {
 	require_once DOL_DOCUMENT_ROOT.'/paypal/lib/paypal.lib.php';
 	require_once DOL_DOCUMENT_ROOT.'/paypal/lib/paypalfunctions.lib.php';
 }
 
 $langs->loadLangs(array("main", "other", "dict", "bills", "companies", "paybox", "paypal", "stripe"));
 
-if (!empty($conf->paypal->enabled)) {
+if (isModEnabled('paypal')) {
 	$PAYPALTOKEN = GETPOST('TOKEN');
 	if (empty($PAYPALTOKEN)) {
 		$PAYPALTOKEN = GETPOST('token');
@@ -73,9 +73,9 @@ if (!empty($conf->paypal->enabled)) {
 		$PAYPALPAYERID = GETPOST('PayerID');
 	}
 }
-if (!empty($conf->paybox->enabled)) {
+if (isModEnabled('paybox')) {
 }
-if (!empty($conf->stripe->enabled)) {
+if (isModEnabled('stripe')) {
 }
 
 $FULLTAG = GETPOST('FULLTAG');
@@ -93,7 +93,7 @@ if (preg_match('/PM=([^\.]+)/', $FULLTAG, $reg)) {
 	$paymentmethod = $reg[1];
 }
 if (empty($paymentmethod)) {
-	dol_print_error(null, 'The back url does not contains a parameter fulltag that should help us to find the payment method used');
+	dol_print_error(null, 'The back url does not contain a parameter fulltag that should help us to find the payment method used');
 	exit;
 } else {
 	dol_syslog("paymentmethod=".$paymentmethod);
@@ -127,9 +127,15 @@ dol_syslog("Callback url when an online payment is refused or canceled. query_st
 
 $tracepost = "";
 foreach ($_POST as $k => $v) {
-	$tracepost .= "{$k} - {$v}\n";
+	if (is_scalar($k) && is_scalar($v)) {
+		$tracepost .= "$k - $v\n";
+	}
 }
 dol_syslog("POST=".$tracepost, LOG_DEBUG, 0, '_payment');
+
+
+// Set $appli for emails title
+$appli = $mysoc->name;
 
 
 if (!empty($_SESSION['ipaddress'])) {      // To avoid to make action twice
@@ -166,23 +172,8 @@ if (!empty($_SESSION['ipaddress'])) {      // To avoid to make action twice
 		$companylangs->setDefaultLang($mysoc->default_lang);
 		$companylangs->loadLangs(array('main', 'members', 'bills', 'paypal', 'paybox'));
 
-		$from = $conf->global->MAILING_EMAIL_FROM;
+		$from = !empty($conf->global->MAILING_EMAIL_FROM) ? $conf->global->MAILING_EMAIL_FROM : getDolGlobalString("MAIN_MAIL_EMAIL_FROM");
 		$sendto = $sendemail;
-
-		// Define link to login card
-		$appli = constant('DOL_APPLICATION_TITLE');
-		if (!empty($conf->global->MAIN_APPLICATION_TITLE)) {
-			$appli = $conf->global->MAIN_APPLICATION_TITLE;
-			if (preg_match('/\d\.\d/', $appli)) {
-				if (!preg_match('/'.preg_quote(DOL_VERSION).'/', $appli)) {
-					$appli .= " (".DOL_VERSION.")"; // If new title contains a version that is different than core
-				}
-			} else {
-				$appli .= " ".DOL_VERSION;
-			}
-		} else {
-			$appli .= " ".DOL_VERSION;
-		}
 
 		$urlback = $_SERVER["REQUEST_URI"];
 		$topic = '['.$appli.'] '.$companylangs->transnoentitiesnoconv("NewOnlinePaymentFailed");
@@ -293,7 +284,7 @@ if ($type || $tag) {
 print "\n</div>\n";
 
 
-htmlPrintOnlinePaymentFooter($mysoc, $langs, 0, $suffix);
+htmlPrintOnlineFooter($mysoc, $langs, 0, $suffix);
 
 
 llxFooter('', 'public');

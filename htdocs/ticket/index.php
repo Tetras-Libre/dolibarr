@@ -65,7 +65,7 @@ $object = new Ticket($db);
 
 // Security check
 //$result = restrictedArea($user, 'ticket|knowledgemanagement', 0, '', '', '', '');
-if (empty($user->rights->ticket->read) && empty($user->rights->knowledgemanagement->knowledgerecord->read)) {
+if (empty($user->rights->ticket->read) && !$user->hasRight('knowledgemanagement', 'knowledgerecord', 'read')) {
 	accessforbidden('Not enought permissions');
 }
 
@@ -109,8 +109,8 @@ if (in_array('DOLUSERCOOKIE_ticket_by_status', $autosetarray)) {
 } elseif (!empty($_COOKIE['DOLUSERCOOKIE_ticket_by_status'])) {
 	$tmparray = json_decode($_COOKIE['DOLUSERCOOKIE_ticket_by_status'], true);
 	$endyear = $tmparray['year'];
-	$shownb = $tmparray['shownb'];
-	$showtot = $tmparray['showtot'];
+	$shownb = empty($tmparray['shownb']) ? 0 : $tmparray['shownb'];
+	$showtot = empty($tmparray['showtot']) ? 0 : $tmparray['showtot'];
 }
 if (empty($shownb) && empty($showtot)) {
 	$showtot = 1;
@@ -446,7 +446,7 @@ print '</div>';
 print '</div>';
 
 
-print '<div style="clear:both"></div>';
+print '<div class="clearboth"></div>';
 
 $parameters = array('user' => $user);
 $reshook = $hookmanager->executeHooks('dashboardTickets', $parameters, $object); // Note that $action and $object may have been modified by hook
