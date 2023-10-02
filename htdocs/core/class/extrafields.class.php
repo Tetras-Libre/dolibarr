@@ -2071,7 +2071,7 @@ class ExtraFields
 					continue;
 				}
 
-				if (!empty($onlykey) && $onlykey == '@GETPOSTISSET' && !GETPOSTISSET('options_'.$key) && (! in_array($this->attributes[$object->table_element]['type'][$key], array('boolean', 'chkbxlst')))) {
+				if (!empty($onlykey) && $onlykey == '@GETPOSTISSET' && !GETPOSTISSET('options_'.$key) && (! in_array($this->attributes[$object->table_element]['type'][$key], array('boolean', 'checkbox', 'chkbxlst')))) {
 					//when unticking boolean field, it's not set in POST
 					continue;
 				}
@@ -2098,7 +2098,7 @@ class ExtraFields
 				if (empty($enabled)
 					|| (
 						$onlykey === '@GETPOSTISSET'
-						&& in_array($this->attributes[$object->table_element]['type'][$key], array('boolean', 'chkbxlst'))
+						&& in_array($this->attributes[$object->table_element]['type'][$key], array('boolean', 'checkbox', 'chkbxlst'))
 						&& in_array(abs($enabled), array(2, 5))
 						&& ! GETPOSTISSET('options_' . $key) // Update hidden checkboxes and multiselect only if they are provided
 					)
@@ -2122,8 +2122,12 @@ class ExtraFields
 						|| (is_array($_POST["options_".$key]) && empty($_POST["options_".$key]))) {
 						//print 'ccc'.$value.'-'.$this->attributes[$object->table_element]['required'][$key];
 
-						// Field is not defined. We mark this as a problem. We may fix it later if there is a default value and $todefaultifmissing is set.
+						// Field is not defined. We mark this as an error. We may fix it later if there is a default value and $todefaultifmissing is set.
+
 						$nofillrequired++;
+						if (!empty($this->attributes[$object->table_element]['langfile'][$key])) {
+							$langs->load($this->attributes[$object->table_element]['langfile'][$key]);
+						}
 						$error_field_required[$key] = $langs->transnoentitiesnoconv($value);
 					}
 				}
