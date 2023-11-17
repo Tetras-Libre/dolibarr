@@ -831,7 +831,7 @@ if (!defined('NOLOGIN')) {
 			}
 
 			if (!$login) {
-				dol_syslog('Bad password, connexion refused', LOG_DEBUG);
+				dol_syslog('Bad password, connexion refused', LOG_INFO);
 				// Load translation files required by page
 				$langs->loadLangs(array('main', 'errors'));
 
