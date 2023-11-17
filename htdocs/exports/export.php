@@ -141,7 +141,7 @@ $confirm = GETPOST('confirm', 'alpha');
 $step = GETPOSTINT("step") ? GETPOSTINT("step") : 1;
 $export_name = GETPOST("export_name", "alphanohtml");
 $hexa = GETPOST("hexa", "alpha");
-$exportmodelid = GETPOSTINT("exportmodelid");
+$exportmodelid = GETPOST("exportmodelid", "int");
 $field = GETPOST("field", "alpha");
 
 $objexport = new Export($db);
