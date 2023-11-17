@@ -737,7 +737,7 @@ if (!defined('NOLOGIN')) {
 
 			// Check code
 			if (!$ok) {
-				dol_syslog('Bad value for code, connexion refused');
+				dol_syslog('Bad value for code, connexion refused', LOG_WARNING);
 				// Load translation files required by page
 				$langs->loadLangs(array('main', 'errors'));
 
@@ -831,7 +831,7 @@ if (!defined('NOLOGIN')) {
 			}
 
 			if (!$login) {
-				dol_syslog('Bad password, connexion refused', LOG_INFO);
+				dol_syslog('Bad password, connexion refused', LOG_WARNING);
 				// Load translation files required by page
 				$langs->loadLangs(array('main', 'errors'));
 
