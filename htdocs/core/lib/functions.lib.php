@@ -917,6 +917,7 @@ function sanitizeVal($out = '', $check = 'alphanohtml', $filter = null, $options
 			$out = dol_string_nohtmltag($out, 0);
 			break;
 		case 'alpha':		// No html and no ../ and "
+        case 'alphanum':
 		case 'alphanohtml':	// Recommended for most scalar parameters and search parameters
 			if (!is_array($out)) {
 				$out = trim($out);
@@ -961,6 +962,9 @@ function sanitizeVal($out = '', $check = 'alphanohtml', $filter = null, $options
 				}*/
 				$out = filter_var($out, $filter, $options);
 			}
+			break;
+		default:
+			throw new Exception('BadCheck');
 			break;
 	}
 
