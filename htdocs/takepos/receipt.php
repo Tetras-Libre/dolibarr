@@ -110,12 +110,12 @@ if (!empty($hookmanager->resPrint)) {
 <br>
 <p class="left">
 <?php
-$constFreeText = 'TAKEPOS_HEADER'.$_SESSION['takeposterminal'];
-if (!empty($conf->global->TAKEPOS_HEADER) || getDolGlobalString($constFreeText)) {
+$constFreeText = 'TAKEPOS_HEADER'.(empty($_SESSION['takeposterminal']) ? '0' : $_SESSION['takeposterminal']);
+if (getDolGlobalString('TAKEPOS_HEADER') || getDolGlobalString($constFreeText)) {
 	$newfreetext = '';
 	$substitutionarray = getCommonSubstitutionArray($langs);
-	if (!empty($conf->global->TAKEPOS_HEADER)) {
-		$newfreetext .= make_substitutions($conf->global->TAKEPOS_HEADER, $substitutionarray);
+	if (getDolGlobalString('TAKEPOS_HEADER')) {
+		$newfreetext .= make_substitutions(getDolGlobalString('TAKEPOS_HEADER'), $substitutionarray);
 	}
 	if (getDolGlobalString($constFreeText)) {
 		$newfreetext .= make_substitutions(getDolGlobalString($constFreeText), $substitutionarray);
@@ -278,7 +278,7 @@ if ($mysoc->useLocalTax(1) || price2num($object->total_localtax1, 'MU')) { ?>
 					  } ?></td>
 </tr>
 <?php
-if (isModEnabled('multicurrency') && $_SESSION["takeposcustomercurrency"] != "" && $conf->currency != $_SESSION["takeposcustomercurrency"]) {
+if (isModEnabled('multicurrency') && !empty($_SESSION["takeposcustomercurrency"]) && $_SESSION["takeposcustomercurrency"] != "" && $conf->currency != $_SESSION["takeposcustomercurrency"]) {
 	//Only show customer currency if multicurrency module is enabled, if currency selected and if this currency selected is not the same as main currency
 	include_once DOL_DOCUMENT_ROOT.'/multicurrency/class/multicurrency.class.php';
 	$multicurrency = new MultiCurrency($db);
@@ -290,7 +290,7 @@ if (isModEnabled('multicurrency') && $_SESSION["takeposcustomercurrency"] != "" 
 	echo '</td></tr>';
 }
 
-if ($conf->global->TAKEPOS_PRINT_PAYMENT_METHOD) {
+if (getDolGlobalString('TAKEPOS_PRINT_PAYMENT_METHOD')) {
 	$sql = "SELECT p.pos_change as pos_change, p.datep as date, p.fk_paiement, p.num_paiement as num, pf.amount as amount, pf.multicurrency_amount,";
 	$sql .= " cp.code";
 	$sql .= " FROM ".MAIN_DB_PREFIX."paiement_facture as pf, ".MAIN_DB_PREFIX."paiement as p";
@@ -336,15 +336,15 @@ if ($conf->global->TAKEPOS_PRINT_PAYMENT_METHOD) {
 <br>
 <br>
 <?php
-$constFreeText = 'TAKEPOS_FOOTER'.$_SESSION['takeposterminal'];
-if (!empty($conf->global->TAKEPOS_FOOTER) || !empty($conf->global->{$constFreeText})) {
+$constFreeText = 'TAKEPOS_FOOTER'.(empty($_SESSION['takeposterminal']) ? '0' : $_SESSION['takeposterminal']);
+if (getDolGlobalString('TAKEPOS_FOOTER') || getDolGlobalString($constFreeText)) {
 	$newfreetext = '';
 	$substitutionarray = getCommonSubstitutionArray($langs);
-	if (!empty($conf->global->{$constFreeText})) {
-		$newfreetext .= make_substitutions($conf->global->{$constFreeText}, $substitutionarray);
+	if (getDolGlobalString($constFreeText)) {
+		$newfreetext .= make_substitutions(getDolGlobalString($constFreeText), $substitutionarray);
 	}
-	if (!empty($conf->global->TAKEPOS_FOOTER)) {
-		$newfreetext .= make_substitutions($conf->global->TAKEPOS_FOOTER, $substitutionarray);
+	if (getDolGlobalString('TAKEPOS_FOOTER')) {
+		$newfreetext .= make_substitutions(getDolGlobalString('TAKEPOS_FOOTER'), $substitutionarray);
 	}
 	print $newfreetext;
 }
