@@ -649,6 +649,18 @@ if (!empty($conf->global->PRODUIT_CUSTOMER_PRICES)) {
 		print '</div>';
 
 		print "</form>";
+
+		// Call Hook formConfirm
+		$formconfirm = '';
+		$parameters = array('formConfirm' => $formconfirm, 'object' => $object);
+		$reshook = $hookmanager->executeHooks('formConfirm', $parameters, $object, $action); // Note that $action and $object may have been modified by hook
+		if (empty($reshook)) {
+			$formconfirm .= $hookmanager->resPrint;
+		} elseif ($reshook > 0) {
+			$formconfirm = $hookmanager->resPrint;
+		}
+		// Print form confirm
+		print $formconfirm;
 	}
 }
 
