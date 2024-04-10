@@ -147,6 +147,8 @@ $productCombination2ValuePairs1 = array();
 if (($action == 'add' || $action == 'create') && empty($massaction) && !GETPOST('selectvariant', 'alpha') && empty($subaction)) {	// We click on Create all defined combinations
 	//$features = GETPOST('features', 'array');
 	$features = !empty($_SESSION['addvariant_'.$object->id]) ? $_SESSION['addvariant_'.$object->id] : array();
+	// At the end of this block, we should rollback unless specified otherwise
+	$rollback = true;
 
 	if (!$features) {
 		if ($action == 'create') {
@@ -199,22 +201,8 @@ if (($action == 'add' || $action == 'create') && empty($massaction) && !GETPOST(
 				unset($_SESSION['addvariant_'.$object->id]);
 
 				$db->commit();
-				// Call Hook formConfirm
-				$formconfirm = '';
-				$parameters = array('formConfirm' => $formconfirm, 'object' => $object);
-				$reshook = $hookmanager->executeHooks('formConfirm', $parameters, $object, $action); // Note that $action and $object may have been modified by hook
-				if (empty($reshook)) {
-					$formconfirm .= $hookmanager->resPrint;
-				} elseif ($reshook > 0) {
-					$formconfirm = $hookmanager->resPrint;
-				}
-				if (!empty($formconfirm)) {
-					// Print form confirm
-					print $formconfirm;
-				} else {
-					header('Location: ' . dol_buildpath('/variants/combinations.php?id=' . $id, 2));
-					exit();
-				}
+				$rollback = false;
+				$action = '';
 			} else {
 				$langs->load("errors");
 				setEventMessages($prodcomb->error, $prodcomb->errors, 'errors');
@@ -223,7 +211,9 @@ if (($action == 'add' || $action == 'create') && empty($massaction) && !GETPOST(
 			setEventMessages($langs->trans('ErrorRecordAlreadyExists'), null, 'errors');
 		}
 
-		$db->rollback();
+		if ($rollback) {
+			$db->rollback();
+		}
 	}
 } elseif (!empty($massaction)) {
 	$bulkaction = $massaction;
@@ -352,23 +342,7 @@ if (($action == 'add' || $action == 'create') && empty($massaction) && !GETPOST(
 	if (!$error) {
 		$db->commit();
 		setEventMessages($langs->trans('RecordSaved'), null, 'mesgs');
-
-		// Call Hook formConfirm
-		$formconfirm = '';
-		$parameters = array('formConfirm' => $formconfirm, 'object' => $object);
-		$reshook = $hookmanager->executeHooks('formConfirm', $parameters, $object, $action); // Note that $action and $object may have been modified by hook
-		if (empty($reshook)) {
-			$formconfirm .= $hookmanager->resPrint;
-		} elseif ($reshook > 0) {
-			$formconfirm = $hookmanager->resPrint;
-		}
-		if (!empty($formconfirm)) {
-			// Print form confirm
-			print $formconfirm;
-		} else {
-			header('Location: ' . dol_buildpath('/variants/combinations.php?id=' . $id, 2));
-			exit();
-		}
+		$action = '';
 	} else {
 		$db->rollback();
 	}
@@ -1030,6 +1004,19 @@ if (!empty($id) || !empty($ref)) {
 		print '</form>';
 	}
 }
+
+
+// Call Hook formConfirm
+$formconfirm = '';
+$parameters = array('formConfirm' => $formconfirm, 'object' => $object);
+$reshook = $hookmanager->executeHooks('formConfirm', $parameters, $object, $action); // Note that $action and $object may have been modified by hook
+if (empty($reshook)) {
+	$formconfirm .= $hookmanager->resPrint;
+} elseif ($reshook > 0) {
+	$formconfirm = $hookmanager->resPrint;
+}
+// Print form confirm
+print $formconfirm;
 
 // End of page
 llxFooter();
