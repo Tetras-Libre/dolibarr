@@ -1323,6 +1323,17 @@ print dol_get_fiche_end();
  * Action bar
  */
 
+// Call Hook formConfirm
+$formconfirm = '';
+$parameters = array('formConfirm' => $formconfirm, 'object' => $object);
+$reshook = $hookmanager->executeHooks('formConfirm', $parameters, $object, $action); // Note that $action and $object may have been modified by hook
+if (empty($reshook)) {
+	$formconfirm .= $hookmanager->resPrint;
+} elseif ($reshook > 0) {
+	$formconfirm = $hookmanager->resPrint;
+}
+// Print form confirm
+print $formconfirm;
 
 if (!$action || $action == 'delete' || $action == 'showlog_customer_price' || $action == 'showlog_default_price' || $action == 'add_customer_price'
 	|| $action == 'activate_price_by_qty' || $action == 'disable_price_by_qty') {
