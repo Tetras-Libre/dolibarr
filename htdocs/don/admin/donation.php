@@ -52,6 +52,7 @@ $type = 'donation';
 /*
  * Action
  */
+include DOL_DOCUMENT_ROOT.'/core/actions_setmoduleoptions.inc.php';
 
 if ($action == 'specimen') {
 	$modele = GETPOST('module', 'alpha');
@@ -228,7 +229,14 @@ foreach ($dirmodels as $reldir) {
 				while (($file = readdir($handle)) !== false) {
 					if (preg_match('/\.modules\.php$/i', $file) && preg_match('/^(html_|doc_)/', $file)) {
 						if (file_exists($dir.'/'.$file)) {
-							$name = substr($file, 0, dol_strlen($file) - 12);
+							if (preg_match('/^doc/', $file)) {
+								$start = 4;
+								$end = 16;
+							} else {
+								$start = 0;
+								$end = 12;
+							}
+							$name = substr($file, $start, dol_strlen($file) - $end);
 							$classname = substr($file, 0, dol_strlen($file) - 12);
 
 							require_once $dir.'/'.$file;
