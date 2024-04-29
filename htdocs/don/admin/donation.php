@@ -173,6 +173,7 @@ if (isModEnabled('accounting')) {
 	$formaccounting = new FormAccounting($db);
 }
 
+$dirmodels = array_merge(array('/'), (array) $conf->modules_parts['models']);
 llxHeader('', $langs->trans("DonationsSetup"), 'DonConfiguration');
 $linkback = '<a href="'.DOL_URL_ROOT.'/admin/modules.php?restore_lastsearch_values=1">'.$langs->trans("BackToModuleList").'</a>';
 print load_fiche_titre($langs->trans("DonationsSetup"), $linkback, 'title_setup');
@@ -216,16 +217,23 @@ print "</tr>\n";
 
 clearstatcache();
 
-$handle = opendir($dir);
+foreach ($dirmodels as $reldir) {
+	foreach (array('', '/doc') as $valdir) {
+		$realpath = $reldir."core/modules/dons".$valdir;
+		$dir = dol_buildpath($realpath);
+		if (is_dir($dir)) {
+			$handle = opendir($dir);
 
-if (is_resource($handle)) {
-	while (($file = readdir($handle)) !== false) {
-		if (preg_match('/\.modules\.php$/i', $file)) {
-			$name = substr($file, 0, dol_strlen($file) - 12);
-			$classname = substr($file, 0, dol_strlen($file) - 12);
+			if (is_resource($handle)) {
+				while (($file = readdir($handle)) !== false) {
+					if (preg_match('/\.modules\.php$/i', $file) && preg_match('/^(html_|doc_)/', $file)) {
+						if (file_exists($dir.'/'.$file)) {
+							$name = substr($file, 0, dol_strlen($file) - 12);
+							$classname = substr($file, 0, dol_strlen($file) - 12);
 
-			require_once $dir.'/'.$file;
-			$module = new $classname($db);
+							require_once $dir.'/'.$file;
+							$module = new $classname($db);
+							$modulequalified = 1;
 
 			// Show modules according to features level
 			if ($module->version == 'development' && getDolGlobalInt('MAIN_FEATURES_LEVEL') < 2) {
@@ -235,65 +243,73 @@ if (is_resource($handle)) {
 				continue;
 			}
 
-			if ($module->isEnabled()) {
-				print '<tr class="oddeven"><td width=\"100\">';
-				echo $module->name;
-				print '</td>';
-				print '<td>';
-				print $module->description;
-				print '</td>';
+							if ($modulequalified) {
+								print '<tr class="oddeven"><td width=\"100\">';
+								echo $module->name;
+								print '</td>';
+								print '<td>';
+								if (method_exists($module, 'info')) {
+									print $module->info($langs);
+								} else {
+									print $module->description;
+								}
+								print '</td>';
 
-				// Active
-				if (in_array($name, $def)) {
-					if ($conf->global->DON_ADDON_MODEL == $name) {
-						print "<td class=\"center\">\n";
-						print img_picto($langs->trans("Enabled"), 'switch_on');
-						print '</td>';
-					} else {
-						print "<td class=\"center\">\n";
-						print '<a href="'.$_SERVER["PHP_SELF"].'?action=setdoc&token='.newToken().'&value='.urlencode($name).'&scan_dir='.urlencode($module->scandir).'&label='.urlencode($module->name).'">'.img_picto($langs->trans("Enabled"), 'switch_on').'</a>';
-						print '</td>';
+								// Active
+								if (in_array($name, $def)) {
+									if ($conf->global->DON_ADDON_MODEL == $name) {
+										print "<td class=\"center\">\n";
+										print img_picto($langs->trans("Enabled"), 'switch_on');
+										print '</td>';
+									} else {
+										print "<td class=\"center\">\n";
+										print '<a href="'.$_SERVER["PHP_SELF"].'?action=setdoc&token='.newToken().'&value='.urlencode($name).'&scan_dir='.urlencode($module->scandir).'&label='.urlencode($module->name).'">'.img_picto($langs->trans("Enabled"), 'switch_on').'</a>';
+										print '</td>';
+									}
+								} else {
+									print "<td class=\"center\">\n";
+									print '<a href="'.$_SERVER["PHP_SELF"].'?action=set&token='.newToken().'&value='.urlencode($name).'&scan_dir='.urlencode($module->scandir).'&label='.urlencode($module->name).'">'.img_picto($langs->trans("Disabled"), 'switch_off').'</a>';
+									print "</td>";
+								}
+
+								// Default
+								if ($conf->global->DON_ADDON_MODEL == "$name") {
+									print "<td class=\"center\">";
+									print img_picto($langs->trans("Default"), 'on');
+									print '</td>';
+								} else {
+									print "<td class=\"center\">";
+									print '<a href="'.$_SERVER["PHP_SELF"].'?action=setdoc&token='.newToken().'&value='.urlencode($name).'&scan_dir='.urlencode($module->scandir).'&label='.urlencode($module->name).'" alt="'.$langs->trans("Default").'">'.img_picto($langs->trans("Disabled"), 'off').'</a>';
+									print '</td>';
+								}
+
+								// Info
+								$htmltooltip = ''.$langs->trans("Name").': '.$module->name;
+								$htmltooltip .= '<br>'.$langs->trans("Type").': '.($module->type ? $module->type : $langs->trans("Unknown"));
+								if ($module->type == 'pdf') {
+									$htmltooltip .= '<br>'.$langs->trans("Width").'/'.$langs->trans("Height").': '.$module->page_largeur.'/'.$module->page_hauteur;
+								}
+								$htmltooltip .= '<br><br><u>'.$langs->trans("FeaturesSupported").':</u>';
+								$htmltooltip .= '<br>'.$langs->trans("Logo").': '.yn($module->option_logo, 1, 1);
+								$htmltooltip .= '<br>'.$langs->trans("MultiLanguage").': '.yn($module->option_multilang, 1, 1);
+								print '<td class="center">';
+								print $form->textwithpicto('', $htmltooltip, -1, 0);
+								print '</td>';
+
+								// Preview
+								print '<td class="center">';
+								print '<a href="'.$_SERVER["PHP_SELF"].'?action=specimen&module='.$name.'" target="specimen">'.img_object($langs->trans("Preview"), 'generic').'</a>';
+								print '</td>';
+
+								print "</tr>\n";
+							}
+						}
 					}
-				} else {
-					print "<td class=\"center\">\n";
-					print '<a href="'.$_SERVER["PHP_SELF"].'?action=set&token='.newToken().'&value='.urlencode($name).'&scan_dir='.urlencode($module->scandir).'&label='.urlencode($module->name).'">'.img_picto($langs->trans("Disabled"), 'switch_off').'</a>';
-					print "</td>";
 				}
-
-				// Default
-				if ($conf->global->DON_ADDON_MODEL == "$name") {
-					print "<td class=\"center\">";
-					print img_picto($langs->trans("Default"), 'on');
-					print '</td>';
-				} else {
-					print "<td class=\"center\">";
-					print '<a href="'.$_SERVER["PHP_SELF"].'?action=setdoc&token='.newToken().'&value='.urlencode($name).'&scan_dir='.urlencode($module->scandir).'&label='.urlencode($module->name).'" alt="'.$langs->trans("Default").'">'.img_picto($langs->trans("Disabled"), 'off').'</a>';
-					print '</td>';
-				}
-
-				// Info
-				$htmltooltip = ''.$langs->trans("Name").': '.$module->name;
-				$htmltooltip .= '<br>'.$langs->trans("Type").': '.($module->type ? $module->type : $langs->trans("Unknown"));
-				if ($module->type == 'pdf') {
-					$htmltooltip .= '<br>'.$langs->trans("Width").'/'.$langs->trans("Height").': '.$module->page_largeur.'/'.$module->page_hauteur;
-				}
-				$htmltooltip .= '<br><br><u>'.$langs->trans("FeaturesSupported").':</u>';
-				$htmltooltip .= '<br>'.$langs->trans("Logo").': '.yn($module->option_logo, 1, 1);
-				$htmltooltip .= '<br>'.$langs->trans("MultiLanguage").': '.yn($module->option_multilang, 1, 1);
-				print '<td class="center">';
-				print $form->textwithpicto('', $htmltooltip, -1, 0);
-				print '</td>';
-
-				// Preview
-				print '<td class="center">';
-				print '<a href="'.$_SERVER["PHP_SELF"].'?action=specimen&module='.$name.'" target="specimen">'.img_object($langs->trans("Preview"), 'generic').'</a>';
-				print '</td>';
-
-				print "</tr>\n";
+				closedir($handle);
 			}
 		}
 	}
-	closedir($handle);
 }
 
 print '</table><br>';
