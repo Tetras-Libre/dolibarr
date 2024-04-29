@@ -21,7 +21,7 @@
  */
 
 /**
- *	\file       htdocs/core/modules/don/doc/doc_generic_dons_odt.modules.php
+ *	\file       htdocs/core/modules/don/doc/doc_generic_don_odt.modules.php
  *	\ingroup    societe
  *	\brief      File of class to build ODT documents for third parties
  */
@@ -245,7 +245,7 @@ class doc_generic_don_odt extends ModeleDon
 		// Load translation files required by the page
 		$outputlangs->loadLangs(array("main", "dict", "companies", "bills"));
 
-		if ($conf->dons->dir_output) {
+		if ($conf->don->dir_output) {
 			// If $object is id instead of object
 			if (!is_object($object)) {
 				$id = $object;
@@ -259,7 +259,7 @@ class doc_generic_don_odt extends ModeleDon
 
 			$object->fetch_thirdparty();
 
-			$dir = $conf->dons->dir_output;
+			$dir = $conf->don->dir_output;
 			$objectref = dol_sanitizeFileName($object->ref);
 			if (!preg_match('/specimen/i', $objectref)) {
 				$dir .= "/".$objectref;
@@ -300,9 +300,9 @@ class doc_generic_don_odt extends ModeleDon
 				//print "file=".$file;
 				//print "conf->societe->dir_temp=".$conf->societe->dir_temp;
 
-				dol_mkdir($conf->dons->dir_temp);
-				if (!is_writable($conf->dons->dir_temp)) {
-					$this->error = $langs->transnoentities("ErrorFailedToWriteInTempDirectory", $conf->dons->dir_temp);
+				dol_mkdir($conf->don->dir_temp);
+				if (!is_writable($conf->don->dir_temp)) {
+					$this->error = $langs->transnoentities("ErrorFailedToWriteInTempDirectory", $conf->don->dir_temp);
 					dol_syslog('Error in write_file: ' . $this->error, LOG_ERR);
 					return -1;
 				}
@@ -368,7 +368,7 @@ class doc_generic_don_odt extends ModeleDon
 					$odfHandler = new odf(
 						$srctemplatepath,
 						array(
-						'PATH_TO_TMP'	  => $conf->dons->dir_temp,
+						'PATH_TO_TMP'	  => $conf->don->dir_temp,
 						'ZIP_PROXY'		  => 'PclZipProxy', // PhpZipProxy or PclZipProxy. Got "bad compression method" error when using PhpZipProxy.
 						'DELIMITER_LEFT'  => '{',
 						'DELIMITER_RIGHT' => '}'
