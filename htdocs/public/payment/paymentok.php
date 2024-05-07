@@ -1113,6 +1113,15 @@ if ($ispaymentok) {
 						$bankaccountid = $conf->global->STRIPE_BANK_ACCOUNT_FOR_PAYMENTS;
 					}
 
+					$hookmanager->executeHooks('getBankAccountForPayements', $parameters, $bankaccountid, $action);
+					if ($bankaccountid < 0) {
+						$error++;
+						$errmsg = 'Setup of bank account to use for payment is not correctly done for payment method '.$paymentmethod;
+						$postactionmessages[] = $errmsg;
+						$ispostactionok = -1;
+						dol_syslog("Failed to get the bank account to record payment: ".$errmsg, LOG_ERR, 0, '_payment');
+					}
+
 					if ($bankaccountid > 0) {
 						$result = $paiement->addPaymentToBank($user, 'payment_donation', '(DonationPayment)', $bankaccountid, '', '');
 						if ($result < 0) {
