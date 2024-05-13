@@ -1082,6 +1082,45 @@ class Don extends CommonObject
 			}
 			$obj = new $classname($this->db);
 
+			// If generator is ODT, we must have srctemplatepath defined, if not we set it.
+			if ($obj->type == 'odt' && empty($srctemplatepath)) {
+				$varfortemplatedir = $obj->scandir;
+				if ($varfortemplatedir && !empty($conf->global->$varfortemplatedir)) {
+					$dirtoscan = $conf->global->$varfortemplatedir;
+
+					$listoffiles = array();
+
+					// Now we add first model found in directories scanned
+					$listofdir = explode(',', $dirtoscan);
+					foreach ($listofdir as $key => $tmpdir) {
+						$tmpdir = trim($tmpdir);
+						$tmpdir = preg_replace('/DOL_DATA_ROOT/', DOL_DATA_ROOT, $tmpdir);
+						if (!$tmpdir) {
+							unset($listofdir[$key]);
+							continue;
+						}
+						if (is_dir($tmpdir)) {
+							$tmpfiles = dol_dir_list($tmpdir, 'files', 0, '\.od(s|t)$', '', 'name', SORT_ASC, 0);
+							if (count($tmpfiles)) {
+								$listoffiles = array_merge($listoffiles, $tmpfiles);
+							}
+						}
+					}
+
+					if (count($listoffiles)) {
+						foreach ($listoffiles as $record) {
+							$srctemplatepath = $record['fullname'];
+							break;
+						}
+					}
+				}
+
+				if (empty($srctemplatepath)) {
+					$this->error = 'ErrorGenerationAskedForOdtTemplateWithSrcFileNotDefined';
+					return -1;
+				}
+			}
+
 			// We save charset_output to restore it because write_file can change it if needed for
 			// output format that does not support UTF8.
 			$sav_charset_output = $outputlangs->charset_output;
