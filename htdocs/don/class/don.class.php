@@ -1136,6 +1136,23 @@ class Don extends CommonObject
 				// we delete preview files
 				require_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
 				dol_delete_preview($object);
+				if (!empty($obj->result['fullpath'])) {
+					$destfull = $obj->result['fullpath'];
+
+					// Update the last_main_doc field into main object (if document generator has property ->update_main_doc_field set)
+					$update_main_doc_field = 0;
+					if (!empty($obj->update_main_doc_field)) {
+						$update_main_doc_field = 1;
+					}
+
+					$this->indexFile($destfull, $update_main_doc_field);
+				} else {
+					dol_syslog('Method ->write_file was called on object '.get_class($obj).' and return a success but the return array ->result["fullpath"] was not set.', LOG_WARNING);
+				}
+
+				// Success in building document. We build meta file.
+				dol_meta_create($this);
+
 				return 1;
 			} else {
 				$outputlangs->charset_output = $sav_charset_output;
