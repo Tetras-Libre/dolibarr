@@ -389,7 +389,7 @@ if ($action === 'confirm_deletecombination') {
 		//To prevent from copying to the same product
 		if ($prodstatic->ref != $object->ref) {
 			if ($prodcomb->copyAll($user, $object->id, $prodstatic) > 0) {
-				header('Location: '.dol_buildpath('/variants/combinations.php?id='.$prodstatic->id, 2));
+				header('Location: '.dol_buildpath('/variants/combinations.php?id='.$prodstatic->id.'&action=combination_copied', 2));
 				exit();
 			} else {
 				setEventMessages($langs->trans('ErrorCopyProductCombinations'), null, 'errors');
