@@ -638,6 +638,7 @@ class Don extends CommonObject
 	 */
 	public function fetch($id, $ref = '')
 	{
+		global $conf;
 		$sql = "SELECT d.rowid, d.datec, d.date_valid, d.tms as datem, d.datedon,";
 		$sql .= " d.fk_soc as socid, d.firstname, d.lastname, d.societe, d.amount, d.fk_statut as status, d.address, d.zip, d.town, ";
 		$sql .= " d.fk_country, d.public, d.amount, d.fk_payment, d.paid, d.note_private, d.note_public, d.email, d.phone, ";
@@ -663,7 +664,7 @@ class Don extends CommonObject
 				$obj = $this->db->fetch_object($resql);
 
 				$this->id                 = $obj->rowid;
-				$this->ref                = $obj->rowid;
+				$this->ref                = $obj->ref != null ? $obj->ref : $obj->rowid;
 				$this->date_creation      = $this->db->jdate($obj->datec);
 				$this->datec              = $this->db->jdate($obj->datec);
 				$this->date_validation    = $this->db->jdate($obj->date_valid);
@@ -739,8 +740,10 @@ class Don extends CommonObject
 		$error = 0;
 
 		$this->db->begin();
+		$num = $this->getNextNumRef($this->thirdparty);
+		$this->ref = dol_sanitizeFileName($num);
 
-		$sql = "UPDATE ".MAIN_DB_PREFIX."don SET fk_statut = 1, fk_user_valid = ".((int) $userid)." WHERE rowid = ".((int) $id)." AND fk_statut = 0";
+		$sql = "UPDATE ".MAIN_DB_PREFIX."don SET fk_statut = 1, fk_user_valid = ".((int) $userid).", ref = '". $this->ref ."' WHERE rowid = ".((int) $id)." AND fk_statut = 0";
 
 		$resql = $this->db->query($sql);
 		if ($resql) {
@@ -908,6 +911,94 @@ class Don extends CommonObject
 	}
 
 	/**
+	 *      Return next reference of customer invoice not already used (or last reference)
+	 *      according to numbering module defined into constant FACTURE_ADDON
+	 *
+	 *      @param	   Societe		$soc		object company
+	 *      @param     string		$mode		'next' for next value or 'last' for last value
+	 *      @return    string					free ref or last ref
+	 */
+	public function getNextNumRef($soc, $mode = 'next')
+	{
+		global $conf, $langs;
+
+			$langs->load('don');
+
+			$moduleName = 'don';
+			$moduleSourceName = 'Don';
+			$addonConstName = 'DON_ADDON';
+
+			// Clean parameters (if not defined or using deprecated value)
+			if ($conf->global->DON_ADDON == 'terre') {
+				$conf->DON_ADDON = 'mod_facture_terre';
+			}
+
+			$addon = $conf->global->DON_ADDON;
+
+		if (!empty($addon)) {
+			dol_syslog("Call getNextNumRef with ".$addonConstName." = ".$conf->global->FACTURE_ADDON.", thirdparty=".$soc->name.", type=".$soc->typent_code.", mode=".$mode, LOG_DEBUG);
+
+			$mybool = false;
+
+			$file = $addon.'.php';
+			$classname = $addon;
+
+
+			// Include file with class
+			$dirmodels = array_merge(array('/'), (array) $conf->modules_parts['models']);
+			foreach ($dirmodels as $reldir) {
+				$dir = dol_buildpath($reldir.'core/modules/'.$moduleName.'s/');
+
+				// Load file with numbering class (if found)
+				if (is_file($dir.$file) && is_readable($dir.$file)) {
+					$mybool |= include_once $dir.$file;
+				}
+			}
+
+			// For compatibility
+			if (!$mybool) {
+				$file = $addon.'/'.$addon.'.modules.php';
+				$classname = 'mod_'.$moduleName.'_'.$addon;
+				$classname = preg_replace('/\-.*$/', '', $classname);
+				// Include file with class
+				foreach ($conf->file->dol_document_root as $dirroot) {
+					$dir = $dirroot.'/core/modules/'.$moduleName.'s/';
+
+					// Load file with numbering class (if found)
+					if (is_file($dir.$file) && is_readable($dir.$file)) {
+						$mybool |= include_once $dir.$file;
+					}
+				}
+			}
+
+			if (!$mybool) {
+				dol_print_error('', 'Failed to include file '.$file);
+				return '';
+			}
+
+			$obj = new $classname();
+
+			$numref = $obj->getNextValue($soc, $this, $mode);
+
+
+			/**
+			 * $numref can be empty in case we ask for the last value because if there is no invoice created with the
+			 * set up mask.
+			 */
+			if ($mode != 'last' && !$numref) {
+				$this->error = $obj->error;
+				return '';
+			}
+
+			return $numref;
+		} else {
+			$langs->load('errors');
+			print $langs->trans('Error').' '.$langs->trans('ErrorModuleSetupNotComplete', $langs->transnoentitiesnoconv($moduleSourceName));
+			return '';
+		}
+	}
+
+	/**
 	 *	Return clicable name (with picto eventually)
 	 *
 	 *	@param	int		$withpicto					0=No picto, 1=Include picto into link, 2=Only picto
@@ -929,7 +1020,10 @@ class Don extends CommonObject
 		if (isset($this->status)) {
 			$label .= ' '.$this->getLibStatut(5);
 		}
-		if (!empty($this->id)) {
+		if (!empty($this->ref)) {
+			$label .= '<br><b>'.$langs->trans('Ref').':</b> '.$this->ref;
+			$label .= '<br><b>'.$langs->trans('Date').':</b> '.dol_print_date($this->date, 'day');
+		} elseif (!empty($this->id)) {
 			$label .= '<br><b>'.$langs->trans('Ref').':</b> '.$this->id;
 			$label .= '<br><b>'.$langs->trans('Date').':</b> '.dol_print_date($this->date, 'day');
 		}
