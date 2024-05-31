@@ -103,6 +103,11 @@ if ($action == 'specimen') {
 			dolibarr_del_const($db, 'DON_ADDON_MODEL', $conf->entity);
 		}
 	}
+} elseif ($action == 'setmod') {
+	// TODO Verifier si module numerotation choisi peut etre active
+	// par appel methode canBeActivated
+
+	dolibarr_set_const($db, "DON_ADDON", $value, 'chaine', 0, '', $conf->entity);
 }
 
 // Options
@@ -321,6 +326,135 @@ foreach ($dirmodels as $reldir) {
 }
 
 print '</table><br>';
+
+/*
+ *  Numbering module
+ */
+
+print load_fiche_titre($langs->trans("BillsNumberingModule"), '', '');
+
+print '<div class="div-table-responsive-no-min">';
+print '<table class="noborder centpercent">';
+print '<tr class="liste_titre">';
+print '<td>'.$langs->trans("Name").'</td>';
+print '<td>'.$langs->trans("Description").'</td>';
+print '<td class="nowrap">'.$langs->trans("Example").'</td>';
+print '<td class="center" width="60">'.$langs->trans("Status").'</td>';
+print '<td class="center" width="16">'.$langs->trans("ShortInfo").'</td>';
+print '</tr>'."\n";
+
+clearstatcache();
+
+foreach ($dirmodels as $reldir) {
+	$dir = dol_buildpath($reldir."core/modules/dons/");
+	if (is_dir($dir)) {
+		$handle = opendir($dir);
+		if (is_resource($handle)) {
+			while (($file = readdir($handle)) !== false) {
+				if (!is_dir($dir.$file) || (substr($file, 0, 1) <> '.' && substr($file, 0, 3) <> 'CVS')) {
+					$filebis = $file;
+					$classname = preg_replace('/\.php$/', '', $file);
+					// For compatibility
+					if (!is_file($dir.$filebis)) {
+						$filebis = $file."/".$file.".modules.php";
+						$classname = "mod_don_".$file;
+					}
+					// Check if there is a filter on country
+					preg_match('/\-(.*)_(.*)$/', $classname, $reg);
+					if (!empty($reg[2]) && $reg[2] != strtoupper($mysoc->country_code)) {
+						continue;
+					}
+
+					$classname = preg_replace('/\-.*$/', '', $classname);
+					if (!class_exists($classname) && is_readable($dir.$filebis) && (preg_match('/mod_/', $filebis) || preg_match('/mod_/', $classname)) && substr($filebis, dol_strlen($filebis) - 3, 3) == 'php') {
+						// Charging the numbering class
+						require_once $dir.$filebis;
+
+						$module = new $classname($db);
+
+						// Show modules according to features level
+						if ($module->version == 'development' && $conf->global->MAIN_FEATURES_LEVEL < 2) {
+							continue;
+						}
+						if ($module->version == 'experimental' && $conf->global->MAIN_FEATURES_LEVEL < 1) {
+							continue;
+						}
+
+						if ($module->isEnabled()) {
+							print '<tr class="oddeven"><td width="100">';
+							echo preg_replace('/\-.*$/', '', preg_replace('/mod_don_/', '', preg_replace('/\.php$/', '', $file)));
+							print "</td><td>\n";
+
+							print $module->info();
+
+							print '</td>';
+
+							// Show example of numbering module
+							print '<td class="nowrap">';
+							$tmp = $module->getExample();
+							if (preg_match('/^Error/', $tmp)) {
+								$langs->load("errors");
+								print '<div class="error">'.$langs->trans($tmp).'</div>';
+							} elseif ($tmp == 'NotConfigured') {
+								print '<span class="opacitymedium">'.$langs->trans($tmp).'</span>';
+							} else {
+								print $tmp;
+							}
+							print '</td>'."\n";
+
+							print '<td class="center">';
+							//print "> ".$conf->global->DON_ADDON." - ".$file;
+							if ($conf->global->DON_ADDON == $file || $conf->global->DON_ADDON.'.php' == $file) {
+								print img_picto($langs->trans("Activated"), 'switch_on');
+							} else {
+								print '<a class="reposition" href="'.$_SERVER["PHP_SELF"].'?action=setmod&token='.newToken().'&value='.preg_replace('/\.php$/', '', $file).'" alt="'.$langs->trans("Default").'">'.img_picto($langs->trans("Disabled"), 'switch_off').'</a>';
+							}
+							print '</td>';
+
+							$don = new Don($db);
+							$don->initAsSpecimen();
+
+							// Example for standard invoice
+							$htmltooltip = '';
+							$htmltooltip .= ''.$langs->trans("Version").': <b>'.$module->getVersion().'</b><br>';
+							$don->type = 0;
+							$nextval = $module->getNextValue($mysoc, $don);
+							if ("$nextval" != $langs->trans("NotAvailable")) {  // Keep " on nextval
+								$htmltooltip .= $langs->trans("NextValueForInvoices").': ';
+								if ($nextval) {
+									if (preg_match('/^Error/', $nextval) || $nextval == 'NotConfigured') {
+										$nextval = $langs->trans($nextval);
+									}
+									$htmltooltip .= $nextval.'<br>';
+								} else {
+									$htmltooltip .= $langs->trans($module->error).'<br>';
+								}
+							}
+							print '<td class="center">';
+							print $form->textwithpicto('', $htmltooltip, 1, 0);
+
+							if ($conf->global->DON_ADDON.'.php' == $file) {  // If module is the one used, we show existing errors
+								if (!empty($module->error)) {
+									dol_htmloutput_mesg($module->error, '', 'error', 1);
+								}
+							}
+
+							print '</td>';
+
+							print "</tr>\n";
+						}
+					}
+				}
+			}
+			closedir($handle);
+		}
+	}
+}
+
+print '</table>';
+print '</div>';
+
+
 
 /*
  *  Params

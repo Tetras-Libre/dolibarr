@@ -112,7 +112,7 @@ llxHeader('', $langs->trans("Donations"), $help_url);
 
 // Genere requete de liste des dons
 $sql = "SELECT d.rowid, d.datedon, d.fk_soc as socid, d.firstname, d.lastname, d.societe,";
-$sql .= " d.amount, d.fk_statut as status,";
+$sql .= " d.amount, d.fk_statut as status, d.ref as don_ref, ";
 $sql .= " p.rowid as pid, p.ref, p.title, p.public";
 $sql .= " FROM ".MAIN_DB_PREFIX."don as d LEFT JOIN ".MAIN_DB_PREFIX."projet AS p";
 $sql .= " ON p.rowid = d.fk_projet";
@@ -278,7 +278,7 @@ if ($resql) {
 
 		print '<tr class="oddeven">';
 		$donationstatic->id = $objp->rowid;
-		$donationstatic->ref = $objp->rowid;
+		$donationstatic->ref = $objp->don_ref ? $objp->don_ref : $objp->rowid;
 		$donationstatic->lastname = $objp->lastname;
 		$donationstatic->firstname = $objp->firstname;
 		print "<td>".$donationstatic->getNomUrl(1)."</td>";
