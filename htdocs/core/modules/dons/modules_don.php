@@ -121,9 +121,12 @@ abstract class ModeleNumRefDons
 	/**
 	 *  Renvoi prochaine valeur attribuee
 	 *
-	 *  @return     string      Valeur
+	*  @param   Societe               $objsoc         Object third party
+	*  @param   Don           $don    Object don
+	*  @param   string                $mode       'next' for next value or 'last' for last value
+	*  @return     string      Valeur
 	 */
-	public function getNextValue()
+	public function getNextValue($objsoc, $don, $mode = 'next')
 	{
 		global $langs;
 		return $langs->trans("NotAvailable");
