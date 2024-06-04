@@ -1060,10 +1060,14 @@ if ($ispaymentok) {
 			$postactionmessages[] = 'Order paid ' . $tmptag['ORD'] . ' was not found';
 			$ispostactionok = -1;
 		}
-	} elseif (array_key_exists('DON', $tmptag) && $tmptag['DON'] > 0) {
+	} elseif (array_key_exists('DON', $tmptag)) {
 		include_once DOL_DOCUMENT_ROOT.'/don/class/don.class.php';
 		$don = new Don($db);
-		$result = $don->fetch((int) $tmptag['DON']);
+        if ((int) $tmptag['DON'] > 0) {
+		    $result = $don->fetch((int) $tmptag['DON']);
+        } else {
+		    $result = $don->fetch(null, $tmptag['DON']);
+        }
 		if ($result) {
 			$paymentTypeId = 0;
 			if ($paymentmethod == 'paybox') {
