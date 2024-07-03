@@ -40,8 +40,9 @@ function check_user_password_openid_connect($usertotest, $passwordtotest, $entit
 
 	// Force master entity in transversal mode
 	$entity = $entitytotest;
-	if (isModEnabled('multicompany') && getDolGlobalString('MULTICOMPANY_TRANSVERSE_MODE')) {
-		$entity = 1;
+	if (isModEnabled('multicompany')) {
+		global $entitytotest;
+		$entitytotest = -1;
 	}
 
 	$login = '';
@@ -90,7 +91,9 @@ function check_user_password_openid_connect($usertotest, $passwordtotest, $entit
 				$sql = 'SELECT login, entity, datestartvalidity, dateendvalidity';
 				$sql .= ' FROM '.MAIN_DB_PREFIX.'user';
 				$sql .= " WHERE login = '".$db->escape($userinfo_content->$login_claim)."'";
-				$sql .= ' AND entity IN (0,'.(array_key_exists('dol_entity', $_SESSION) ? ((int) $_SESSION["dol_entity"]) : 1).')';
+				if (array_key_exists('dol_entity', $_SESSION)) {
+					$sql .= ' AND entity IN (0,'.((int) $_SESSION["dol_entity"]).')';
+				}
 
 				dol_syslog("functions_openid::check_user_password_openid", LOG_DEBUG);
 
