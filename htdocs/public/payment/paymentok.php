@@ -54,6 +54,11 @@ if (is_numeric($entity)) {
 require '../../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/company.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/payments.lib.php';
+
+include_once DOL_DOCUMENT_ROOT.'/core/class/hookmanager.class.php';
+$hookmanager = new HookManager($db);
+$hookmanager->initHooks(array('paymentok'));
+
 if (isModEnabled('paypal')) {
 	require_once DOL_DOCUMENT_ROOT.'/paypal/lib/paypal.lib.php';
 	require_once DOL_DOCUMENT_ROOT.'/paypal/lib/paypalfunctions.lib.php';
@@ -129,17 +134,7 @@ if (empty($paymentmethod)) {
 dol_syslog("***** paymentok.php is called paymentmethod=".$paymentmethod." FULLTAG=".$FULLTAG." REQUEST_URI=".$_SERVER["REQUEST_URI"], LOG_DEBUG, 0, '_payment');
 
 
-$validpaymentmethod = array();
-if (isModEnabled('paypal')) {
-	$validpaymentmethod['paypal'] = 'paypal';
-}
-if (isModEnabled('paybox')) {
-	$validpaymentmethod['paybox'] = 'paybox';
-}
-if (isModEnabled('stripe')) {
-	$validpaymentmethod['stripe'] = 'stripe';
-}
-
+$validpaymentmethod = getValidOnlinePaymentMethods($paymentmethod);
 // Security check
 if (empty($validpaymentmethod)) {
 	httponly_accessforbidden('No valid payment mode');
@@ -565,6 +560,7 @@ if ($ispaymentok) {
 				if ($paymentmethod == 'stripe') {
 					$accountid = $conf->global->STRIPE_BANK_ACCOUNT_FOR_PAYMENTS;
 				}
+				$hookmanager->executeHooks('getBankAccountForPayements', $parameters, $paymentTypeId, $action);
 				if ($accountid < 0) {
 					$error++;
 					$errmsg = 'Setup of bank account to use for payment is not correctly done for payment method '.$paymentmethod;
@@ -902,6 +898,7 @@ if ($ispaymentok) {
 					} elseif ($paymentmethod == 'stripe') {
 						$bankaccountid = $conf->global->STRIPE_BANK_ACCOUNT_FOR_PAYMENTS;
 					}
+					$hookmanager->executeHooks('getBankAccountForPayements', $parameters, $bankaccountid, $action);
 
 					if ($bankaccountid > 0) {
 						$label = '(CustomerInvoicePayment)';
