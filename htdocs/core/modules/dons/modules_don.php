@@ -105,7 +105,6 @@ abstract class ModeleNumRefDons extends CommonNumRefGenerator
 	 *  Checks if the numbers already in the database do not
 	 *  cause conflicts that would prevent this numbering working.
 	 *
-	 *  @return     boolean     false if conflict, true if ok
 	 *	@return boolean     			false if conflict, true if ok
 	 */
 	public function canBeActivated($object)

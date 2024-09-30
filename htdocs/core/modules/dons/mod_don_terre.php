@@ -78,11 +78,11 @@ class mod_don_terre extends ModeleNumRefDons
 	/**
 	 *  Returns the description of the numbering model
 	 *
+	 *  @param	Translate	$langs		Object langs
 	 *  @return     string      Texte descripif
 	 */
-	public function info()
+	public function info($langs)
 	{
-		global $langs;
 		$langs->load("bills");
 		return $langs->trans('TerreNumRefModelDesc1', $this->prefixdon, $this->prefixcreditnote, $this->prefixdeposit);
 	}
@@ -103,7 +103,7 @@ class mod_don_terre extends ModeleNumRefDons
 	 *
 	 *  @return     boolean     false if conflict, true if ok
 	 */
-	public function canBeActivated()
+	public function canBeActivated($object)
 	{
 		global $langs, $conf, $db;
 
