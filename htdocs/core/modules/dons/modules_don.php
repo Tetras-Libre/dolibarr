@@ -80,11 +80,11 @@ abstract class ModeleNumRefDons extends CommonNumRefGenerator
 	/**
 	 * 	Renvoi la description par defaut du modele de numerotation
 	 *
+	 *  @param	Translate	$langs		Object langs
 	 *  @return     string      Texte descripif
 	 */
-	public function info()
+	public function info($langs)
 	{
-		global $langs;
 		$langs->load("bills");
 		return $langs->trans("NoDescription");
 	}
@@ -106,8 +106,9 @@ abstract class ModeleNumRefDons extends CommonNumRefGenerator
 	 *  cause conflicts that would prevent this numbering working.
 	 *
 	 *  @return     boolean     false if conflict, true if ok
+	 *	@return boolean     			false if conflict, true if ok
 	 */
-	public function canBeActivated()
+	public function canBeActivated($object)
 	{
 		return true;
 	}
