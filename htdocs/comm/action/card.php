@@ -480,7 +480,65 @@ if (empty($reshook) && $action == 'add') {
 		$action = 'create';
 	}
 
+	// Checking resource availability if the config doesn't allow overlap
+	if (!empty($_SESSION['assignedtoresource']) && getDolGlobalString('RESOURCE_USED_IN_EVENT_CHECK')) {
+		$assigned_ressources = json_decode($_SESSION['assignedtoresource'], true);
 
+		// MODIFIED CODE FROM htdocs/resources/element_resources.php
+		$eventDateStart = $object->datep;
+		$eventDateEnd   = $object->datef;
+		$isFullDayEvent = $object->fulldayevent;
+		if (empty($eventDateEnd)) {
+			if ($isFullDayEvent) {
+				$eventDateStartArr = dol_getdate($eventDateStart);
+				$eventDateStart = dol_mktime(0, 0, 0, $eventDateStartArr['mon'], $eventDateStartArr['mday'], $eventDateStartArr['year']);
+				$eventDateEnd   = dol_mktime(23, 59, 59, $eventDateStartArr['mon'], $eventDateStartArr['mday'], $eventDateStartArr['year']);
+			}
+		}
+
+		$sql  = "SELECT er.rowid, r.ref as r_ref, ac.id as ac_id, ac.label as ac_label";
+		$sql .= " FROM ".MAIN_DB_PREFIX."element_resources as er";
+		$sql .= " INNER JOIN ".MAIN_DB_PREFIX."resource as r ON r.rowid = er.resource_id AND er.resource_type = 'dolresource'";
+		$sql .= " INNER JOIN ".MAIN_DB_PREFIX."actioncomm as ac ON ac.id = er.element_id AND er.element_type = '".$db->escape($object->element)."'";
+		$sql .= " WHERE er.resource_id IN (". implode(", ", array_keys($assigned_ressources)) . ")";
+		$sql .= " AND er.busy = 1";
+		$sql .= " AND (";
+
+		// event date start between ac.datep and ac.datep2 (if datep2 is null we consider there is no end)
+		$sql .= " (ac.datep <= '".$db->idate($eventDateStart)."' AND (ac.datep2 IS NULL OR ac.datep2 >= '".$db->idate($eventDateStart)."'))";
+		// event date end between ac.datep and ac.datep2
+		if (!empty($eventDateEnd)) {
+			$sql .= " OR (ac.datep <= '".$db->idate($eventDateEnd)."' AND (ac.datep2 >= '".$db->idate($eventDateEnd)."'))";
+		}
+		// event date start before ac.datep and event date end after ac.datep2
+		$sql .= " OR (";
+		$sql .= "ac.datep >= '".$db->idate($eventDateStart)."'";
+		if (!empty($eventDateEnd)) {
+			$sql .= " AND (ac.datep2 IS NOT NULL AND ac.datep2 <= '".$db->idate($eventDateEnd)."')";
+		}
+		$sql .= ")";
+
+		$sql .= ")";
+		$resql = $db->query($sql);
+
+		if (!$resql) {
+			$error++; $donotclearsession = 1; $action = 'create';
+			$object->error   = $db->lasterror();
+			$object->errors[] = $object->error;
+			setEventMessages($object->error, $object->errors, 'errors');
+		} else if ($db->num_rows($resql) > 0){
+			// Resource already in use
+			$error++; $donotclearsession = 1; $action = 'create';
+
+			$object->error = $langs->trans('ErrorResourcesAlreadyInUse').' : ';
+			while ($obj = $db->fetch_object($resql)) {
+				$object->error .= '<br> - '.$langs->trans('ErrorResourceUseInEvent', $obj->r_ref, $obj->ac_label.' ['.$obj->ac_id.']');
+			}
+			$object->errors[] = $object->error;
+			setEventMessages($object->error, $object->errors, 'errors');
+			$db->free($resql);
+		}
+	}
 
 	if (!$error) {
 		$db->begin();
@@ -527,7 +585,21 @@ if (empty($reshook) && $action == 'add') {
 				$categories = GETPOST('categories', 'array');
 				$object->setCategories($categories);
 
+
+				if (!empty($_SESSION['assignedtoresource'])) {
+					$assignedtoresource = json_decode($_SESSION['assignedtoresource'], true);
+
+					foreach ($assignedtoresource as $resource_id => $resource){
+						// hardcoding dolresource might be a problem later on
+						// add_element_resource(id, type, busy, mandatory) -> 1 on sucess or 0
+						if (!$object->add_element_resource($resource_id, "dolresource", 1, (int) $resource['mandatory'])){
+							dol_syslog("An Error occured in add_element_resource: '" . $object->error . "'", LOG_ERR);
+						};
+					}
+				}
+
 				unset($_SESSION['assignedtouser']);
+				unset($_SESSION['assignedtoresource']);
 
 				$moreparam = '';
 				if ($user->id != $object->userownerid) {
