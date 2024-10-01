@@ -477,6 +477,9 @@ if (empty($reshook) && $action == 'add' && $usercancreate) {
 		$action = 'create';
 	}
 
+	// Checking resource availability if the config doesn't allow overlap
+	if (!empty($_SESSION['assignedtoresource']) && getDolGlobalString('RESOURCE_USED_IN_EVENT_CHECK')) {
+		$assigned_ressources = json_decode($_SESSION['assignedtoresource'], true);
 
 
 	if (!$error) {
@@ -524,7 +527,21 @@ if (empty($reshook) && $action == 'add' && $usercancreate) {
 				$categories = GETPOST('categories', 'array');
 				$object->setCategories($categories);
 
+
+				if (!empty($_SESSION['assignedtoresource'])) {
+					$assignedtoresource = json_decode($_SESSION['assignedtoresource'], true);
+
+					foreach ($assignedtoresource as $resource_id => $resource){
+						// hardcoding dolresource might be a problem later on
+						// add_element_resource(id, type, busy, mandatory) -> 1 on sucess or 0
+						if (!$object->add_element_resource($resource_id, "dolresource", 1, (int) $resource['mandatory'])){
+							dol_syslog("An Error occured in add_element_resource: '" . $object->error . "'", LOG_ERR);
+						};
+					}
+				}
+
 				unset($_SESSION['assignedtouser']);
+				unset($_SESSION['assignedtoresource']);
 
 				$moreparam = '';
 				if ($user->id != $object->userownerid) {
