@@ -334,7 +334,7 @@ textarea {
 	margin-bottom:1px;
 	margin-top:1px;
 	}
-input.removedassigned  {
+input.removedassigned, input.removedassignedresource  {
 	padding: 2px !important;
 	vertical-align: text-bottom;
 	margin-bottom: -3px;
