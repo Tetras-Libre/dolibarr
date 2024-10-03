@@ -48,6 +48,7 @@ require_once DOL_DOCUMENT_ROOT.'/contact/class/contact.class.php';
 require_once DOL_DOCUMENT_ROOT.'/projet/class/project.class.php';
 require_once DOL_DOCUMENT_ROOT.'/projet/class/task.class.php';
 require_once DOL_DOCUMENT_ROOT.'/user/class/user.class.php';
+require_once DOL_DOCUMENT_ROOT.'/core/lib/resource.lib.php';
 
 
 // Load translation files required by the page
@@ -481,6 +482,45 @@ if (empty($reshook) && $action == 'add' && $usercancreate) {
 	if (!empty($_SESSION['assignedtoresource']) && getDolGlobalString('RESOURCE_USED_IN_EVENT_CHECK')) {
 		$assigned_ressources = json_decode($_SESSION['assignedtoresource'], true);
 
+	// Checking resource availability if the config doesn't allow overlap
+	if (!$error && !empty($_SESSION['assignedtoresource']) && getDolGlobalString('RESOURCE_USED_IN_EVENT_CHECK')) {
+		$assigned_ressources = json_decode($_SESSION['assignedtoresource'], true);
+
+		// MODIFIED CODE FROM htdocs/resources/element_resources.php
+		$eventDateStart = $object->datep;
+		$eventDateEnd   = $object->datef;
+		$isFullDayEvent = $object->fulldayevent;
+		if (empty($eventDateEnd) && $isFullDayEvent) {
+			$eventDateStartArr = dol_getdate($eventDateStart);
+			$eventDateStart = dol_mktime(0, 0, 0, $eventDateStartArr['mon'], $eventDateStartArr['mday'], $eventDateStartArr['year']);
+			$eventDateEnd   = dol_mktime(23, 59, 59, $eventDateStartArr['mon'], $eventDateStartArr['mday'], $eventDateStartArr['year']);
+		}
+
+		//call to get_busy_resource_during in resource.lib.php
+		$busyResources = get_busy_resource_during($eventDateStart, $eventDateEnd, $assigned_ressources);
+
+		/// === false because it can return an empty array
+		if ($busyResources === false) {
+			// an error occured in the sql
+			$error++; $donotclearsession = 1; $action = 'create';
+			$object->error = $db->lasterror();
+			$object->errors[] = $object->error;
+			setEventMessages($object->error, $object->errors, 'errors');
+		}
+
+		else if (!empty($busyResources)){
+			// Resource already in use
+			$error++; $donotclearsession = 1; $action = 'create';
+
+			$object->error = $langs->trans('ErrorResourcesAlreadyInUse').' : ';
+			foreach ($busyResources as $row) {
+				$object->error .= '<br> - '.$langs->trans('ErrorResourceUseInEvent', $row->r_ref, $row->ac_label.' ['.$row->ac_id.']');
+			}
+
+			$object->errors[] = $object->error;
+			setEventMessages($object->error, $object->errors, 'errors');
+		}
+	}
 
 	if (!$error) {
 		$db->begin();

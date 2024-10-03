@@ -146,3 +146,43 @@ function resource_admin_prepare_head()
 
 	return $head;
 }
+
+function get_busy_resource_during($dateStart, $dateEnd, $resource_ids = array())
+{
+	// MODIFIED CODE FROM htdocs/resources/element_resources.php
+	global $db;
+	if (!$db) {
+		// false to mimic what getRows returns
+		return false;
+	}
+
+	$sql  = "SELECT er.rowid, r.ref as r_ref, ac.id as ac_id, ac.label as ac_label";
+	$sql .= " FROM ".MAIN_DB_PREFIX."element_resources as er";
+	$sql .= " INNER JOIN ".MAIN_DB_PREFIX."resource as r ON r.rowid = er.resource_id AND er.resource_type = 'dolresource'";
+	$sql .= " INNER JOIN ".MAIN_DB_PREFIX."actioncomm as ac ON ac.id = er.element_id AND er.element_type = 'action'";
+	$sql .= " WHERE er.busy = 1";
+
+	if (!empty($resource_ids)) {
+		$escaped_ids = array_map(function ($v) {
+			global $db;
+			return $db->sanitize($db->escape($v));
+		}, array_keys($resource_ids));
+		$sql .= " AND er.resource_id IN (". implode(", ", $escaped_ids) . ")";
+	}
+
+	$sql .= " AND (";
+
+	// event date start between ac.datep and ac.datep2 (if datep2 is null we consider there is no end)
+	$sql .= "(ac.datep <= '".$db->idate($dateStart)."' AND (ac.datep2 IS NULL OR ac.datep2 >= '".$db->idate($dateStart)."'))";
+
+	// event date end between ac.datep and ac.datep2
+	$sql .= " OR (ac.datep <= '".$db->idate($dateEnd)."' AND (ac.datep2 >= '".$db->idate($dateEnd)."'))";
+
+	// event date start before ac.datep and event date end after ac.datep2
+	$sql .= " OR (ac.datep >= '".$db->idate($dateStart). "' AND (ac.datep2 IS NOT NULL AND ac.datep2 <= '".$db->idate($dateEnd)."'))";
+	$sql .= ")";
+
+	$result = $db->getRows($sql);
+	$db->free();
+	return $result;
+}
