@@ -268,6 +268,7 @@ if (($action == 'update' && !GETPOST("cancel", 'alpha'))
 		if (GETPOST('save')) {	// To avoid to show message when we juste switch the country that resubmit the form.
 			setEventMessages($langs->trans("SetupSaved"), null, 'mesgs');
 		}
+		$mysoc->call_trigger('ENTITY_MODIFY', $user);
 		$db->commit();
 	} else {
 		$db->rollback();
