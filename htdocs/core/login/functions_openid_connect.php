@@ -40,8 +40,9 @@ function check_user_password_openid_connect($usertotest, $passwordtotest, $entit
 
 	// Force master entity in transversal mode
 	$entity = $entitytotest;
-	if (isModEnabled('multicompany') && getDolGlobalString('MULTICOMPANY_TRANSVERSE_MODE')) {
-		$entity = 1;
+	if (isModEnabled('multicompany')) {
+		global $entitytotest;
+		$entitytotest = -1;
 	}
 
 	$login = '';
@@ -90,7 +91,6 @@ function check_user_password_openid_connect($usertotest, $passwordtotest, $entit
 				$sql = 'SELECT login, entity, datestartvalidity, dateendvalidity';
 				$sql .= ' FROM '.MAIN_DB_PREFIX.'user';
 				$sql .= " WHERE login = '".$db->escape($userinfo_content->$login_claim)."'";
-				$sql .= ' AND entity IN (0,'.(array_key_exists('dol_entity', $_SESSION) ? ((int) $_SESSION["dol_entity"]) : 1).')';
 
 				dol_syslog("functions_openid::check_user_password_openid", LOG_DEBUG);
 
@@ -100,6 +100,13 @@ function check_user_password_openid_connect($usertotest, $passwordtotest, $entit
 					if ($obj) {
 						// Note: Test on date validity is done later natively with isNotIntoValidityDateRange() by core after calling checkLoginPassEntity() that call this method
 						$login = $obj->login;
+
+						if(isModEnabled('multicompany')) {
+							$_SESSION['dol_entity'] = $obj->entity;
+							$conf->entity =  $obj->entity;
+							$conf->setValues($db);
+						}
+
 					}
 				}
 			} elseif ($userinfo_content->error) {
