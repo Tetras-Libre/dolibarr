@@ -610,8 +610,20 @@ print '</td></tr>';
 if (isModEnabled('multicompany')) {
 	// TODO Trad not loaded
 	print '<tr class="oddeven"><td><label for="currency">'.$langs->trans("ThirdPartyAssociated").'</label></td><td>';
+
+	// Get current society associated to the company (if any)
+	// TODO Code to be improved
+	$linked_soc = 0;
+	$sql = 'SELECT fk_soc FROM '.MAIN_DB_PREFIX.'entity_thirdparty WHERE fk_entity = ' . $entity;
+	$resql = $db->query($sql);
+	if ($resql) {
+		$obj = $db->fetch_object($resql);
+		$linked_soc = $obj->fk_soc;
+	}
+
+
 	// TODO Get all thirdparty list from the database
-	print $form->select_company(0, 'linked_soc', '', $langs->trans("ThirdParty"), 0, 0, array(), 0, 'minwidth100', '', '', 1, array(), false, array(), 0, true);
+	print $form->select_company($linked_soc, 'linked_soc', '', $langs->trans("ThirdParty"), 0, 0, array(), 0, 'minwidth100', '', '', 1, array(), false, array(), 0, true);
 	print '</td></tr>'."\n";
 }
 
