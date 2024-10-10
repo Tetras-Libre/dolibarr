@@ -200,7 +200,7 @@ if (($action == 'update' && !GETPOST("cancel", 'alpha'))
 	}
 
 
-	// TODO Must be in trigger ?
+	// TODO Must be in trigger
 	if( isModEnabled('multicompany')) {
 		$linked_soc = GETPOST('linked_soc', 'int');
 		if($linked_soc) {
@@ -623,9 +623,10 @@ print '</td></tr>';
 
 // Society/Third party
 // TODO We need to add a check to see thirdparty association is allowed. --> Some const checks to add
+// !dolibarr_get_const($this->db, 'MULTICOMPANY_LINK_THIRDPARTY_ENTITY',
 if (isModEnabled('multicompany')) {
 	// TODO Trad not loaded
-	print '<tr class="oddeven"><td><label for="currency">'.$langs->trans("ThirdPartyAssociated").'</label></td><td>';
+	print '<tr class="oddeven"><td><label for="linked_soc">'.$langs->trans("ThirdPartyAssociated").'</label></td><td>';
 
 	// Get current society associated to the company (if any)
 	// TODO Code to be improved
@@ -637,10 +638,13 @@ if (isModEnabled('multicompany')) {
 		$linked_soc = $obj->fk_soc;
 	}
 
-
 	// TODO Get all thirdparty list from the database
 	print $form->select_company($linked_soc, 'linked_soc', '', $langs->trans("ThirdParty"), 0, 0, array(), 0, 'minwidth100', '', '', 1, array(), false, array(), 0, true);
-	print '</td></tr>'."\n";
+	print '</td></tr>';
+	print '<tr class="oddeven"><td><label for="force_soc_info">'.$langs->trans("forceUpdateFromSoc").'</label>';
+	print  info_admin($langs->trans("DANGERZONE"), 1);
+	print '</td>';
+	print '<td><input type="checkbox" name="forceUpdateFromSoc" id="forceUpdateFromSoc"></td></tr>' ."\n";
 }
 
 $parameters=array();
