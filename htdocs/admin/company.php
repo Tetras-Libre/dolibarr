@@ -199,6 +199,22 @@ if (($action == 'update' && !GETPOST("cancel", 'alpha'))
 		/*}*/
 	}
 
+
+	// TODO Must be in trigger ?
+	if( isModEnabled('multicompany')) {
+		$linked_soc = GETPOST('linked_soc', 'int');
+		if($linked_soc) {
+			$sql = 'SELECT fk_entity FROM '.MAIN_DB_PREFIX.'entity_thirdparty WHERE fk_entity ='. $conf->entity;
+			$resql = $db->query($sql);
+			if(!$resql || $db->num_rows($resql) == 0) {
+				$sql = 'INSERT INTO ' . MAIN_DB_PREFIX . 'entity_thirdparty (entity, fk_entity, fk_thirdparty) VALUES ( 0, ' . $conf->entity . ', ' . $linked_soc . ')';
+			} else {
+				$sql = 'UPDATE ' . MAIN_DB_PREFIX . 'entity_thirdparty SET fk_soc = ' . $linked_soc . ' WHERE fk_entity = ' . $conf->entity;
+			}
+			$resql = $db->query($sql);
+		}
+	}
+
 	dolibarr_set_const($db, "MAIN_INFO_SOCIETE_MANAGERS", GETPOST("MAIN_INFO_SOCIETE_MANAGERS", 'alphanohtml'), 'chaine', 0, '', $conf->entity);
 	dolibarr_set_const($db, "MAIN_INFO_GDPR", GETPOST("MAIN_INFO_GDPR", 'alphanohtml'), 'chaine', 0, '', $conf->entity);
 	dolibarr_set_const($db, "MAIN_INFO_CAPITAL", GETPOST("capital", 'alphanohtml'), 'chaine', 0, '', $conf->entity);
