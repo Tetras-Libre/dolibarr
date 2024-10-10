@@ -611,7 +611,7 @@ if (isModEnabled('multicompany')) {
 	// TODO Trad not loaded
 	print '<tr class="oddeven"><td><label for="currency">'.$langs->trans("ThirdPartyAssociated").'</label></td><td>';
 	// TODO Get all thirdparty list from the database
-	print $form->select_company(0, 'linked_soc', '', $langs->trans("ThirdParty"), $showCode=1);
+	print $form->select_company(0, 'linked_soc', '', $langs->trans("ThirdParty"), 0, 0, array(), 0, 'minwidth100', '', '', 1, array(), false, array(), 0, true);
 	print '</td></tr>'."\n";
 }
 
