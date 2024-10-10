@@ -605,7 +605,18 @@ print '<tr class="oddeven"><td class="tdtop"><label for="note">'.$langs->trans("
 print '<textarea class="flat quatrevingtpercent" name="note" id="note" rows="'.ROWS_5.'">'.(GETPOSTISSET('note') ? GETPOST('note', 'restricthtml') : (getDolGlobalString('MAIN_INFO_SOCIETE_NOTE') ? $conf->global->MAIN_INFO_SOCIETE_NOTE : '')).'</textarea></td></tr>';
 print '</td></tr>';
 
-print '</table>';
+// Society/Third party
+// TODO We need to add a check to see thirdparty association is allowed. --> Some const checks to add
+if (isModEnabled('multicompany')) {
+	// TODO Trad not loaded
+	print '<tr class="oddeven"><td><label for="currency">'.$langs->trans("ThirdPartyAssociated").'</label></td><td>';
+	// TODO Get all thirdparty list from the database
+	print $form->select_company(0, 'linked_soc', '', $langs->trans("ThirdParty"), $showCode=1);
+	print '</td></tr>'."\n";
+}
+
+
+	print '</table>';
 
 print $form->buttonsSaveCancel("Save", '', array(), false, 'reposition');
 
