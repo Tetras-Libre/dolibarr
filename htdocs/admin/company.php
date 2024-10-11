@@ -615,8 +615,15 @@ if (isModEnabled('multicompany')) {
 	print '</td></tr>'."\n";
 }
 
+$parameters=array();
+$reshook=$hookmanager->executeHooks('hookantho',$parameters,$object,$action); // See description below
+
+
 
 	print '</table>';
+
+
+print('Module context: '.join(',', $object->contextarray));
 
 print $form->buttonsSaveCancel("Save", '', array(), false, 'reposition');
 
