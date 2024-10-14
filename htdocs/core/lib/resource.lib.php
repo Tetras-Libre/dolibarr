@@ -149,8 +149,10 @@ function resource_admin_prepare_head()
 
 function get_busy_resource_during($dateStart, $dateEnd, $resource_ids = array())
 {
-	// MODIFIED CODE FROM htdocs/resources/element_resources.php
+	// MODIFIED CODE FROM htdocs/resource/element_resources.php
 	global $db;
+
+	$SELECT_LIMIT = $db->sanitize($db->escape(getDolGlobalString("RESOURCE_SELECT_LIMIT", 100)));
 	if (!$db) {
 		// false to mimic what getRows returns
 		return false;
@@ -180,7 +182,7 @@ function get_busy_resource_during($dateStart, $dateEnd, $resource_ids = array())
 
 	// event date start before ac.datep and event date end after ac.datep2
 	$sql .= " OR (ac.datep >= '".$db->idate($dateStart). "' AND (ac.datep2 IS NOT NULL AND ac.datep2 <= '".$db->idate($dateEnd)."'))";
-	$sql .= ")";
+	$sql .= ") LIMIT " . $SELECT_LIMIT;
 
 	$result = $db->getRows($sql);
 	$db->free();

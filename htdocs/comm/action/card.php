@@ -479,10 +479,6 @@ if (empty($reshook) && $action == 'add' && $usercancreate) {
 	}
 
 	// Checking resource availability if the config doesn't allow overlap
-	if (!empty($_SESSION['assignedtoresource']) && getDolGlobalString('RESOURCE_USED_IN_EVENT_CHECK')) {
-		$assigned_ressources = json_decode($_SESSION['assignedtoresource'], true);
-
-	// Checking resource availability if the config doesn't allow overlap
 	if (!$error && !empty($_SESSION['assignedtoresource']) && getDolGlobalString('RESOURCE_USED_IN_EVENT_CHECK')) {
 		$assigned_ressources = json_decode($_SESSION['assignedtoresource'], true);
 
