@@ -1346,7 +1346,7 @@ class Product extends CommonObject
 				}
 
 				if (!$error) {
-					if (isModEnabled('variants')) {
+					if (isModEnabled('variants') && getDolGlobalString('PRODUIT_ATTRIBUTES_PROPAGATE', 1)) {
 						include_once DOL_DOCUMENT_ROOT.'/variants/class/ProductCombination.class.php';
 
 						$comb = new ProductCombination($this->db);
