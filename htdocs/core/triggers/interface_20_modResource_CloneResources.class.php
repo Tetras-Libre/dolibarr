@@ -69,13 +69,13 @@ class InterfaceCloneResources extends DolibarrTriggers
 		// static object
 		$dolresource = new Dolresource($this->db);
 
-		// get the linked ressources (element_resources)
+		// get the linked resources (element_resources)
 		// element will always be action since this is triggered from the actioncomm class
 		$linked_resources = $dolresource->getElementResources("action", $GLOBALS['id']);
 
 		// copy every resource
 		foreach ($linked_resources as $linked_resource) {
-			// clone this ressource & check for errors
+			// clone this resource & check for errors
 			if (!$object->add_element_resource($linked_resource['resource_id'], $linked_resource['resource_type'], $linked_resource['busy'], $linked_resource['mandatory'])) {
 				return -1;
 			}
