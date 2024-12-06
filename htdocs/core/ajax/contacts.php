@@ -33,6 +33,8 @@ if (!defined('NOREQUIREAJAX')) {
 
 // Load Dolibarr environment
 require '../../main.inc.php';
+require_once DOL_DOCUMENT_ROOT.'/contact/class/contact.class.php';
+global $langs;
 
 $id = GETPOSTINT('id'); // id of thirdparty
 $action = GETPOST('action', 'aZ09');
@@ -63,6 +65,39 @@ if (!empty($id) && !empty($action) && !empty($htmlname)) {
 	$return['value']	= $form->selectcontacts($id, '', $htmlname, $showempty, '', '', 0, '', true);
 	$return['num'] = $form->num;
 	$return['error']	= $form->error;
+
+	//if the medical center module is enabled
+	$correspondants = [];
+	if (isModEnabled('cabinetmed')){
+		$societe = new Societe($db);
+		$societe->fetch($id);
+
+		// get the list of contacts
+		$correspondants = $societe->liste_contact();
+	}
+
+	// can only happen if the 'cabinetmed' module is enabled
+	// would cause too much indentation to have it in the previous if statement
+	if (!empty($correspondants)){
+		// the inital value is the "empty" option if $form->selectcontacts didn't find anyone
+		$initialvalue = $form->num === 0 ? '<option value="0">&nbsp;</option>' : "";
+
+		// a static contact, used for functions like "getFullName"
+		$contactstatic = new Contact($db);
+
+		// current: current Contact as an array
+		$correspHTMLOptions = array_reduce($correspondants, function(string $prev, array $current) use ($langs, $contactstatic): string {
+			//give the current values to the static contact
+			$contactstatic->lastname = $current['lastname'];
+			$contactstatic->firstname = $current['firstname'];
+
+			return $prev . sprintf('<option value="%d">%s</option>', $current['id'], $contactstatic->getFullName($langs));
+		}, $initialvalue);
+
+		// add to / override the previous return value
+		// it ovverides when $form->selectcontacts didn't find any contact
+		$return['value'] = ($form->num === 0 ? "" : $return['value']) . $correspHTMLOptions;
+	}
 
 	echo json_encode($return);
 }
