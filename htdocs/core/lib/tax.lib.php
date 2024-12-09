@@ -107,7 +107,7 @@ function tax_prepare_head(ChargeSociales $object)
  *  @param  string	$direction   	'sell' or 'buy'
  *  @param  int		$m				Month
  *  @param  int		$q           	Quarter
- *  @return array|int               Array with details of VATs (per third parties), -1 if no accountancy module, -2 if not yet developped, -3 if error
+ *  @return array|int               Array with details of VATs (per third parties), -1 if no accountancy module, -2 if not yet developed, -3 if error
  */
 function tax_by_thirdparty($type, $db, $y, $date_start, $date_end, $modetax, $direction, $m = 0, $q = 0)
 {
@@ -115,7 +115,7 @@ function tax_by_thirdparty($type, $db, $y, $date_start, $date_end, $modetax, $di
 
 	// If we use date_start and date_end, we must not use $y, $m, $q
 	if (($date_start || $date_end) && (!empty($y) || !empty($m) || !empty($q))) {
-		dol_print_error('', 'Bad value of input parameter for tax_by_rate');
+		dol_print_error(null, 'Bad value of input parameter for tax_by_rate');
 	}
 
 	$list = array();
@@ -696,7 +696,7 @@ function tax_by_thirdparty($type, $db, $y, $date_start, $date_end, $modetax, $di
  *  @param  int		$modetax     	Not used
  *  @param  int		$direction   	'sell' (customer invoice) or 'buy' (supplier invoices)
  *  @param  int		$m           	Month
- *  @return array|int               Array with details of VATs (per rate), -1 if no accountancy module, -2 if not yet developped, -3 if error
+ *  @return array|int               Array with details of VATs (per rate), -1 if no accountancy module, -2 if not yet developed, -3 if error
  */
 function tax_by_rate($type, $db, $y, $q, $date_start, $date_end, $modetax, $direction, $m = 0)
 {
@@ -704,7 +704,7 @@ function tax_by_rate($type, $db, $y, $q, $date_start, $date_end, $modetax, $dire
 
 	// If we use date_start and date_end, we must not use $y, $m, $q
 	if (($date_start || $date_end) && (!empty($y) || !empty($m) || !empty($q))) {
-		dol_print_error('', 'Bad value of input parameter for tax_by_rate');
+		dol_print_error(null, 'Bad value of input parameter for tax_by_rate');
 	}
 
 	$list = array();
@@ -1154,8 +1154,8 @@ function tax_by_rate($type, $db, $y, $q, $date_start, $date_end, $modetax, $dire
 		$sql = "SELECT d.rowid, d.product_type as dtype, e.rowid as facid, d.$f_rate as rate, d.vat_src_code as vat_src_code, d.total_ht as total_ht, d.total_ttc as total_ttc, d.total_tva as total_vat, e.note_private as descr,";
 		$sql .= " d.total_localtax1 as total_localtax1, d.total_localtax2 as total_localtax2, ";
 		$sql .= " e.date_debut as date_start, e.date_fin as date_end, e.fk_user_author,";
-		$sql .= " e.ref as facnum, e.total_ttc as ftotal_ttc, e.date_create, d.fk_c_type_fees as type,";
-		$sql .= " p.fk_bank as payment_id, p.amount as payment_amount, p.rowid as pid, e.ref as pref";
+		$sql .= " e.ref as facnum, e.ref as pref, e.total_ttc as ftotal_ttc, e.date_create, d.fk_c_type_fees as type,";
+		$sql .= " p.fk_bank as payment_id, p.amount as payment_amount, p.rowid as pid";
 		$sql .= " FROM ".MAIN_DB_PREFIX."expensereport as e";
 		$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."expensereport_det as d ON d.fk_expensereport = e.rowid";
 		$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."payment_expensereport as p ON p.fk_expensereport = e.rowid";
@@ -1178,7 +1178,7 @@ function tax_by_rate($type, $db, $y, $q, $date_start, $date_end, $modetax, $dire
 		$sql .= " AND (d.product_type = -1";
 		$sql .= " OR e.date_debut is NOT null OR e.date_fin IS NOT NULL)"; // enhance detection of service
 		if (getDolGlobalString('MAIN_NOT_INCLUDE_ZERO_VAT_IN_REPORTS')) {
-			$sql .= " AND (d.".$f_rate." <> 0 OR d.total_tva <> 0)";
+			$sql .= " AND (d.".$db->sanitize($f_rate)." <> 0 OR d.total_tva <> 0)";
 		}
 		$sql .= " ORDER BY e.rowid";
 
