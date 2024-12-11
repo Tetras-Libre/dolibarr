@@ -1430,7 +1430,7 @@ class Cronjob extends CommonObject
 			}
 		}
 
-		if ($this->datenextrun < $now && $this->frequency > 0 && $this->unitfrequency > 0) {
+		if ($this->datenextrun <= $now && $this->frequency > 0 && $this->unitfrequency > 0) {
 			// Loop until date is after future
 			while ($this->datenextrun < $now) {
 				if ($this->unitfrequency == 2678400) {
