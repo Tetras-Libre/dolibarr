@@ -25,7 +25,7 @@ $out .= '<input type="hidden" name="element_id" value="'.$element_id.'">';
 $out .= '<input type="hidden" name="ref" value="'.$element_ref.'">';
 $out .= '<input type="hidden" name="resource_type" value="'.(empty($resource_type) ? 'dolresource' : $resource_type).'">';
 
-$out .= '<div class="noborder borderbottom">';
+$out .= '<div class="noborder borderbottom" id="useless-resource-select-input">';
 
 // Place
 $out .= '<div class="divsearchfield paddingtop paddingbottom valignmiddle inline-block">'.$langs->trans("SelectResource").'</div>';
