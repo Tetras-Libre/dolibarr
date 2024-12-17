@@ -1,4 +1,5 @@
 <?php
+require_once DOL_DOCUMENT_ROOT.'/resource/class/dolresource.class.php';
 /* Copyright (C) ---Put here your own copyright and developer email---
  * Copyright (C) 2024		MDW							<mdeweerd@users.noreply.github.com>
  *
