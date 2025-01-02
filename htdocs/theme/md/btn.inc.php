@@ -317,7 +317,7 @@ div.pagination li:first-child a.btnTitle {
 	margin: 0 0 0 10px;
 	min-width: 80px;
 	text-align: center;
-	color: rgb(<?php print $colortextlink; ?>);
+	color: var(--btncolortext);
 	border: none;
 	font-size: 12px;
 	font-weight: 300;
@@ -373,13 +373,15 @@ div.pagination .btnTitle:hover .btnTitle-label{
 }
 
 .paginationafterarrows a.btnTitlePlus, .titre_right a.btnTitlePlus {
-	border: 1px solid var(--btncolorborder);
+	/* border: 1px solid var(--btncolorborder); */
+	border: unset;
+	background-color: unset;
 }
 .paginationafterarrows a.btnTitlePlus:hover, .titre_right a.btnTitlePlus:hover {
 	border-color: #ddd;
 }
 
-/* The buttonplus isgrowing on hover (dont know why). This is to avoid to have the cellegrowing too */
+/* The buttonplus isgrowing on hover (don't know why). This is to avoid to have the cellegrowing too */
 .btnTitlePlus:hover {
 	max-width: 24px;
 	max-height: 40px;
@@ -440,4 +442,3 @@ div.pagination .btnTitle:hover .btnTitle-label{
 	background-color: #ddd;
 	border: 1px solid #ddd;
 }
-

@@ -60,7 +60,7 @@ $nblines = $object->fetch_lines();
 $canbemodified = ((empty($object->date_fin) || $object->date_fin > dol_now()) && $object->status != Opensurveysondage::STATUS_CLOSED);
 
 // Security check
-if (empty($conf->opensurvey->enabled)) {
+if (!isModEnabled('opensurvey')) {
 	httponly_accessforbidden('Module Survey not enabled');
 }
 
@@ -183,7 +183,7 @@ if (GETPOST("boutonp") || GETPOST("boutonp.x") || GETPOST("boutonp_x")) {		// bo
 		// Check if vote already exists
 		$sql = 'SELECT id_users, nom as name';
 		$sql .= ' FROM '.MAIN_DB_PREFIX.'opensurvey_user_studs';
-		$sql .= " WHERE id_sondage='".$db->escape($numsondage)."' AND nom = '".$db->escape($nom)."' ORDER BY id_users";
+		$sql .= " WHERE id_sondage = '".$db->escape($numsondage)."' AND nom = '".$db->escape($nom)."' ORDER BY id_users";
 		$resql = $db->query($sql);
 		if (!$resql) {
 			dol_print_error($db);
@@ -288,7 +288,7 @@ if ($testmodifier) {
 }
 
 // Delete comment
-$idcomment = GETPOST('deletecomment', 'int');
+$idcomment = GETPOSTINT('deletecomment');
 if ($idcomment) {
 	if (!$canbemodified) {
 		httponly_accessforbidden('ErrorForbidden');
@@ -570,7 +570,7 @@ while ($compteur < $num) {
 			}
 		}
 	} else {
-		//sinon on remplace les choix de l'utilisateur par une ligne de checkbox pour saisie
+		// Else, replace the user's choices with a line of checkboxes for entry
 		if ($compteur == $ligneamodifier) {
 			for ($i = 0; $i < $nbcolonnes; $i++) {
 				$car = substr($ensemblereponses, $i, 1);
