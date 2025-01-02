@@ -1024,7 +1024,10 @@ class Don extends CommonObject
 			}
 		}
 
-		//$modelpath = "core/modules/dons/";
+		$modelpath = "core/modules/dons/";
+		if (preg_match('/.odt$/', $modele)) {
+			$modelpath .= 'doc/';
+		}
 
 		// TODO Restore use of commonGenerateDocument instead of dedicated code here
 		//return $this->commonGenerateDocument($modelpath, $modele, $outputlangs, $hidedetails, $hidedesc, $hideref);
@@ -1056,8 +1059,9 @@ class Don extends CommonObject
 			foreach (array('html', 'doc', 'pdf') as $prefix) {
 				$file = $prefix."_".preg_replace('/^html_/', '', $modele).".modules.php";
 
+				// On verifie l'emplacement du modele
 				// Verify the path for the module
-				$file = dol_buildpath($reldir."core/modules/dons/".$file, 0);
+				$file = dol_buildpath($reldir.$modelpath.$file, 0);
 				if (file_exists($file)) {
 					$filefound = 1;
 					$classname = $prefix.'_'.$modele;
@@ -1075,7 +1079,9 @@ class Don extends CommonObject
 
 			$object = $this;
 
-			$classname = $modele;
+			if (!preg_match("/^doc_/", $classname)) {
+				$classname = $modele;
+			}
 			$obj = new $classname($this->db);
 
 			// We save charset_output to restore it because write_file can change it if needed for
