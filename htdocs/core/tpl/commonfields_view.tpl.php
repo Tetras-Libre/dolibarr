@@ -26,7 +26,7 @@
 // Protection to avoid direct call of template
 if (empty($conf) || !is_object($conf)) {
 	print "Error, template page can't be called as URL";
-	exit;
+	exit(1);
 }
 if (!is_object($form)) {
 	$form = new Form($db);
@@ -47,12 +47,12 @@ foreach ($object->fields as $key => $val) {
 	if (abs($val['visible']) != 1 && abs($val['visible']) != 3 && abs($val['visible']) != 4 && abs($val['visible']) != 5) {
 		continue;
 	}
-
 	if (array_key_exists('enabled', $val) && isset($val['enabled']) && !verifCond($val['enabled'])) {
 		continue; // We don't want this field
 	}
-	if (in_array($key, array('ref', 'status'))) {
-		continue; // Ref and status are already in dol_banner
+
+	if (in_array($key, array('rowid', 'ref', 'status'))) {
+		continue; // rowid, ref and status are already in dol_banner
 	}
 
 	$value = $object->$key;
@@ -151,7 +151,7 @@ foreach ($object->fields as $key => $val) {
 
 	$rightpart .= '<tr><td';
 	$rightpart .= ' class="'.(empty($val['tdcss']) ? 'titlefield' : $val['tdcss']).'  fieldname_'.$key;
-	//if ($val['notnull'] > 0) $rightpart .= ' fieldrequired';		// No fieldrequired inthe view output
+	//if ($val['notnull'] > 0) $rightpart .= ' fieldrequired';		// No fieldrequired in the view output
 	if ($val['type'] == 'text' || $val['type'] == 'html') {
 		$rightpart .= ' tdtop';
 	}

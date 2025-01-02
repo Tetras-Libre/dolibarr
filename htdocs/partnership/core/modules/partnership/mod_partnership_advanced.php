@@ -77,6 +77,7 @@ class mod_partnership_advanced extends ModeleNumRefPartnership
 		$tooltip .= $langs->trans("GenericMaskCodes3");
 		$tooltip .= $langs->trans("GenericMaskCodes4a", $langs->transnoentities("Partnership"), $langs->transnoentities("Partnership"));
 		$tooltip .= $langs->trans("GenericMaskCodes5");
+		$tooltip .= '<br>'.$langs->trans("GenericMaskCodes5b");
 
 		// Parametrage du prefix
 		$text .= '<tr><td>'.$langs->trans("Mask").':</td>';
@@ -124,7 +125,7 @@ class mod_partnership_advanced extends ModeleNumRefPartnership
 	 * 	Return next free value
 	 *
 	 *  @param  Object		$object		Object we need next value for
-	 *  @return string      			Value if KO, <0 if KO
+	 *  @return string|0                Next value if OK, 0 if KO
 	 */
 	public function getNextValue($object)
 	{
