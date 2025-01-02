@@ -463,8 +463,8 @@ class Facture extends CommonInvoice
 		$this->ref_client = trim($this->ref_client);
 
 		$this->note = (isset($this->note) ? trim($this->note) : trim($this->note_private)); // deprecated
-		$this->note_private = (isset($this->note_private) ? trim($this->note_private) : trim($this->note_private));
-		$this->note_public = trim($this->note_public);
+		$this->note_private = (isset($this->note_private) ? trim($this->note_private) : '');
+		$this->note_public = (isset($this->note_public) ? trim($this->note_public) : '');
 		if (!$this->cond_reglement_id) {
 			$this->cond_reglement_id = 0;
 		}
@@ -2451,9 +2451,6 @@ class Facture extends CommonInvoice
 		if (empty($this->type)) {
 			$this->type = self::TYPE_STANDARD;
 		}
-		if (isset($this->subtype)) {
-			$this->subtype = trim($this->subtype);
-		}
 		if (isset($this->ref)) {
 			$this->ref = trim($this->ref);
 		}
@@ -4051,7 +4048,7 @@ class Facture extends CommonInvoice
 	 *  @param     	double		$remise_percent  	Percentage discount of the line
 	 *  @param     	int		    $date_start      	Date de debut de validite du service
 	 *  @param     	int		    $date_end        	Date de fin de validite du service
-	 *  @param     	double		$txtva          	VAT Rate (Can be '8.5', '8.5 (ABC)')
+	 *  @param     	double|string	$txtva          	VAT Rate (Can be '8.5', '8.5 (ABC)')
 	 * 	@param		double		$txlocaltax1		Local tax 1 rate
 	 *  @param		double		$txlocaltax2		Local tax 2 rate
 	 * 	@param     	string		$price_base_type 	HT or TTC
