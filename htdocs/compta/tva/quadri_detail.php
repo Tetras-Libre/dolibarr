@@ -7,6 +7,7 @@
  * Copyright (C) 2018-2021  Frédéric France         <frederic.france@netlogic.fr>
  * Copyright (C) 2019       Eric Seigne             <eric.seigne@cap-rel.fr>
  * Copyright (C) 2021-2022  Open-Dsi                <support@open-dsi.fr>
+ * Copyright (C) 2024		MDW							<mdeweerd@users.noreply.github.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,6 +51,7 @@ $refresh = (GETPOSTISSET('submit') || GETPOSTISSET('vat_rate_show') || GETPOSTIS
 $invoice_type = GETPOSTISSET('invoice_type') ? GETPOST('invoice_type', 'alpha') : '';
 $vat_rate_show = GETPOSTISSET('vat_rate_show') ? GETPOST('vat_rate_show', 'alphanohtml') : -1;
 
+// Set $date_start_xxx and $date_end_xxx...
 include DOL_DOCUMENT_ROOT . '/compta/tva/initdatesforvat.inc.php';
 
 $min = price2num(GETPOST("min", "alpha"));
@@ -131,7 +133,7 @@ $period = $form->selectDate($date_start, 'date_start', 0, 0, 0, '', 1, 0, 0, '',
 $period .= ' - ';
 $period .= $form->selectDate($date_end, 'date_end', 0, 0, 0, '', 1, 0, 0, '', '', '', '', 1, '', '', 'tzserver');
 $prevyear = $date_start_year;
-$q=0;
+$q = 0;
 $prevquarter = $q;
 if ($prevquarter > 1) {
 	$prevquarter--;
@@ -298,7 +300,7 @@ if (!is_array($x_coll) || !is_array($x_paye)) {
 
 		foreach ($x_paye[$my_paye_rate]['facid'] as $id => $dummy) {
 			// ExpenseReport
-			if ($x_paye[$my_paye_rate]['ptype'][$id] == 'ExpenseReportPayment') {
+			if ($x_paye[$my_paye_rate]['ptype'][$id] === 'ExpenseReportPayment') {
 				$expensereport->id = $x_paye[$my_paye_rate]['facid'][$id];
 				$expensereport->ref = $x_paye[$my_paye_rate]['facnum'][$id];
 				$expensereport->type = $x_paye[$my_paye_rate]['type'][$id];
@@ -416,7 +418,7 @@ if (!is_array($x_coll) || !is_array($x_paye)) {
 			print "<tr>";
 			print '<td class="tax_rate" colspan="' . ($span + 1) . '">';
 			print $langs->trans('Rate') . ' : ' . vatrate($rate) . '%';
-			print ' - <a href="' . DOL_URL_ROOT . '/compta/tva/quadri_detail.php?invoice_type=customer';
+			print ' - <a class="reposition" href="' . DOL_URL_ROOT . '/compta/tva/quadri_detail.php?invoice_type=customer';
 			if ($invoice_type != 'customer' || !GETPOSTISSET('vat_rate_show') || GETPOST('vat_rate_show') != $rate) {
 				print '&amp;vat_rate_show=' . urlencode($rate);
 			}
@@ -656,7 +658,7 @@ if (!is_array($x_coll) || !is_array($x_paye)) {
 			print "<tr>";
 			print '<td class="tax_rate" colspan="' . ($span + 1) . '">';
 			print $langs->trans('Rate') . ' : ' . vatrate($rate) . '%';
-			print ' - <a href="' . DOL_URL_ROOT . '/compta/tva/quadri_detail.php?invoice_type=supplier';
+			print ' - <a class="reposition" href="' . DOL_URL_ROOT . '/compta/tva/quadri_detail.php?invoice_type=supplier';
 			if ($invoice_type != 'supplier' || !GETPOSTISSET('vat_rate_show') || GETPOST('vat_rate_show') != $rate) {
 				print '&amp;vat_rate_show=' . urlencode($rate);
 			}
@@ -684,13 +686,13 @@ if (!is_array($x_coll) || !is_array($x_paye)) {
 						|| ($type == 1 && getDolGlobalString('TAX_MODE_BUY_SERVICE') == 'invoice')) {
 					} else {
 						if (isset($fields['payment_amount']) && $fields['ftotal_ttc']) {
-							$ratiopaymentinvoice = ($fields['payment_amount'] / $fields['ftotal_ttc']);
+							$ratiopaymentinvoice = ($fields['payment_amount'] / (float) $fields['ftotal_ttc']);
 						}
 					}
 				}
 
 				// VAT paid
-				$temp_ht = $fields['totalht'] * $ratiopaymentinvoice;
+				$temp_ht = (float) $fields['totalht'] * $ratiopaymentinvoice;
 
 				// VAT
 				$temp_vat = $fields['vat'] * $ratiopaymentinvoice;
@@ -726,7 +728,6 @@ if (!is_array($x_coll) || !is_array($x_paye)) {
 					if (!empty($fields['ddate_end'])) {
 						$type = 1;
 					}
-
 
 					print '<tr class="oddeven">';
 
@@ -787,7 +788,7 @@ if (!is_array($x_coll) || !is_array($x_paye)) {
 						print price($fields['totalht']);
 						if (price2num($fields['ftotal_ttc'])) {
 							//print $fields['dtotal_ttc']."/".$fields['ftotal_ttc']." - ";
-							$ratiolineinvoice = ($fields['dtotal_ttc'] / $fields['ftotal_ttc']);
+							$ratiolineinvoice = ((float) $fields['dtotal_ttc'] / (float) $fields['ftotal_ttc']);
 							//print ' ('.round($ratiolineinvoice*100,2).'%)';
 						}
 						print '</td>';
@@ -808,7 +809,7 @@ if (!is_array($x_coll) || !is_array($x_paye)) {
 							print $langs->trans("NA");
 						} else {
 							if (isset($fields['payment_amount']) && $fields['ftotal_ttc']) {
-								$ratiopaymentinvoice = ($fields['payment_amount'] / $fields['ftotal_ttc']);
+								$ratiopaymentinvoice = ($fields['payment_amount'] / (float) $fields['ftotal_ttc']);
 							}
 							print price(price2num($fields['payment_amount'], 'MT'));
 							if (isset($fields['payment_amount'])) {
@@ -820,7 +821,7 @@ if (!is_array($x_coll) || !is_array($x_paye)) {
 
 					// VAT paid
 					print '<td class="nowrap right">';
-					$temp_ht = $fields['totalht'] * $ratiopaymentinvoice;
+					$temp_ht = (float) $fields['totalht'] * $ratiopaymentinvoice;
 					print price(price2num($temp_ht, 'MT'), 1);
 					print '</td>';
 

@@ -5,6 +5,7 @@
  * Copyright (C) 2008       Raphael Bertrand (Resultic) <raphael.bertrand@resultic.fr>
  * Copyright (C) 2019       Frédéric France             <frederic.france@netlogic.fr>
  * Copyright (C) 2021       Christophe Battarel			<christophe@altairis.fr>
+ * Copyright (C) 2024		MDW							<mdeweerd@users.noreply.github.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -81,6 +82,7 @@ class mod_sn_advanced extends ModeleNumRefBatch
 		$tooltip .= $langs->trans("GenericMaskCodes3");
 		$tooltip .= $langs->trans("GenericMaskCodes4a", $langs->transnoentities("Batch"), $langs->transnoentities("Batch"));
 		$tooltip .= $langs->trans("GenericMaskCodes5");
+		//$tooltip .= '<br>'.$langs->trans("GenericMaskCodes5b");
 
 		// Parametrage du prefix
 		$texte .= '<tr><td>'.$langs->trans("Mask").':</td>';
@@ -132,9 +134,9 @@ class mod_sn_advanced extends ModeleNumRefBatch
 	/**
 	 * 	Return next free value
 	 *
-	 *  @param	Societe		$objsoc	    Object thirdparty
-	 *  @param  Productlot	$object		Object we need next value for
-	 *  @return string      			Value if KO, <0 if KO
+	 *  @param	Societe			$objsoc	    Object thirdparty
+	 *  @param  Productlot		$object		Object we need next value for
+	 *  @return string|int      			Value if OK, 0 if KO
 	 */
 	public function getNextValue($objsoc, $object)
 	{

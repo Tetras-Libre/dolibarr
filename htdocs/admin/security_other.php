@@ -48,7 +48,7 @@ if (preg_match('/set_([a-z0-9_\-]+)/i', $action, $reg)) {
 	$code = $reg[1];
 	$value = (GETPOST($code, 'alpha') ? GETPOST($code, 'alpha') : 1);
 	if (dolibarr_set_const($db, $code, $value, 'chaine', 0, '', $conf->entity) > 0) {
-		Header("Location: ".$_SERVER["PHP_SELF"]);
+		header("Location: ".$_SERVER["PHP_SELF"]);
 		exit;
 	} else {
 		dol_print_error($db);
@@ -56,7 +56,7 @@ if (preg_match('/set_([a-z0-9_\-]+)/i', $action, $reg)) {
 } elseif (preg_match('/del_([a-z0-9_\-]+)/i', $action, $reg)) {
 	$code = $reg[1];
 	if (dolibarr_del_const($db, $code, $conf->entity) > 0) {
-		Header("Location: ".$_SERVER["PHP_SELF"]);
+		header("Location: ".$_SERVER["PHP_SELF"]);
 		exit;
 	} else {
 		dol_print_error($db);
@@ -67,6 +67,7 @@ if (preg_match('/set_([a-z0-9_\-]+)/i', $action, $reg)) {
 	$res3 = 1;
 	$res4 = 1;
 	$res5 = 1;
+	$res6 = 1;
 	if (GETPOSTISSET('MAIN_APPLICATION_TITLE')) {
 		$res1 = dolibarr_set_const($db, "MAIN_APPLICATION_TITLE", GETPOST("MAIN_APPLICATION_TITLE", 'alphanohtml'), 'chaine', 0, '', $conf->entity);
 	}
@@ -82,7 +83,10 @@ if (preg_match('/set_([a-z0-9_\-]+)/i', $action, $reg)) {
 	if (GETPOSTISSET('MAIN_SECURITY_MAX_ATTACHMENT_ON_FORMS')) {
 		$res5 = dolibarr_set_const($db, "MAIN_SECURITY_MAX_ATTACHMENT_ON_FORMS", GETPOST("MAIN_SECURITY_MAX_ATTACHMENT_ON_FORMS", 'alphanohtml'), 'int', 0, '', $conf->entity);
 	}
-	if ($res1 && $res2 && $res3 && $res4 && $res5) {
+	if (GETPOSTISSET('MAIN_SECURITY_MAX_NUMBER_FAILED_AUTH')) {
+		$res6 = dolibarr_set_const($db, "MAIN_SECURITY_MAX_NUMBER_FAILED_AUTH", GETPOST("MAIN_SECURITY_MAX_NUMBER_FAILED_AUTH", 'alphanohtml'), 'int', 0, '', $conf->entity);
+	}
+	if ($res1 && $res2 && $res3 && $res4 && $res5 && $res6) {
 		setEventMessages($langs->trans("RecordModifiedSuccessfully"), null, 'mesgs');
 	}
 }
@@ -96,7 +100,7 @@ if (preg_match('/set_([a-z0-9_\-]+)/i', $action, $reg)) {
 $form = new Form($db);
 
 $wikihelp = 'EN:Setup_Security|FR:Paramétrage_Sécurité|ES:Configuración_Seguridad';
-llxHeader('', $langs->trans("Miscellaneous"), $wikihelp);
+llxHeader('', $langs->trans("Miscellaneous"), $wikihelp, '', 0, 0, '', '', '', 'mod-admin page-security_other');
 
 print load_fiche_titre($langs->trans("SecuritySetup"), '', 'title_setup');
 

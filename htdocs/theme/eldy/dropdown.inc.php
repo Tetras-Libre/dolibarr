@@ -2,7 +2,7 @@
 if (!defined('ISLOADEDBYSTEELSHEET')) {
 	die('Must be call by steelsheet');
 } ?>
-/* <style type="text/css" > dont remove this line it's an ide hack */
+/* <style type="text/css" > don't remove this line it's an ide hack */
 /*
  * Dropdown of user popup
  */
@@ -156,8 +156,9 @@ div#topmenu-global-search-dropdown a::after, div#topmenu-quickadd-dropdown a::af
 }
 
 /*
-* MENU Dropdown
-*/
+ * MENU Dropdown
+ */
+
 .login_block.usedropdown .logout-btn{
 	display: none;
 }
@@ -181,7 +182,8 @@ div#topmenu-global-search-dropdown a::after, div#topmenu-quickadd-dropdown a::af
 .side-nav-vert .user-menu .dropdown-menu, .topnav .user-menu .dropdown-menu {
 	border-top-right-radius: 0;
 	border-top-left-radius: 0;
-	padding: 1px 0 0 0;
+	padding: 0 0 0 0;
+	margin-top: 2px !important;
 	border-top-width: 0;
 	width: 360px;
 }
@@ -207,7 +209,7 @@ div#topmenu-global-search-dropdown a::after, div#topmenu-quickadd-dropdown a::af
 }
 
 div#topmenu-global-search-dropdown, div#topmenu-bookmark-dropdown, div#topmenu-quickadd-dropdown {
-	<?php if (!getDolGlobalInt('THEME_TOPMENU_DISABLE_IMAGE')) { ?>
+	<?php if (!$disableimages) { ?>
 		line-height: 46px;
 	<?php } ?>
 }
@@ -360,7 +362,7 @@ a.dropdown-item {
 	display: block !important;
 	box-sizing: border-box;
 	width: 100%;
-	padding: .3em 1.5em .4em 1em;
+	padding: .5em 1.5em .5em 1em;
 	clear: both;
 	font-weight: 400;
 	color: #212529  !important;
@@ -576,13 +578,13 @@ dropdown-holder {
 	}
 
 	.tmenu .dropdown-menu, .login_block .dropdown-menu, .topnav .dropdown-menu {
-		margin-left: 5px;
+		margin-left: 8px;
 		right: 0;
 	}
 
 	#topmenu-quickadd-dropdown .dropdown-menu {
 		min-width: 220px;
-		max-width: 235px;
+		max-width: 270px;
 	}
 	#topmenu-bookmark-dropdown .dropdown-menu {
 		min-width: 220px;

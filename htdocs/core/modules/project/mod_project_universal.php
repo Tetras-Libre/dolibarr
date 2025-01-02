@@ -1,5 +1,6 @@
 <?php
 /* Copyright (C) 2010 Regis Houssin  <regis.houssin@inodbox.com>
+ * Copyright (C) 2024       Frédéric France             <frederic.france@free.fr>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -86,6 +87,7 @@ class mod_project_universal extends ModeleNumRefProjects
 		$tooltip .= $langs->trans("GenericMaskCodes3");
 		$tooltip .= $langs->trans("GenericMaskCodes4a", $langs->transnoentities("Project"), $langs->transnoentities("Project"));
 		$tooltip .= $langs->trans("GenericMaskCodes5");
+		$tooltip .= '<br>'.$langs->trans("GenericMaskCodes5b");
 
 		// Prefix settings
 		$texte .= '<tr><td>'.$langs->trans("Mask").':</td>';
@@ -124,9 +126,9 @@ class mod_project_universal extends ModeleNumRefProjects
 	/**
 	 *  Return next value
 	 *
-	 *  @param   Societe		$objsoc		Object third party
-	 *  @param   Project		$project	Object project
-	 *  @return  string						Value if OK, 0 if KO
+	 *  @param   Societe			$objsoc		Object third party
+	 *  @param   Project			$project	Object project
+	 *  @return  string|int					Value if OK, 0 if KO
 	 */
 	public function getNextValue($objsoc, $project)
 	{
@@ -149,20 +151,5 @@ class mod_project_universal extends ModeleNumRefProjects
 		$numFinal = get_next_value($db, $mask, 'projet', 'ref', '', (is_object($objsoc) ? $objsoc : ''), $date, 'next', false, null, $entity);
 
 		return  $numFinal;
-	}
-
-
-	// phpcs:disable PEAR.NamingConventions.ValidFunctionName.ScopeNotCamelCaps
-	/**
-	 *  Return next reference not yet used as a reference
-	 *
-	 *  @param	Societe		$objsoc     Object third party
-	 *  @param  Project		$project	Object project
-	 *  @return string      			Next not used reference
-	 */
-	public function project_get_num($objsoc = 0, $project = '')
-	{
-		// phpcs:enable
-		return $this->getNextValue($objsoc, $project);
 	}
 }

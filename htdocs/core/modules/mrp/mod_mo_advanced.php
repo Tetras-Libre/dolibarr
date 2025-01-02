@@ -3,7 +3,7 @@
  * Copyright (C) 2004-2007  Laurent Destailleur         <eldy@users.sourceforge.net>
  * Copyright (C) 2005-2009  Regis Houssin               <regis.houssin@inodbox.com>
  * Copyright (C) 2008       Raphael Bertrand (Resultic) <raphael.bertrand@resultic.fr>
- * Copyright (C) 2019       Frédéric France             <frederic.france@netlogic.fr>
+ * Copyright (C) 2019-2024  Frédéric France             <frederic.france@free.fr>
  * Copyright (C) 2020       Josep Lluís Amador          <joseplluis@lliuretic.cat>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -78,6 +78,7 @@ class mod_mo_advanced extends ModeleNumRefMos
 		$tooltip .= $langs->trans("GenericMaskCodes3");
 		$tooltip .= $langs->trans("GenericMaskCodes4a", $langs->transnoentities("Mo"), $langs->transnoentities("Mo"));
 		$tooltip .= $langs->trans("GenericMaskCodes5");
+		//$tooltip .= '<br>'.$langs->trans("GenericMaskCodes5b");
 
 		// Parametrage du prefix
 		$texte .= '<tr><td>'.$langs->trans("Mask").':</td>';
@@ -100,7 +101,7 @@ class mod_mo_advanced extends ModeleNumRefMos
 	 */
 	public function getExample()
 	{
-		global $conf, $langs, $mysoc;
+		global $langs, $mysoc;
 
 		$old_code_client = $mysoc->code_client;
 		$old_code_type = $mysoc->typent_code;
@@ -119,13 +120,13 @@ class mod_mo_advanced extends ModeleNumRefMos
 	/**
 	 * 	Return next free value
 	 *
-	 *  @param	Product		$objprod    Object product
-	 *  @param  Object		$object		Object we need next value for
-	 *  @return string      			Value if KO, <0 if KO
+	 *  @param	Product			$objprod    Object product
+	 *  @param  Mo				$object		Object we need next value for
+	 *  @return string|int      			Value if OK, 0 if KO
 	 */
 	public function getNextValue($objprod, $object)
 	{
-		global $db, $conf;
+		global $db;
 
 		require_once DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php';
 
