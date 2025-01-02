@@ -343,6 +343,7 @@ if (isModEnabled('stripe')) {
 $action = '';
 $parameters = [
 	'paymentmethod' => $paymentmethod,
+	'validpaymentmethod' => &$validpaymentmethod
 ];
 $reshook = $hookmanager->executeHooks('isPaymentOK', $parameters, $object, $action);
 if ($reshook >= 0) {
