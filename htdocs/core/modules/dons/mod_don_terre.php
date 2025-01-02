@@ -80,7 +80,7 @@ class mod_don_terre extends ModeleNumRefDons
 	 *
 	 *  @return     string      Texte descripif
 	 */
-	public function info()
+	public function info($langs)
 	{
 		global $langs;
 		$langs->load("bills");
@@ -103,7 +103,7 @@ class mod_don_terre extends ModeleNumRefDons
 	 *
 	 *  @return     boolean     false if conflict, true if ok
 	 */
-	public function canBeActivated()
+	public function canBeActivated($object)
 	{
 		global $langs, $conf, $db;
 
