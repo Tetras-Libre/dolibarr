@@ -1151,6 +1151,11 @@ if ($ispaymentok) {
 	} elseif (array_key_exists('DON', $tmptag) && $tmptag['DON'] > 0) {
 		include_once DOL_DOCUMENT_ROOT.'/don/class/don.class.php';
 		$don = new Don($db);
+		if ((int) $tmptag['DON'] > 0) {
+			$result = $don->fetch((int) $tmptag['DON']);
+		} else {
+			$result = $don->fetch(null, $tmptag['DON']);
+		}
 		$result = $don->fetch((int) $tmptag['DON']);
 		if ($result) {
 			$paymentTypeId = 0;

@@ -168,7 +168,7 @@ $morecss = array();
 // Build and execute select
 // --------------------------------------------------------------------
 $sql = "SELECT d.rowid, d.datedon, d.fk_soc as socid, d.firstname, d.lastname, d.societe,";
-$sql .= " d.amount, d.fk_statut as status,";
+$sql .= " d.amount, d.fk_statut as status, d.ref as don_ref, ";
 $sql .= " p.rowid as pid, p.ref, p.title, p.public";
 // Add fields from hooks
 $parameters = array();
@@ -502,7 +502,7 @@ while ($i < $imaxinloop) {
 			print '<td></td>';
 		}
 		$donationstatic->id = $obj->rowid;
-		$donationstatic->ref = $obj->rowid;
+		$donationstatic->ref = $objp->don_ref ? $objp->don_ref : $objp->rowid;
 		$donationstatic->lastname = $obj->lastname;
 		$donationstatic->firstname = $obj->firstname;
 		print "<td>".$donationstatic->getNomUrl(1)."</td>";

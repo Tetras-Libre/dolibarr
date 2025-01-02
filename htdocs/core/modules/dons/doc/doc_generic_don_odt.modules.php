@@ -261,10 +261,11 @@ class doc_generic_don_odt extends ModeleDon
 
 			$dir = $conf->don->dir_output;
 			$objectref = dol_sanitizeFileName($object->ref);
+			$objectid = dol_sanitizeFileName($object->id);
 			if (!preg_match('/specimen/i', $objectref)) {
-				$dir .= "/".$objectref;
+				$dir .= "/".$objectid;
 			}
-			$file = $dir."/".$objectref.".odt";
+			$file = $dir."/".$objectid.".odt";
 
 			if (!file_exists($dir)) {
 				if (dol_mkdir($dir) < 0) {
