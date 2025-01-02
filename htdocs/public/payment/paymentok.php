@@ -903,7 +903,6 @@ if ($ispaymentok) {
 						$bankaccountid = $conf->global->STRIPE_BANK_ACCOUNT_FOR_PAYMENTS;
 					}
 
-					$hookmanager->executeHooks('getBankAccountForPayements', $parameters, $bankaccountid, $action);
 					if ($bankaccountid > 0) {
 						$label = '(CustomerInvoicePayment)';
 						if ($object->type == Facture::TYPE_CREDIT_NOTE) {
@@ -1152,6 +1151,7 @@ if ($ispaymentok) {
 						$bankaccountid = $conf->global->STRIPE_BANK_ACCOUNT_FOR_PAYMENTS;
 					}
 
+					$hookmanager->executeHooks('getBankAccountForPayements', $parameters, $bankaccountid, $action);
 					if ($bankaccountid > 0) {
 						$label = '(DonationPayment)';
 						$result = $paiement->addPaymentToBank($user, 'payment_donation', $label, $bankaccountid, '', '');
