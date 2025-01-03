@@ -1156,7 +1156,6 @@ if ($ispaymentok) {
 		} else {
 			$result = $don->fetch(null, $tmptag['DON']);
 		}
-		$result = $don->fetch((int) $tmptag['DON']);
 		if ($result) {
 			$paymentTypeId = 0;
 			if ($paymentmethod == 'paybox') {
