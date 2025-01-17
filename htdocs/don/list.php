@@ -474,7 +474,7 @@ while ($i < $imaxinloop) {
 		$donationstatic->date = $obj->datedon;
 		$donationstatic->status = $obj->status;
 		$donationstatic->id = $obj->rowid;
-		$donationstatic->ref = $obj->rowid;
+		$donationstatic->ref = $obj->don_ref ? $obj->don_ref : $obj->rowid;
 
 		if (!empty($obj->socid) && $company->id > 0) {
 			$donationstatic->societe = $company->getNomUrl(1);
@@ -502,7 +502,7 @@ while ($i < $imaxinloop) {
 			print '<td></td>';
 		}
 		$donationstatic->id = $obj->rowid;
-		$donationstatic->ref = $objp->don_ref ? $objp->don_ref : $objp->rowid;
+		$donationstatic->ref = $obj->don_ref ? $obj->don_ref : $obj->rowid;
 		$donationstatic->lastname = $obj->lastname;
 		$donationstatic->firstname = $obj->firstname;
 		print "<td>".$donationstatic->getNomUrl(1)."</td>";
