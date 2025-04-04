@@ -118,6 +118,8 @@ $canadduser = (!empty($user->admin) || $user->hasRight("user", "user", "write"))
 $canreaduser = (!empty($user->admin) || $user->hasRight("user", "user", "read"));
 $canedituser = (!empty($user->admin) || $user->hasRight("user", "user", "write"));	// edit other user
 $candisableuser = (!empty($user->admin) || $user->hasRight("user", "user", "delete"));
+$caneditpasswordandsee = false;
+$caneditpasswordandsend = false;
 $canreadgroup = $canreaduser;
 $caneditgroup = $canedituser;
 if (getDolGlobalString('MAIN_USE_ADVANCED_PERMS')) {
