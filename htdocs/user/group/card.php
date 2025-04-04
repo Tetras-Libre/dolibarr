@@ -75,11 +75,6 @@ $hookmanager->initHooks(array('groupcard', 'globalcard'));
 // Security check
 $result = restrictedArea($user, 'user', $id, 'usergroup&usergroup', $feature2);
 
-// Users/Groups management only in master entity if transverse mode
-if (isModEnabled('multicompany') && $conf->entity > 1 && $conf->global->MULTICOMPANY_TRANSVERSE_MODE) {
-	accessforbidden();
-}
-
 
 /**
  * Actions
