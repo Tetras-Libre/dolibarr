@@ -148,7 +148,14 @@ if ($syear && !$smonth) {
 } elseif ($syear && $smonth && !$sday) {
 	$sql .= " AND datef BETWEEN '".$db->idate(dol_get_first_day($syear, $smonth))."' AND '".$db->idate(dol_get_last_day($syear, $smonth))."'";
 } elseif ($syear && $smonth && $sday) {
-	$sql .= " AND datef BETWEEN '".$db->idate(dol_mktime(0, 0, 0, $smonth, $sday, $syear))."' AND '".$db->idate(dol_mktime(23, 59, 59, $smonth, $sday, $syear))."'";
+	$hourShift = (int) getDolGlobalString("TAKEPOS_CASH_CONTROL_SHIFT_HOURS");
+	if ($hourShift > 0) {
+		$hourShift = 5;
+		$tsShift = 3600 * $hourShift;
+		$sql .= " AND f.datec BETWEEN '".$db->idate(dol_mktime(0, 0, 0, $smonth, $sday, $syear) + $tsShift)."' AND '".$db->idate(dol_mktime(23, 59, 59, $smonth, $sday, $syear) + $tsShift)."'";
+	} else {
+		$sql .= " AND datef BETWEEN '".$db->idate(dol_mktime(0, 0, 0, $smonth, $sday, $syear))."' AND '".$db->idate(dol_mktime(23, 59, 59, $smonth, $sday, $syear))."'";
+	}
 } else {
 	dol_print_error(null, 'Year not defined');
 }
