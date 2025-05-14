@@ -57,7 +57,6 @@ if (is_numeric($entity)) {
 	define("DOLENTITY", $entity);
 }
 
-
 // Load Dolibarr environment
 require '../../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/company.lib.php';
@@ -850,7 +849,7 @@ if (getDolGlobalString('MEMBER_SKIP_TABLE') || getDolGlobalString('MEMBER_NEWFOR
 	$sql .= " FROM ".MAIN_DB_PREFIX."adherent_type as d";
 	$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."adherent as a";
 	$sql .= " ON d.rowid = a.fk_adherent_type AND a.statut > 0";
-	$sql .= " WHERE d.entity IN (".getEntity('member_type').")";
+	$sql .= " WHERE d.entity IN (". DOLENTITY.")";
 	$sql .= " AND d.statut=1";
 	$sql .= " GROUP BY d.rowid, d.libelle, d.subscription, d.amount, d.caneditamount, d.vote, d.note, d.duration, d.statut, d.morphy";
 
