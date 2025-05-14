@@ -52,11 +52,10 @@ if (!defined('NOBROWSERNOTIF')) {
 
 // For MultiCompany module.
 // Do not use GETPOST here, function is not defined and define must be done before including main.inc.php
-$entity = (!empty($_GET['entity']) ? (int) $_GET['entity'] : (!empty($_POST['entity']) ? (int) $_POST['entity'] : 1));
+$entity = (!empty($_GET['entity']) ? (int) $_GET['entity'] : (!empty($_POST['entity']) ? (int) $_POST['entity'] : 0));
 if (is_numeric($entity)) {
 	define("DOLENTITY", $entity);
 }
-
 
 // Load Dolibarr environment
 require '../../main.inc.php';
@@ -69,6 +68,9 @@ require_once DOL_DOCUMENT_ROOT.'/core/class/html.formcompany.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/cunits.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
 
+
+
+
 // Init vars
 $backtopage = GETPOST('backtopage', 'alpha');
 $action = GETPOST('action', 'aZ09');
@@ -79,6 +81,15 @@ $error = 0;
 
 // Load translation files
 $langs->loadLangs(array("main", "members", "companies", "install", "other", "errors"));
+
+if(isModEnabled('multicompany')) {
+	if($entity===0){
+		httponly_accessforbidden('Multiadmin environment, no entity id provided');
+	}
+	force_switch_entity($entity);
+} else {
+	$entity = 1;
+}
 
 // Security check
 if (!isModEnabled('adherent')) {
@@ -176,6 +187,14 @@ function llxFooterVierge()
 	print "</html>\n";
 }
 
+function force_switch_entity($newEntity)
+{
+	global $db, $conf;
+	if ($newEntity != $conf->entity) {
+		$conf->entity = $newEntity;
+		$conf->setValues($db);
+	}
+}
 
 
 /*
