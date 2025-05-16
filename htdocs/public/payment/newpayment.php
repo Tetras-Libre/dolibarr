@@ -1760,7 +1760,7 @@ if ($source == 'donation') {
 
 	$don = new Don($db);
 	// @phan-suppress-next-line PhanPluginSuspiciousParamPosition
-	$result = $don->fetch($ref);
+	$result = $don->fetch('', $ref);
 	if ($result <= 0) {
 		$mesg = $don->error;
 		$error++;
