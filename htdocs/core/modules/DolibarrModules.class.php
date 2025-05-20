@@ -2291,7 +2291,7 @@ class DolibarrModules // Can not be abstract, because we need to instantiate it 
 					continue; // Discard empty arrays
 				}
 
-				$entity = $conf->entity; // Reset the current entity
+				$entity = ((!empty($this->always_enabled) || !empty($this->core_enabled)) ? 0 : $conf->entity); // Reset the current entity
 				$newvalue = $value;
 
 				// Serialize array parameters
@@ -2373,7 +2373,7 @@ class DolibarrModules // Can not be abstract, because we need to instantiate it 
 				if (is_array($value) && isset($value['entity'])) {
 					$entity = $value['entity'];
 				} else {
-					$entity = $conf->entity;
+					$entity = (!empty($this->always_enabled) || !empty($this->core_enabled)) ? 0 : $conf->entity;
 				}
 
 				$sql = "DELETE FROM ".MAIN_DB_PREFIX."const";
