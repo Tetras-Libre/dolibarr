@@ -2055,7 +2055,7 @@ class Form
 		// Forge request to select users
 		$sql = "SELECT DISTINCT u.rowid, u.lastname as lastname, u.firstname, u.statut as status, u.login, u.admin, u.entity, u.photo";
 		if (isModEnabled('multicompany') && $conf->entity == 1 && $user->admin && !$user->entity) {
-			$sql .= ", e.label";
+			//$sql .= ", e.label";
 		}
 		$sql .= " FROM " . $this->db->prefix() . "user as u";
 
