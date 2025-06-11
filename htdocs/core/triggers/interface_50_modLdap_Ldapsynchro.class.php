@@ -277,7 +277,7 @@ class InterfaceLdapsynchro extends DolibarrTriggers
 					}
 
 					// Avoid Ldap error due to empty member
-					if (isset($info['member']) && empty($info['member'])) {
+					if (isset($info['member']) && empty($info['member']) && !getDolGlobalString('LDAP_SEND_EMPTY_MEMBERS_TO_GROUP')) {
 						unset($info['member']);
 					}
 
