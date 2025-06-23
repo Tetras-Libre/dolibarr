@@ -357,9 +357,11 @@ print '<input type="text" class="right width50" id="MEMBER_SUBSCRIPTION_START_AF
 print "</td></tr>\n";
 
 // Mail required for members
-print '<tr class="oddeven"><td>'.$langs->trans("AdherentMailRequired").'</td><td>';
+// We hide this option because we use multicompanyhybridusermanagement module to manage login/pass for members
+// Email is required by default, so we do not show this option
+/*print '<tr class="oddeven"><td>'.$langs->trans("AdherentMailRequired").'</td><td>';
 print $form->selectyesno('ADHERENT_MAIL_REQUIRED', getDolGlobalInt('ADHERENT_MAIL_REQUIRED'), 1);
-print "</td></tr>\n";
+print "</td></tr>\n";*/
 
 // Login/Pass required for members
 // We hide this option because we use multicompanyhybridusermanagement module to manage login/pass for members
