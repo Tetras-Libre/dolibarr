@@ -362,11 +362,12 @@ print $form->selectyesno('ADHERENT_MAIL_REQUIRED', getDolGlobalInt('ADHERENT_MAI
 print "</td></tr>\n";
 
 // Login/Pass required for members
-print '<tr class="oddeven"><td>';
+// We hide this option because we use multicompanyhybridusermanagement module to manage login/pass for members
+/*print '<tr class="oddeven"><td>';
 print $form->textwithpicto($langs->trans("AdherentLoginRequired"), $langs->trans("AdherentLoginRequiredDesc"));
 print '</td><td>';
 print $form->selectyesno('ADHERENT_LOGIN_NOT_REQUIRED', (getDolGlobalString('ADHERENT_LOGIN_NOT_REQUIRED') ? 0 : 1), 1);
-print "</td></tr>\n";
+print "</td></tr>\n";*/
 
 // Send mail information is on by default
 print '<tr class="oddeven"><td>'.$langs->trans("MemberSendInformationByMailByDefault").'</td><td>';
@@ -374,11 +375,12 @@ print $form->selectyesno('ADHERENT_DEFAULT_SENDINFOBYMAIL', getDolGlobalInt('ADH
 print "</td></tr>\n";
 
 // Create an external user login for each new member subscription validated
-print '<tr class="oddeven"><td>'.$langs->trans("MemberCreateAnExternalUserForSubscriptionValidated").'</td><td>';
+// We hide this option because we use multicompanyhybridusermanagement module to manage login/pass for members
+/*print '<tr class="oddeven"><td>'.$langs->trans("MemberCreateAnExternalUserForSubscriptionValidated").'</td><td>';
 print $form->selectyesno('ADHERENT_CREATE_EXTERNAL_USER_LOGIN', getDolGlobalInt('ADHERENT_CREATE_EXTERNAL_USER_LOGIN', 0), 1);
-print "</td></tr>\n";
+print "</td></tr>\n";*/
 
-// Create an external user login for each new member subscription validated
+// Allow to publish members in public list
 $linkofpubliclist = DOL_MAIN_URL_ROOT.'/public/members/public_list.php'.((isModEnabled('multicompany')) ? '?entity='.((int) $conf->entity) : '');
 print '<tr class="oddeven"><td>'.$langs->trans("Public", getDolGlobalString('MAIN_INFO_SOCIETE_NOM'), $linkofpubliclist).'</td><td>';
 print $form->selectyesno('MEMBER_PUBLIC_ENABLED', getDolGlobalInt('MEMBER_PUBLIC_ENABLED', 0), 1);
