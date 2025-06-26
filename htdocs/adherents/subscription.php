@@ -162,7 +162,7 @@ if ($id) {
 }
 
 // Security check
-if($userIdAssociated != $user->id || $id < 0 || $id =="") {
+if($userIdAssociated != $user->id && ($id < 0 && $id =="" && empty($rowid))) {
 	$result = restrictedArea($user, 'adherent', $object->id, '', '', 'socid', 'rowid', 0);
 	accessforbidden();
 }
@@ -546,8 +546,7 @@ $morehtmlref .= '</a>';
 
 if($viewMode == "self"){
 	print dol_get_fiche_head([], '', $langs->trans("Member"), 1);
-	$linkback = '<a href="'.DOL_URL_ROOT.'/public/members/new.php?entity=' . $conf->entity . '">'.$langs->trans("NewCotisation").'</a>';
-	dol_banner_tab($object, 'rowid', $linkback, 1, 'rowid', 'ref', $morehtmlref);
+	dol_banner_tab($object, 'rowid', '', 1, 'rowid', 'ref', $morehtmlref);
 } else {
 	print dol_get_fiche_head($head, 'subscription', $langs->trans("Member"), -1, 'user');
 	$linkback = '<a href="'.DOL_URL_ROOT.'/adherents/list.php?restore_lastsearch_values=1">'.$langs->trans("BackToList").'</a>';
@@ -556,6 +555,7 @@ if($viewMode == "self"){
 
 print '<div class="fichecenter">';
 print '<div class="fichehalfleft">';
+
 
 print '<div class="underbanner clearboth"></div>';
 print '<table class="border centpercent tableforfield">';
@@ -882,9 +882,18 @@ if (($action != 'addsubscription' && $action != 'create_thirdparty')) {
 		print '<br>';
 
 		require_once DOL_DOCUMENT_ROOT.'/core/lib/payments.lib.php';
-		print showOnlinePaymentUrl('membersubscription', $object->ref);
-		print '<br>';
+		if($viewMode !== "self") {
+			print showOnlinePaymentUrl('membersubscription', $object->ref);
+			print '<br>';
+		}
 	}
+}
+
+if($viewMode=="self"){
+	// Show link to public subscription
+	$url = DOL_URL_ROOT.'/public/members/new.php?entity=' . $conf->entity ;
+
+	print '<div class="float-right"><input class="button" value="'.$langs->trans("NewCotisation").'" onclick="javascript:document.location.href=\''. $url . '\';"></div>';
 }
 
 /*
