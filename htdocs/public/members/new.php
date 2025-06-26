@@ -223,6 +223,7 @@ if (empty($reshook) && $action == 'add') {
 		if ($result) {
 			$num = $db->num_rows($result);
 		}
+		// In FFCU context we can work with login already used by another member (we merged it after)
 	/*	if ($num != 0) {
 			$error++;
 			$langs->load("errors");
@@ -386,13 +387,8 @@ if (empty($reshook) && $action == 'add') {
 
 			// If we found adherents with same login or email, we can use them
 			if ($countOfSameAdherent > 0) {
-				// Example: get the first found adherent ID
-				$existingAdherentId = $foundAdherentIds[0];
-				// Or loop over all:
-				foreach ($foundAdherentIds as $id) {
-					dol_syslog("Found existing adherent with rowid = $id");
-				}
-				$result = $adh->fetch($existingAdherentId);
+				// Get the first found adherent ID
+				$result = $adh->fetch($foundAdherentIds[0]);
 			} else {
 				// No existing adherent found, we can proceed with the creation
 				$result = $adh->create($user);
