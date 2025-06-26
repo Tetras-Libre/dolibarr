@@ -96,9 +96,44 @@ $dateto = 0;
 $paymentdate = -1;
 
 
+// No member id provided we try to find existing member associated to current user
+if ((empty($id)  || empty($ref) ) && $viewMode=='self') {
+	dol_syslog("adherents/subscription.php: No id or ref defined, we try to find the member associated to the current user", LOG_DEBUG);
+	// if we are in displayed view we display adherent of user in current entity
+	$userId = $user->id;
+	$sql = "";
+
+	if(isModEnabled('multicompanyhybridusermanagement')) {
+		$adherenttable = MAIN_DB_PREFIX."adherent";
+		$extratable = $adherenttable . "_extrafields";
+		$sql = "SELECT a.rowid FROM $adherenttable as a LEFT JOIN $extratable as extra ON a.rowid = extra.fk_object WHERE extra.fk_user = \"$userId\"";
+		if ($conf->entity != null) {
+			$sql .= " AND a.entity = $conf->entity";
+		}
+
+		// ask the db
+		$resql = $db->query($sql);
+		if ($resql) {
+			$obj = $db->fetch_object($resql);
+			$id = $obj->rowid;
+		}
+	} else {
+		// Classic case
+		$sql = "SELECT u.rowid FROM ". MAIN_DB_PREFIX."user as u WHERE fk_member = ".((int) $userId);
+		$res = $db->query($sql);
+		if ($res) {
+			$obj = $db->fetch_object($res);
+			if ($obj && $obj->rowid > 0) {
+				$id = $obj->rowid;
+			}
+		}
+	}
+}
+$userIdAssociated = 0; // This variable will contain the user id associated to the member (if any, if not, it will be 0)
 
 // Fetch object
 if ($id > 0 || !empty($ref)) {
+	$rowid = $id;
 	// Load member
 	$result = $object->fetch($id, $ref);
 	// fetch extra fields value fk_user
@@ -115,10 +150,6 @@ if ($id > 0 || !empty($ref)) {
 		$caneditpassworduser = ((($user->id == $userIdAssociated) && $user->hasRight("user", "self", "password"))
 			|| (($user->id != $userIdAssociated) && $user->hasRight("user", "user", "password")));
 	}
-	if($userIdAssociated == $user->id && $viewMode=='simplified') {
-		// If the user is the same as the user linked to the member, we can edit its own user
-		$caneditfielduser = $caneditpassworduser = true;
-	}
 }
 
 // Define variables to determine what the current user can do on the members
@@ -129,7 +160,7 @@ if ($id) {
 }
 
 // Security check
-if($userIdAssociated != $user->id) {
+if($userIdAssociated != $user->id || $id < 0) {
 	$result = restrictedArea($user, 'adherent', $object->id, '', '', 'socid', 'rowid', 0);
 }
 
@@ -510,7 +541,7 @@ $morehtmlref = '<a href="'.DOL_URL_ROOT.'/adherents/vcard.php?id='.$object->id.'
 $morehtmlref .= img_picto($langs->trans("Download").' '.$langs->trans("VCard"), 'vcard.png', 'class="valignmiddle marginleftonly paddingrightonly"');
 $morehtmlref .= '</a>';
 
-if($viewMode == "simplified"){
+if($viewMode == "self"){
 	print dol_get_fiche_head([], '', $langs->trans("Member"), 1);
 	dol_banner_tab($object, 'rowid', '', 1, 'rowid', 'ref', $morehtmlref);
 } else {
