@@ -223,11 +223,11 @@ if (empty($reshook) && $action == 'add') {
 		if ($result) {
 			$num = $db->num_rows($result);
 		}
-		if ($num != 0) {
+	/*	if ($num != 0) {
 			$error++;
 			$langs->load("errors");
 			$errmsg .= $langs->trans("ErrorLoginAlreadyExists")."<br>\n";
-		}
+		}*/
 		if (!GETPOSTISSET("pass1") || !GETPOSTISSET("pass2") || GETPOST("pass1", 'none') == '' || GETPOST("pass2", 'none') == '' || GETPOST("pass1", 'none') != GETPOST("pass2", 'none')) {
 			$error++;
 			$langs->load("errors");
@@ -289,6 +289,7 @@ if (empty($reshook) && $action == 'add') {
 	$public = GETPOSTISSET('public') ? 1 : 0;
 
 	if (!$error) {
+		require_once DOL_DOCUMENT_ROOT.'/core/lib/security2.lib.php';
 		// E-mail looks OK and login does not exist
 		$adh = new Adherent($db);
 		$adh->statut      = -1;
@@ -305,6 +306,8 @@ if (empty($reshook) && $action == 'add') {
 		if (!getDolGlobalString('ADHERENT_LOGIN_NOT_REQUIRED')) {
 			$adh->login       = GETPOST('login');
 			$adh->pass        = GETPOST('pass1');
+		} else {
+			$adh->pass = getRandomPassword(false, 15);
 		}
 		$adh->photo       = GETPOST('photo');
 		$adh->country_id  = getDolGlobalString("MEMBER_NEWFORM_FORCECOUNTRYCODE", GETPOST('country_id', 'int'));
@@ -315,6 +318,7 @@ if (empty($reshook) && $action == 'add') {
 		$adh->birth       = $birthday;
 
 		$adh->ip = getUserRemoteIP();
+
 
 		$nb_post_max = getDolGlobalInt("MAIN_SECURITY_MAX_POST_ON_PUBLIC_PAGES_BY_IP_ADDRESS", 200);
 		$now = dol_now();
@@ -354,7 +358,46 @@ if (empty($reshook) && $action == 'add') {
 		}
 
 		if (!$error) {
-			$result = $adh->create($user);
+
+			global $conf;
+
+			$constructedLogin = Adherent::createFFCUConstructedLogin($adh->firstname, $adh->lastname, $adh->birth);
+			$escapedEmail = $db->escape($adh->email);
+			$entityId = (int) $conf->entity;
+
+// Search for adherent by login or email within the same entity
+			$sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."adherent";
+			$sql .= " WHERE entity = $entityId AND (login = '".$db->escape($constructedLogin)."' OR email = '".$escapedEmail."')";
+
+			dol_syslog($sql);
+
+			$resql = $db->query($sql);
+
+			$foundAdherentIds = [];
+			if ($resql) {
+				while ($obj = $db->fetch_object($resql)) {
+					$foundAdherentIds[] = $obj->rowid;
+				}
+			}
+
+			// You can use count($foundAdherentIds) for the number of matches
+			// Or use the actual IDs if needed
+			$countOfSameAdherent = count($foundAdherentIds);
+
+			// If we found adherents with same login or email, we can use them
+			if ($countOfSameAdherent > 0) {
+				// Example: get the first found adherent ID
+				$existingAdherentId = $foundAdherentIds[0];
+				// Or loop over all:
+				foreach ($foundAdherentIds as $id) {
+					dol_syslog("Found existing adherent with rowid = $id");
+				}
+				$result = $adh->fetch($existingAdherentId);
+			} else {
+				// No existing adherent found, we can proceed with the creation
+				$result = $adh->create($user);
+			}
+
 			if ($result > 0) {
 				require_once DOL_DOCUMENT_ROOT.'/core/class/CMailFile.class.php';
 				$object = $adh;
