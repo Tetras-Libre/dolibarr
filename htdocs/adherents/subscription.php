@@ -115,7 +115,9 @@ if ((empty($id)  || empty($ref) ) && $viewMode=='self') {
 		$resql = $db->query($sql);
 		if ($resql) {
 			$obj = $db->fetch_object($resql);
-			$id = $obj->rowid;
+			if($obj){
+				$id = $obj->rowid;
+			}
 		}
 	} else {
 		// Classic case
@@ -160,8 +162,9 @@ if ($id) {
 }
 
 // Security check
-if($userIdAssociated != $user->id || $id < 0) {
+if($userIdAssociated != $user->id || $id < 0 || $id =="") {
 	$result = restrictedArea($user, 'adherent', $object->id, '', '', 'socid', 'rowid', 0);
+	accessforbidden();
 }
 
 
@@ -543,14 +546,13 @@ $morehtmlref .= '</a>';
 
 if($viewMode == "self"){
 	print dol_get_fiche_head([], '', $langs->trans("Member"), 1);
-	dol_banner_tab($object, 'rowid', '', 1, 'rowid', 'ref', $morehtmlref);
+	$linkback = '<a href="'.DOL_URL_ROOT.'/public/members/new.php?entity=' . $conf->entity . '">'.$langs->trans("NewCotisation").'</a>';
+	dol_banner_tab($object, 'rowid', $linkback, 1, 'rowid', 'ref', $morehtmlref);
 } else {
 	print dol_get_fiche_head($head, 'subscription', $langs->trans("Member"), -1, 'user');
 	$linkback = '<a href="'.DOL_URL_ROOT.'/adherents/list.php?restore_lastsearch_values=1">'.$langs->trans("BackToList").'</a>';
 	dol_banner_tab($object, 'rowid', $linkback, 1, 'rowid', 'ref', $morehtmlref);
 }
-
-
 
 print '<div class="fichecenter">';
 print '<div class="fichehalfleft">';
