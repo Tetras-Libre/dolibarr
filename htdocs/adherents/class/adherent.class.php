@@ -3265,4 +3265,20 @@ class Adherent extends CommonObject
 		$return .= '</div>';
 		return $return;
 	}
+
+	public static function createFFCUConstructedLogin($firstname, $lastname, $date_naissance)
+	{
+
+		$constructedLogin = $firstname.$lastname;
+
+		// If user has very long name, we truncate it to 40 characters
+		if(strlen($constructedLogin) > 40){
+			$constructedLogin = substr($constructedLogin, 0, 40);
+		}
+		$constructedLogin = $constructedLogin.$date_naissance;
+		$constructedLogin = preg_replace('/[^a-zA-Z0-9]/', '', $constructedLogin); // Remove special characters
+		$constructedLogin = strtolower($constructedLogin); // Convert to lowercase
+
+		return $constructedLogin;
+	}
 }
