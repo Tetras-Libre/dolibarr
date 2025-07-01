@@ -2061,10 +2061,10 @@ class Form
 
 		// Hot fix, this break user group member addition
 		//Add hook to filter on user (for exemple on usergroup define in custom modules)
-		$reshook = $hookmanager->executeHooks('addSQLFromOnSelectUsers', ['force_entity' => $force_entity], $this, $action);
+		/*$reshook = $hookmanager->executeHooks('addSQLFromOnSelectUsers', ['force_entity' => $force_entity], $this, $action);
 		if (!empty($reshook)) {
 			$sql .= $hookmanager->resPrint;
-		}
+		}*/
 
 		// Hot fix
 		if (isModEnabled('multicompany')){
@@ -2075,13 +2075,15 @@ class Form
 				} else {
 					$sql .= " WHERE u.entity IS NOT NULL";
 				}
+			}else {
+				if (getDolGlobalInt('MULTICOMPANY_TRANSVERSE_MODE')) {
+					$sql .= " WHERE u.rowid IN (SELECT ug.fk_user FROM ".$this->db->prefix()."usergroup_user as ug WHERE ug.entity IN (".getEntity('usergroup')."))";
+				} else {
+					$sql .= " WHERE u.entity IN (" . getEntity('user') . ")";
+				}
 			}
 
-			if (getDolGlobalInt('MULTICOMPANY_TRANSVERSE_MODE')) {
-				$sql .= " WHERE u.rowid IN (SELECT ug.fk_user FROM ".$this->db->prefix()."usergroup_user as ug WHERE ug.entity IN (".getEntity('usergroup')."))";
-			} else {
-				$sql .= " WHERE u.entity IN (" . getEntity('user') . ")";
-			}
+
 		}
 
 		if (!empty($user->socid)) {
