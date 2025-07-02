@@ -308,6 +308,11 @@ class DolibarrModules // Can not be abstract, because we need to instantiate it 
 	public $always_enabled;
 
 	/**
+	 * @var bool Module can be configured even if it's core_enabled
+	 */
+	public $always_configurable;
+
+	/**
 	 * @var bool Module is disabled
 	 */
 	public $disabled;

@@ -908,7 +908,7 @@ if ($mode == 'common' || $mode == 'commonkanban') {
 					$codeenabledisable .= img_picto($langs->trans("Required"), 'switch_on', '', false, 0, 0, '', 'opacitymedium valignmiddle');
 					//print $langs->trans("Required");
 				}
-				if (isModEnabled('multicompany') && $user->entity) {
+				if (isModEnabled('multicompany') && $user->entity && !$objMod->always_configurable ) {
 					$disableSetup++;
 				}
 			} else {
