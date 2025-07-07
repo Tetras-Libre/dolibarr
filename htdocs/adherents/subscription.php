@@ -891,8 +891,7 @@ if (($action != 'addsubscription' && $action != 'create_thirdparty')) {
 
 if($viewMode=="self"){
 	// Show link to public subscription
-	$url = DOL_URL_ROOT.'/public/members/new.php?entity=' . $conf->entity ;
-
+	$url = DOL_URL_ROOT.'/public/members/new.php?entity=' . $conf->entity  . '&memberId='. $object->id;
 	print '<div class="float-right"><input class="button" value="'.$langs->trans("NewCotisation").'" onclick="javascript:document.location.href=\''. $url . '\';"></div>';
 }
 
