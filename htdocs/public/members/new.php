@@ -304,7 +304,7 @@ if (empty($reshook) && $action == 'add') {
 		$adh->zip         = GETPOST('zipcode');
 		$adh->town        = GETPOST('town');
 		$adh->email       = GETPOST('email');
-		$adh->phone       = GETPOST('phone');
+		$adh->phone_mobile = GETPOST('phone');
 		if (!getDolGlobalString('ADHERENT_LOGIN_NOT_REQUIRED')) {
 			$adh->login       = GETPOST('login');
 			$adh->pass        = GETPOST('pass1');
@@ -320,7 +320,6 @@ if (empty($reshook) && $action == 'add') {
 		$adh->birth       = $birthday;
 
 		$adh->ip = getUserRemoteIP();
-
 
 		$nb_post_max = getDolGlobalInt("MAIN_SECURITY_MAX_POST_ON_PUBLIC_PAGES_BY_IP_ADDRESS", 200);
 		$now = dol_now();
