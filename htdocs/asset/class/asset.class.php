@@ -1010,9 +1010,9 @@ class Asset extends CommonObject
 
 				// futures depreciation lines
 				//-----------------------------------------------------
-				$nb_days_in_year = getDolGlobalString('ASSET_DEPRECIATION_DURATION_PER_YEAR') ? $conf->global->ASSET_DEPRECIATION_DURATION_PER_YEAR : 365;
-				$nb_days_in_month = getDolGlobalString('ASSET_DEPRECIATION_DURATION_PER_MONTH') ? $conf->global->ASSET_DEPRECIATION_DURATION_PER_MONTH : 30;
-				$period_amount = (float) price2num($depreciation_period_amount / $fields['duration'], 'MT');
+				$nb_days_in_year = getDolGlobalInt('ASSET_DEPRECIATION_DURATION_PER_YEAR', 365);
+				$nb_days_in_month = getDolGlobalInt('ASSET_DEPRECIATION_DURATION_PER_MONTH', 30);
+				$period_amount = (float) ($fields['duration'] > 0 ? price2num($depreciation_period_amount / $fields['duration'], 'MT') : 0);
 				$first_period_found = false;
 				// TODO fix declaration of $begin_period
 				// @phpstan-ignore-next-line
