@@ -49,16 +49,6 @@ if (!defined('NOBROWSERNOTIF')) {
 	define('NOBROWSERNOTIF', '1');
 }
 
-function force_switch_entity($newEntity)
-{
-	global $db, $conf;
-	if ($newEntity != $conf->entity) {
-		$conf->entity = $newEntity;
-		$conf->setValues($db);
-	}
-}
-
-
 // For MultiCompany module.
 // Do not use GETPOST here, function is not defined and get of entity must be done before including main.inc.php
 $entity = (!empty($_GET['entity']) ? (int) $_GET['entity'] : (!empty($_POST['entity']) ? (int) $_POST['entity'] : (!empty($_GET['e']) ? (int) $_GET['e'] : (!empty($_POST['e']) ? (int) $_POST['e'] : 1))));
@@ -250,7 +240,6 @@ if (!empty($SECUREKEY)) {
 if (!empty($entity)) {
 	$urlok .= 'e='.urlencode($entity).'&';
 	$urlko .= 'e='.urlencode($entity).'&';
-	force_switch_entity($entity);
 }
 if (!empty($getpostlang)) {
 	$urlok .= 'lang='.urlencode($getpostlang).'&';
@@ -1518,7 +1507,7 @@ if ($source == 'member' || $source == 'membersubscription') {
 	$member = new Adherent($db);
 	$adht = new AdherentType($db);
 
-	$result = $member->fetch( $ref);
+	$result = $member->fetch('', $ref);
 	if ($result <= 0) {
 		$mesg = $member->error;
 		$error++;
