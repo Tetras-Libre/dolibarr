@@ -105,7 +105,7 @@ function check_user_password_openid_connect($usertotest, $passwordtotest, $entit
 							if(getDolGlobalString('MULTICOMPANY_TRANSVERSE_MODE')) {
 								dol_syslog("Check entity in transverse mode ",  LOG_DEBUG);
 								$sql = 'SELECT DISTINCT (lugu.entity) ';
-								$sql .= ' FROM '.MAIN_DB_PREFIX.'user lu JOIN '.MAIN_DB_PREFIX.'_usergroup_user lugu ON lu.rowid=lugu.fk_user ';
+								$sql .= ' FROM '.MAIN_DB_PREFIX.'user lu JOIN '.MAIN_DB_PREFIX.'usergroup_user lugu ON lu.rowid=lugu.fk_user ';
 								$sql .= " WHERE lu.rowid = ".((int) $obj->rowid);
 								$sql .= " ORDER BY lugu.entity";
 								$sql .= " LIMIT 1";
