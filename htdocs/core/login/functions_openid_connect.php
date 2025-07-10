@@ -88,7 +88,7 @@ function check_user_password_openid_connect($usertotest, $passwordtotest, $entit
 
 			if (property_exists($userinfo_content, $login_claim)) {
 				// Success: retrieve claim to return to Dolibarr as login
-				$sql = 'SELECT login, entity, datestartvalidity, dateendvalidity';
+				$sql = 'SELECT rowid, login, entity, datestartvalidity, dateendvalidity';
 				$sql .= ' FROM '.MAIN_DB_PREFIX.'user';
 				$sql .= " WHERE login = '".$db->escape($userinfo_content->$login_claim)."'";
 
