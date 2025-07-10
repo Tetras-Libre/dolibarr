@@ -102,11 +102,35 @@ function check_user_password_openid_connect($usertotest, $passwordtotest, $entit
 						$login = $obj->login;
 
 						if(isModEnabled('multicompany')) {
-							$_SESSION['dol_entity'] = $obj->entity;
-							$conf->entity =  $obj->entity;
-							$conf->setValues($db);
+							if(getDolGlobalString('MULTICOMPANY_TRANSVERSE_MODE')) {
+								$sql = 'SELECT DISTINCT (lugu.entity) ';
+								$sql .= ' FROM '.MAIN_DB_PREFIX.'user lu JOIN '.MAIN_DB_PREFIX.'_usergroup_user lugu ON lu.rowid=lugu.fk_user ';
+								$sql .= " WHERE lu.rowid = ".((int) $obj->rowid);
+								$sql .= " ORDER BY lugu.entity";
+								$sql .= " LIMIT 1";
+								$resql = $db->query($sql);
+								if ($resql) {
+									$obj = $db->fetch_object($resql);
+									if ($obj) {
+										// Set the entity to the one of the user
+										$_SESSION['dol_entity'] = $obj->entity;
+										$conf->entity = $obj->entity;
+										$conf->setValues($db);
+									} else {
+										// If no entity found, set to 1
+										$_SESSION['dol_entity'] = 1;
+										$conf->entity = 1;
+										$conf->setValues($db);
+									}
+								} else {
+									dol_syslog("functions_openid_connect::check_user_password_openid_connect Error: ".$db->lasterror(), LOG_ERR);
+								}
+							} else {
+								$_SESSION['dol_entity'] = $obj->entity;
+								$conf->entity =   $obj->entity;
+								$conf->setValues($db);
+							}
 						}
-
 					}
 				}
 			} elseif ($userinfo_content->error) {
