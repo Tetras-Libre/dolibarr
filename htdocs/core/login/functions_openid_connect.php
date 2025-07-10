@@ -103,6 +103,7 @@ function check_user_password_openid_connect($usertotest, $passwordtotest, $entit
 
 						if(isModEnabled('multicompany')) {
 							if(getDolGlobalString('MULTICOMPANY_TRANSVERSE_MODE')) {
+								dol_syslog("Check entity in transverse mode ",  LOG_DEBUG);
 								$sql = 'SELECT DISTINCT (lugu.entity) ';
 								$sql .= ' FROM '.MAIN_DB_PREFIX.'user lu JOIN '.MAIN_DB_PREFIX.'_usergroup_user lugu ON lu.rowid=lugu.fk_user ';
 								$sql .= " WHERE lu.rowid = ".((int) $obj->rowid);
@@ -113,6 +114,7 @@ function check_user_password_openid_connect($usertotest, $passwordtotest, $entit
 									$obj = $db->fetch_object($resql);
 									if ($obj) {
 										// Set the entity to the one of the user
+										dol_syslog("Redirect user to entity with id" . $obj->entity, LOG_DEBUG);
 										$_SESSION['dol_entity'] = $obj->entity;
 										$conf->entity = $obj->entity;
 										$conf->setValues($db);
@@ -126,6 +128,7 @@ function check_user_password_openid_connect($usertotest, $passwordtotest, $entit
 									dol_syslog("functions_openid_connect::check_user_password_openid_connect Error: ".$db->lasterror(), LOG_ERR);
 								}
 							} else {
+								dol_syslog("Check entity in decentralized mode ",  LOG_DEBUG);
 								$_SESSION['dol_entity'] = $obj->entity;
 								$conf->entity =   $obj->entity;
 								$conf->setValues($db);
