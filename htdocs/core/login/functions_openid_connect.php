@@ -88,11 +88,11 @@ function check_user_password_openid_connect($usertotest, $passwordtotest, $entit
 
 			if (property_exists($userinfo_content, $login_claim)) {
 				// Success: retrieve claim to return to Dolibarr as login
-				$sql = 'SELECT login, entity, datestartvalidity, dateendvalidity';
+				$sql = 'SELECT rowid, login, entity, datestartvalidity, dateendvalidity';
 				$sql .= ' FROM '.MAIN_DB_PREFIX.'user';
 				$sql .= " WHERE login = '".$db->escape($userinfo_content->$login_claim)."'";
 
-				dol_syslog("functions_openid::check_user_password_openid", LOG_DEBUG);
+				dol_syslog("functions_openid::check_user_password_openid", LOG_ERR);
 
 				$resql = $db->query($sql);
 				if ($resql) {
@@ -102,9 +102,37 @@ function check_user_password_openid_connect($usertotest, $passwordtotest, $entit
 						$login = $obj->login;
 
 						if(isModEnabled('multicompany')) {
-							$_SESSION['dol_entity'] = $obj->entity;
-							$conf->entity =  $obj->entity;
-							$conf->setValues($db);
+							if(getDolGlobalString('MULTICOMPANY_TRANSVERSE_MODE')) {
+								dol_syslog("Check entity in transverse mode ",  LOG_ERR);
+								$sql = 'SELECT DISTINCT (lugu.entity) ';
+								$sql .= ' FROM '.MAIN_DB_PREFIX.'user lu JOIN '.MAIN_DB_PREFIX.'usergroup_user lugu ON lu.rowid=lugu.fk_user ';
+								$sql .= " WHERE lu.rowid = ".((int) $obj->rowid);
+								$sql .= " ORDER BY lugu.entity";
+								$sql .= " LIMIT 1";
+								$resql = $db->query($sql);
+								if ($resql) {
+									$obj = $db->fetch_object($resql);
+									if ($obj) {
+										// Set the entity to the one of the user
+										dol_syslog("Redirect user to entity with id" . $obj->entity, LOG_ERR);
+										$_SESSION['dol_entity'] = $obj->entity;
+										$conf->entity = $obj->entity;
+										$conf->setValues($db);
+									} else {
+										// If no entity found, set to 1
+										$_SESSION['dol_entity'] = 1;
+										$conf->entity = 1;
+										$conf->setValues($db);
+									}
+								} else {
+									dol_syslog("functions_openid_connect::check_user_password_openid_connect Error: ".$db->lasterror(), LOG_ERR);
+								}
+							} else {
+								dol_syslog("Check entity in decentralized mode ",  LOG_ERR);
+								$_SESSION['dol_entity'] = $obj->entity;
+								$conf->entity =   $obj->entity;
+								$conf->setValues($db);
+							}
 						}
 
 					}
