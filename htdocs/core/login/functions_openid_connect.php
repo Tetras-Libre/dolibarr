@@ -134,6 +134,7 @@ function check_user_password_openid_connect($usertotest, $passwordtotest, $entit
 								$conf->setValues($db);
 							}
 						}
+
 					}
 				}
 			} elseif ($userinfo_content->error) {
