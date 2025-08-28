@@ -137,6 +137,10 @@ function llxHeaderVierge($title, $head = "", $disablejs = 0, $disablehead = 0, $
 		$urllogo = DOL_URL_ROOT.'/theme/dolibarr_logo.svg';
 	}
 
+	if(isModEnabled('multicompany')) {
+		$urllogo .= '&entity='.((int) $conf->entity);
+	}
+
 	print '<header class="center">';
 
 	// Output html code for logo
