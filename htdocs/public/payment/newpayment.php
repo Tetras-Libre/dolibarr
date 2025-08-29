@@ -1507,7 +1507,18 @@ if ($source == 'member' || $source == 'membersubscription') {
 	$member = new Adherent($db);
 	$adht = new AdherentType($db);
 
-	$result = $member->fetch('', $ref);
+
+	// Ugly trick, our $member ref is changed by a trigger in FFCU trigger
+	//// Check if length of $ref value corresponds to a ref or to an id
+	$isTrueMemberRef = strlen($ref) > 10;
+
+	if($isTrueMemberRef){
+		$result = $member->fetch('', $ref);
+	} else {
+		$result = $member->fetch($ref);
+	}
+
+	// Fetch member
 	if ($result <= 0) {
 		$mesg = $member->error;
 		$error++;
