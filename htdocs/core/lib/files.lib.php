@@ -564,7 +564,7 @@ function dol_count_nb_of_line($file)
 		while (!feof($fp)) {
 			$line = fgets($fp);
 			// Only count lines that are not empty or only delimiters/whitespace
-			if ($line !== false && preg_match('/[^;\s\r\n]/', $line)) {
+			if ($line !== false && preg_match('/[^;,\s\r\n]/', $line)) {
 				$nb++;
 			}
 		}
