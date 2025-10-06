@@ -124,6 +124,8 @@ function check_user_password_openid_connect($usertotest, $passwordtotest, $entit
 										$conf->entity = 1;
 										$conf->setValues($db);
 									}
+									// redirect to home page to force reload of menu
+									header("Location: ".DOL_URL_ROOT.'/index.php?mainmenu=home');
 								} else {
 									dol_syslog("functions_openid_connect::check_user_password_openid_connect Error: ".$db->lasterror(), LOG_ERR);
 								}
