@@ -613,7 +613,7 @@ class Adherent extends CommonObject
 		$sql .= ", ".($user->id > 0 ? $user->id : "null"); // Can be null because member can be created by a guest or a script
 		$sql .= ", null, null, '".$this->db->escape($this->morphy)."'";
 		$sql .= ", ".((int) $this->typeid);
-		$sql .= ", ". (isset($this->entity) ? $this->entity : $conf->entity);
+		$sql .= ", ".$conf->entity;
 		$sql .= ", ".(!empty($this->import_key) ? "'".$this->db->escape($this->import_key)."'" : "null");
 		$sql .= ", ".(!empty($this->ip) ? "'".$this->db->escape($this->ip)."'" : "null");
 		$sql .= ")";
@@ -3264,5 +3264,21 @@ class Adherent extends CommonObject
 		$return .= '</div>';
 		$return .= '</div>';
 		return $return;
+	}
+
+	public static function createFFCUConstructedLogin($firstname, $lastname, $date_naissance)
+	{
+
+		$constructedLogin = $firstname.$lastname;
+
+		// If user has very long name, we truncate it to 40 characters
+		if(strlen($constructedLogin) > 40){
+			$constructedLogin = substr($constructedLogin, 0, 40);
+		}
+		$constructedLogin = $constructedLogin.$date_naissance;
+		$constructedLogin = preg_replace('/[^a-zA-Z0-9]/', '', $constructedLogin); // Remove special characters
+		$constructedLogin = strtolower($constructedLogin); // Convert to lowercase
+
+		return $constructedLogin;
 	}
 }
