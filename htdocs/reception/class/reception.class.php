@@ -13,6 +13,7 @@
  * Copyright (C) 2018		Quentin Vial-Gouteyron  <quentin.vial-gouteyron@atm-consulting.fr>
  * Copyright (C) 2022-2024  Frédéric France         <frederic.france@free.fr>
  * Copyright (C) 2024		MDW							<mdeweerd@users.noreply.github.com>
+ * Copyright (C) 2026		Mathieu Moulin			<mathieu@iprospective.fr>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1084,7 +1085,7 @@ class Reception extends CommonObject
 					// we do not log origin because it will be deleted
 					$mouvS->origin = null;
 
-					$result = $mouvS->livraison($user, $obj->fk_product, $obj->fk_entrepot, $obj->qty, 0, $langs->trans("ReceptionDeletedInDolibarr", $this->ref), '', $obj->eatby, $obj->sellby, $obj->batch); // Price is set to 0, because we don't want to see WAP changed
+					$result = $mouvS->livraison($user, $obj->fk_product, $obj->fk_entrepot, $obj->qty, 0, $langs->trans("ReceptionDeletedInDolibarr", $this->ref), '', $obj->eatby ? $this->db->jdate($obj->eatby) : null, $obj->sellby ? $this->db->jdate($obj->sellby) : null, $obj->batch); // Price is set to 0, because we don't want to see WAP changed
 					if ($result < 0) {
 						$error++;
 						$this->error = $mouvS->error;
