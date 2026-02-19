@@ -4,7 +4,7 @@
  * Copyright (C) 2004-2018	Laurent Destailleur			<eldy@users.sourceforge.net>
  * Copyright (C) 2012-2017	Regis Houssin				<regis.houssin@inodbox.com>
  * Copyright (C) 2015-2024	Alexandre Spangaro			<aspangaro@open-dsi.fr>
- * Copyright (C) 2018-2024	Frédéric France				<frederic.france@free.fr>
+ * Copyright (C) 2018-2025  Frédéric France				<frederic.france@free.fr>
  * Copyright (C) 2019		Thibault FOUCART			<support@ptibogxiv.net>
  * Copyright (C) 2023		Waël Almoman				<info@almoman.com>
  * Copyright (C) 2024-2025	MDW							<mdeweerd@users.noreply.github.com>
@@ -31,6 +31,14 @@
 
 // Load Dolibarr environment
 require '../main.inc.php';
+/**
+ * @var Conf $conf
+ * @var DoliDB $db
+ * @var HookManager $hookmanager
+ * @var Societe $mysoc
+ * @var Translate $langs
+ * @var User $user
+ */
 require_once DOL_DOCUMENT_ROOT.'/core/lib/member.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/adherents/class/adherent.class.php';
@@ -40,15 +48,6 @@ require_once DOL_DOCUMENT_ROOT.'/core/class/extrafields.class.php';
 require_once DOL_DOCUMENT_ROOT.'/compta/bank/class/account.class.php';
 require_once DOL_DOCUMENT_ROOT.'/product/class/product.class.php';
 require_once DOL_DOCUMENT_ROOT.'/accountancy/class/accountingjournal.class.php';
-
-/**
- * @var Conf $conf
- * @var DoliDB $db
- * @var HookManager $hookmanager
- * @var Societe $mysoc
- * @var Translate $langs
- * @var User $user
- */
 
 $langs->loadLangs(array("companies", "bills", "members", "users", "mails", 'other'));
 
@@ -61,7 +60,7 @@ $id = GETPOSTINT('rowid') ? GETPOSTINT('rowid') : GETPOSTINT('id');
 $rowid = $id;
 $ref = GETPOST('ref', 'alphanohtml');
 $typeid = GETPOSTINT('typeid');
-$cancel = GETPOST('cancel');
+$cancel = GETPOST('cancel', 'alpha');
 $viewMode = GETPOST ('view', 'alpha'); // If set, no header is displayed
 
 // Load variable for pagination
@@ -106,7 +105,7 @@ $datefrom = 0;
 $dateto = 0;
 $paymentdate = -1;
 
-
+// TODO merge v23. Perhaps this v19 code breaking new logic from v23
 // No member id provided we try to find existing member associated to current user
 if ((empty($id)  || empty($ref) ) && $viewMode=='self') {
 	dol_syslog("adherents/subscription.php: No id or ref defined, we try to find the member associated to the current user", LOG_DEBUG);
@@ -538,8 +537,15 @@ print '<input type="hidden" name="token" value="'.newToken().'">';
 print '<input type="hidden" name="rowid" value="'.$object->id.'">';
 
 
+// TODO merge v23 initially deleted in v19 but chnag in v23
+print dol_get_fiche_head($head, 'subscription', $langs->trans("Member"), -1, 'user');
+
+$linkback = '<a href="'.dolBuildUrl(DOL_URL_ROOT.'/adherents/list.php', ['restore_lastsearch_values' => 1]).'">'.$langs->trans("BackToList").'</a>';
+// end ******
+
+
 $morehtmlref = '<a href="'.DOL_URL_ROOT.'/adherents/vcard.php?id='.$object->id.'" class="refid">';
-$morehtmlref .= img_picto($langs->trans("Download").' '.$langs->trans("VCard"), 'vcard.png', 'class="valignmiddle marginleftonly paddingrightonly"');
+$morehtmlref .= img_picto($langs->trans("Download").' '.$langs->trans("VCard"), 'vcard', 'class="valignmiddle marginleftonly paddingrightonly"');
 $morehtmlref .= '</a>';
 
 if($viewMode == "self"){
@@ -554,17 +560,16 @@ if($viewMode == "self"){
 print '<div class="fichecenter">';
 print '<div class="fichehalfleft">';
 
-
 print '<div class="underbanner clearboth"></div>';
 print '<table class="border centpercent tableforfield">';
 
 // Login
 if (!getDolGlobalString('ADHERENT_LOGIN_NOT_REQUIRED')) {
-	print '<tr><td class="titlefield">'.$langs->trans("Login").' / '.$langs->trans("Id").'</td><td class="valeur">'.dol_escape_htmltag($object->login).'</td></tr>';
+	print '<tr><td class="titlefieldmiddle">'.$langs->trans("Login").' / '.$langs->trans("Id").'</td><td class="valeur">'.dol_escape_htmltag($object->login).'</td></tr>';
 }
 
 // Type
-print '<tr><td class="titlefield">'.$langs->trans("Type").'</td>';
+print '<tr><td class="titlefieldmiddle">'.$langs->trans("Type").'</td>';
 print '<td class="valeur">'.$adht->getNomUrl(1)."</td></tr>\n";
 
 // Morphy
@@ -574,8 +579,6 @@ print '</tr>';
 
 // Company
 print '<tr><td>'.$langs->trans("Company").'</td><td class="valeur">'.dol_escape_htmltag($object->company).'</td></tr>';
-
-print '<tr><td>'.$langs->trans("Blop").'</td><td class="valeur">'.dol_escape_htmltag($object->company).'</td></tr>';
 
 // Civility
 print '<tr><td>'.$langs->trans("UserTitle").'</td><td class="valeur">'.$object->getCivilityLabel().'</td>';
@@ -642,7 +645,7 @@ if (isModEnabled('category') && $user->hasRight('categorie', 'lire')) {
 }
 
 // Birth Date
-print '<tr><td class="titlefield">'.$langs->trans("DateOfBirth").'</td><td class="valeur">'.dol_print_date($object->birth, 'day').'</td></tr>';
+print '<tr><td class="titlefieldmiddle">'.$langs->trans("DateOfBirth").'</td><td class="valeur">'.dol_print_date($object->birth, 'day').'</td></tr>';
 
 // Default language
 if (getDolGlobalInt('MAIN_MULTILANGS')) {
@@ -684,7 +687,7 @@ if (isModEnabled('societe')) {
 		print '<input type="hidden" name="token" value="'.newToken().'">';
 		print '<table class="nobordernopadding">';
 		print '<tr><td>';
-		print $form->select_company($object->fk_soc, 'socid', '', 1);
+		print $form->select_company($object->socid, 'socid', '', 1);
 		print '</td>';
 		print '<td class="left"><input type="submit" class="button button-edit" value="'.$langs->trans("Modify").'"></td>';
 		print '</tr></table></form>';
@@ -740,7 +743,8 @@ print "</table>\n";
 print "</div></div>\n";
 print '<div class="clearboth"></div>';
 
-//print dol_get_fiche_end();
+// TODO merge v23 : originally deleted
+print dol_get_fiche_end();
 
 
 /*
@@ -1012,7 +1016,7 @@ if (($action == 'addsubscription' || $action == 'create_thirdparty') && $user->h
 	}
 
 
-	print '<form name="subscription" method="POST" action="'.$_SERVER["PHP_SELF"].'">';
+	print '<form name="subscription" method="POST" action="'.dolBuildUrl($_SERVER["PHP_SELF"]).'">';
 	print '<input type="hidden" name="token" value="'.newToken().'">';
 	print '<input type="hidden" name="action" value="subscription">';
 	print '<input type="hidden" name="rowid" value="'.$rowid.'">';
@@ -1082,7 +1086,7 @@ if (($action == 'addsubscription' || $action == 'create_thirdparty') && $user->h
 	if ($adht->subscription) {
 		// Amount
 		print '<tr><td class="fieldrequired">'.$langs->trans("Amount").'</td>';
-		print '<td><input autofocus class="width50" type="text" name="subscription" value="'.(GETPOSTISSET('subscription') ? GETPOST('subscription') : (is_null($adht->amount) ? '' : price($adht->amount, 0, '', 0))).'"> '.$langs->trans("Currency".$conf->currency) .'</td></tr>';
+		print '<td><input autofocus class="width50" type="text" name="subscription" value="'.(GETPOSTISSET('subscription') ? GETPOST('subscription') : (is_null($adht->amount) ? '' : price($adht->amount, 0, '', 0))).'"> '.$langs->trans("Currency".getDolCurrency()) .'</td></tr>';
 
 		// Label
 		print '<tr><td>'.$langs->trans("Label").'</td>';
@@ -1116,11 +1120,11 @@ if (($action == 'addsubscription' || $action == 'create_thirdparty') && $user->h
 				print '<input type="radio" class="moreaction" id="invoiceonly" name="paymentsave" value="invoiceonly"'.(!empty($invoiceonly) ? ' checked' : '');
 				//if (empty($object->fk_soc)) print ' disabled';
 				print '><label for="invoiceonly"> '.$langs->trans("MoreActionInvoiceOnly");
-				if ($object->fk_soc) {
+				if ($object->socid) {
 					print ' ('.$langs->trans("ThirdParty").': '.$company->getNomUrl(1).')';
 				} else {
 					print ' (';
-					if (empty($object->fk_soc)) {
+					if (empty($object->socid)) {
 						print img_warning($langs->trans("NoThirdPartyAssociatedToMember"));
 					}
 					print $langs->trans("NoThirdPartyAssociatedToMember");
@@ -1144,7 +1148,7 @@ if (($action == 'addsubscription' || $action == 'create_thirdparty') && $user->h
 			// Add invoice with payments
 			if (isModEnabled('bank') && isModEnabled('societe') && isModEnabled('invoice')) {
 				print '<input type="radio" class="moreaction" id="bankviainvoice" name="paymentsave" value="bankviainvoice"'.(!empty($bankviainvoice) ? ' checked' : '');
-				//if (empty($object->fk_soc)) print ' disabled';
+				//if (empty($object->socid)) print ' disabled';
 				print '><label for="bankviainvoice">  '.$langs->trans("MoreActionBankViaInvoice");
 				if ($object->socid) {
 					print ' ('.$langs->trans("ThirdParty").': '.$company->getNomUrl(1).')';

@@ -7,6 +7,7 @@
  * Copyright (C) 2018		Juanjo Menent			<jmenent@2byte.es>
  * Copyright (C) 2024-2025	MDW						<mdeweerd@users.noreply.github.com>
  * Copyright (C) 2024       Frédéric France         <frederic.france@free.fr>
+ * Copyright (C) 2025       Charlene Benke          <charlene@patas-monkey.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,11 +30,6 @@
 
 // Load Dolibarr environment
 require '../../main.inc.php';
-require_once DOL_DOCUMENT_ROOT.'/user/class/usergroup.class.php';
-require_once DOL_DOCUMENT_ROOT.'/core/lib/usergroups.lib.php';
-require_once DOL_DOCUMENT_ROOT.'/core/class/extrafields.class.php';
-require_once DOL_DOCUMENT_ROOT.'/core/class/html.formfile.class.php';
-
 /**
  * @var Conf $conf
  * @var DoliDB $db
@@ -42,6 +38,11 @@ require_once DOL_DOCUMENT_ROOT.'/core/class/html.formfile.class.php';
  * @var Translate $langs
  * @var User $user
  */
+require_once DOL_DOCUMENT_ROOT.'/user/class/usergroup.class.php';
+require_once DOL_DOCUMENT_ROOT.'/core/lib/usergroups.lib.php';
+require_once DOL_DOCUMENT_ROOT.'/core/class/extrafields.class.php';
+require_once DOL_DOCUMENT_ROOT.'/core/class/html.formfile.class.php';
+require_once DOL_DOCUMENT_ROOT.'/core/class/html.formother.class.php';
 
 // Define if user can read permissions
 $permissiontoadd = ($user->admin || $user->hasRight("user", "user", "write"));
@@ -91,6 +92,7 @@ $result = restrictedArea($user, 'user', $id, 'usergroup&usergroup', $feature2);
 /**
  * Actions
  */
+
 $error = 0;
 $parameters = array('id' => $id, 'userid' => $userid, 'caneditperms' => $permissiontoedit);
 $reshook = $hookmanager->executeHooks('doActions', $parameters, $object, $action); // Note that $action and $object may have been modified by some hooks
@@ -132,6 +134,7 @@ if (empty($reshook)) {
 		} else {
 			$object->name	= GETPOST("nom", 'alphanohtml');
 			$object->note	= dol_htmlcleanlastbr(trim(GETPOST("note", 'restricthtml')));
+			$object->color	= GETPOST("color", 'alphanohtml');
 
 			// Fill array 'array_options' with data from add form
 			$ret = $extrafields->setOptionalsFromPost(null, $object);
@@ -202,6 +205,7 @@ if (empty($reshook)) {
 
 		$object->name = GETPOST("nom", 'alphanohtml');
 		$object->note = dol_htmlcleanlastbr(trim(GETPOST("note", 'restricthtml')));
+		$object->color = GETPOST("color", 'alphanohtml');
 		$object->tms = dol_now();
 
 		// Fill array 'array_options' with data from add form
@@ -249,6 +253,7 @@ $form = new Form($db);
 $fuserstatic = new User($db);
 $form = new Form($db);
 $formfile = new FormFile($db);
+$formother = new FormOther($db);
 
 if ($action == 'create') {
 	print load_fiche_titre($langs->trans("NewGroup"), '', 'object_group');
@@ -275,8 +280,15 @@ if ($action == 'create') {
 		}
 	}
 
+	unset($object->fields['color']);
+
 	// Common attributes
 	include DOL_DOCUMENT_ROOT.'/core/tpl/commonfields_add.tpl.php';
+
+	print '<tr><td>'.$langs->trans("ColorGroup").'</td>';
+	print '<td>';
+	print $formother->selectColor(GETPOSTISSET('color') ? GETPOST('color', 'alphanohtml') : $object->color, 'color', null, 1, array(), 'hideifnotset');
+	print '</td></tr>';
 
 	// Other attributes
 	include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_add.tpl.php';
@@ -322,6 +334,7 @@ if ($action == 'create') {
 
 			print '<div class="fichecenter">';
 			print '<div class="fichehalfleft">';
+
 			print '<div class="underbanner clearboth"></div>';
 
 			print '<table class="border centpercent tableforfield">';
@@ -331,7 +344,7 @@ if ($action == 'create') {
 				print '<tr><td class="titlefield">'.$langs->trans("Name").'</td>';
 				print '<td class="valeur">'.dol_escape_htmltag($object->name);
 				if (empty($object->entity)) {
-					print img_picto($langs->trans("GlobalGroup"), 'redstar');
+					print img_picto($langs->trans("GlobalGroup"), 'superadmin');
 				}
 				print "</td></tr>\n";
 			}
@@ -345,10 +358,16 @@ if ($action == 'create') {
 			}
 
 			unset($object->fields['nom']); // Name already displayed in banner
+			unset($object->fields['color']);
 
 			// Common attributes
 			$keyforbreak = '';
 			include DOL_DOCUMENT_ROOT.'/core/tpl/commonfields_view.tpl.php';
+
+			print '<tr><td>'.$langs->trans("ColorGroup").'</td>';
+			print '<td>';
+			print $formother->showColor($object->color, '');
+			print '</td></tr>';
 
 			// Other attributes
 			include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_view.tpl.php';
@@ -443,9 +462,9 @@ if ($action == 'create') {
 						print '<td class="tdoverflowmax150">';
 						print $useringroup->getNomUrl(-1, '', 0, 0, 24, 0, 'login');
 						if (isModEnabled('multicompany') && $useringroup->admin && empty($useringroup->entity)) {
-							print img_picto($langs->trans("SuperAdministratorDesc"), 'redstar', 'class="valignmiddle paddingright paddingleft"');
+							print img_picto($langs->trans("SuperAdministratorDesc"), 'superadmin', 'class="valignmiddle paddingright paddingleft"');
 						} elseif ($useringroup->admin) {
-							print img_picto($langs->trans("AdministratorDesc"), 'star', 'class="valignmiddle paddingright paddingleft"');
+							print img_picto($langs->trans("AdministratorDesc"), 'admin', 'class="valignmiddle paddingright paddingleft"');
 						}
 						print '</td>';
 						print '<td>'.$useringroup->lastname.'</td>';
@@ -528,8 +547,15 @@ if ($action == 'create') {
 				}
 			}
 
+			unset($object->fields['color']);
+
 			// Common attributes
 			include DOL_DOCUMENT_ROOT.'/core/tpl/commonfields_edit.tpl.php';
+
+			print '<tr><td>'.$langs->trans("ColorGroup").'</td>';
+			print '<td>';
+			print $formother->selectColor(GETPOSTISSET('color') ? GETPOST('color', 'alphanohtml') : $object->color, 'color', null, 1, array(), 'hideifnotset');
+			print '</td></tr>';
 
 			// Other attributes
 			include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_edit.tpl.php';

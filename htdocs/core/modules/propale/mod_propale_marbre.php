@@ -50,6 +50,11 @@ class mod_propale_marbre extends ModeleNumRefPropales
 	public $error = '';
 
 	/**
+	 * @var int		Position
+	 */
+	public $position = 10;
+
+	/**
 	 * @var string Nom du modele
 	 * @deprecated
 	 * @see $name
