@@ -93,7 +93,7 @@ function check_user_password_openid_connect($usertotest, $passwordtotest, $entit
 		'client_id'     => getDolGlobalString('MAIN_AUTHENTICATION_OIDC_CLIENT_ID'),
 		'client_secret' => getDolGlobalString('MAIN_AUTHENTICATION_OIDC_CLIENT_SECRET'),
 		'code'          => $auth_code,
-		'redirect_uri'  => "https://ffcu-pre-prod-dolibarr.tetras-libre.fr/?openid_mode=true"
+		'redirect_uri'  => getDolGlobalString("MAIN_AUTHENTICATION_OIDC_REDIRECT_URL")
 	];
 
 	dol_syslog("functions_openid_connect::check_user_password_openid_connect /old code=".print_r(openid_connect_get_redirect_url(), true), LOG_DEBUG);
