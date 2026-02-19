@@ -32,7 +32,6 @@
  *		\brief      Tab of payment modes for the customer
  */
 
-
 // Load Dolibarr environment
 require '../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/company.lib.php';
@@ -648,7 +647,7 @@ if (empty($reshook)) {
 
 			$tmpservice = 'StripeTest';
 			$tmpservicestatus = 0;
-			if ($action == 'setkey_account') {
+			if ($action == 'setkey_account') {	// Test on permission not required
 				$tmpservice = 'StripeLive';
 				$tmpservicestatus = 1;
 			}
@@ -657,7 +656,7 @@ if (empty($reshook)) {
 			global $stripearrayofkeysbyenv;
 			$tmpsite_account = $stripearrayofkeysbyenv[$tmpservicestatus]['publishable_key'];
 
-			if ($action == 'setkey_account') {
+			if ($action == 'setkey_account') {	// Test on permission not required
 				$newcu = GETPOST('key_account', 'alpha');
 			} else {
 				$newcu = GETPOST('key_accounttest', 'alpha');
@@ -717,7 +716,7 @@ if (empty($reshook)) {
 
 			$tmpservice = 'StripeTest';
 			$tmpservicestatus = 0;
-			if ($action == 'setkey_account_supplier') {
+			if ($action == 'setkey_account_supplier') {		// Test on permission not required
 				$tmpservice = 'StripeLive';
 				$tmpservicestatus = 1;
 			}
@@ -726,7 +725,7 @@ if (empty($reshook)) {
 			global $stripearrayofkeysbyenv;
 			$tmpsite_account = $stripearrayofkeysbyenv[$tmpservicestatus]['publishable_key'];
 
-			if ($action == 'setkey_account_supplier') {
+			if ($action == 'setkey_account_supplier') {		// Test on permission not required
 				$newsup = GETPOST('key_account_supplier', 'alpha');
 			} else {
 				$newsup = GETPOST('key_account_suppliertest', 'alpha');
@@ -931,7 +930,7 @@ if ($socid && ($action == 'edit' || $action == 'editcard') && $permissiontoaddup
 	print '<form action="'.$_SERVER["PHP_SELF"].'?socid='.$object->id.'" method="post">';
 	print '<input type="hidden" name="token" value="'.newToken().'">';
 	$actionforadd = 'update';
-	if ($action == 'editcard') {
+	if ($action == 'editcard') {		// Test on permission not required
 		$actionforadd = 'updatecard';
 	}
 	print '<input type="hidden" name="action" value="'.$actionforadd.'">';
@@ -941,7 +940,7 @@ if ($socid && ($action == 'create' || $action == 'createcard') && $permissiontoa
 	print '<form action="'.$_SERVER["PHP_SELF"].'?socid='.$object->id.'" method="post">';
 	print '<input type="hidden" name="token" value="'.newToken().'">';
 	$actionforadd = 'add';
-	if ($action == 'createcard') {
+	if ($action == 'createcard') {		// Test on permission not required
 		$actionforadd = 'addcard';
 	}
 	print '<input type="hidden" name="action" value="'.$actionforadd.'">';
@@ -1513,6 +1512,7 @@ if ($socid && $action != 'edit' && $action != 'create' && $action != 'editcard' 
 	if (isModEnabled('stripe') && !empty($conf->stripeconnect->enabled) && !empty($stripesupplieracc)) {
 		print load_fiche_titre($langs->trans('StripeBalance').($stripesupplieracc ? ' (Stripe connection with StripeConnect account '.$stripesupplieracc.')' : ' (Stripe connection with keys from Stripe module setup)'), $morehtmlright, 'stripe-s');
 		$balance = \Stripe\Balance::retrieve(array("stripe_account" => $stripesupplieracc));
+		print '<!-- List of Stripe connected accounts -->'."\n";
 		print '<table class="liste centpercent noborder">'."\n";
 		print '<tr class="liste_titre">';
 		print '<td>'.$langs->trans('Currency').'</td>';
@@ -1570,6 +1570,7 @@ if ($socid && $action != 'edit' && $action != 'create' && $action != 'editcard' 
 	$rib_list = $object->get_all_rib();
 
 	if (is_array($rib_list)) {
+		print '<!-- List of bank accounts -->'."\n";
 		print '<div class="div-table-responsive-no-min">'; // You can use div-table-responsive-no-min if you don't need reserved height for your table
 		print '<table class="liste centpercent noborder">';
 
@@ -1682,7 +1683,6 @@ if ($socid && $action != 'edit' && $action != 'create' && $action != 'editcard' 
 
 			if (isModEnabled('prelevement')) {
 				// RUM
-				//print '<td>'.$prelevement->buildRumNumber($object->code_client, $rib->datec, $rib->id).'</td>';
 				print '<td class="tdoverflowmax100 small" title="'.dolPrintHTMLForAttribute($rib->rum).'">'.dolPrintHTML($rib->rum);
 				print '<br><span class="opacitymedium">'.dolPrintHTML($rib->frstrecur).'</span>';	// FRST or RCUR
 				print '</td>';
@@ -1819,9 +1819,10 @@ if ($socid && $action != 'edit' && $action != 'create' && $action != 'editcard' 
 			$nbremote++;
 
 			print '<tr class="oddeven">';
+			// Label
 			print '<td>';
 			print '</td>';
-			// Src ID
+			// External ID
 			print '<td class="tdoverflowmax150">';
 			$connect = '';
 			if (!empty($stripeacc)) {
@@ -1837,8 +1838,10 @@ if ($socid && $action != 'edit' && $action != 'create' && $action != 'editcard' 
 			print $src->id;
 			print '</td>';
 			// Bank
+			/*
 			print '<td>';
-			print'</td>';
+			print '</td>';
+			*/
 			// Account number
 			print '<td>';
 			print '</td>';

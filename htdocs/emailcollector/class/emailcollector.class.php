@@ -113,7 +113,7 @@ class EmailCollector extends CommonObject
 	 * @var array<string,array{type:string,label:string,enabled:int<0,2>|string,position:int,notnull?:int,visible:int<-6,6>|string,alwayseditable?:int<0,1>,noteditable?:int<0,1>,default?:string,index?:int,foreignkey?:string,searchall?:int<0,1>,isameasure?:int<0,1>,css?:string,csslist?:string,help?:string,showoncombobox?:int<0,4>,disabled?:int<0,1>,arrayofkeyval?:array<int|string,string>,autofocusoncreate?:int<0,1>,comment?:string,copytoclipboard?:int<1,2>,validate?:int<0,1>,showonheader?:int<0,1>}>  Array with all fields and their property. Do not use it as a static var. It may be modified by constructor.
 	 */
 	public $fields = array(
-		'rowid'         => array('type' => 'integer', 'label' => 'TechnicalID', 'visible' => 2, 'enabled' => 1, 'position' => 1, 'notnull' => 1, 'index' => 1),
+		'rowid'         => array('type' => 'integer', 'label' => 'TechnicalID', 'visible' => -2, 'enabled' => 1, 'position' => 1, 'notnull' => 1, 'index' => 1),
 		'entity'        => array('type' => 'integer', 'label' => 'Entity', 'enabled' => 1, 'visible' => 0, 'default' => '1', 'notnull' => 1, 'index' => 1, 'position' => 20),
 		'ref'           => array('type' => 'varchar(128)', 'label' => 'Ref', 'enabled' => 1, 'visible' => 1, 'notnull' => 1, 'showoncombobox' => 1, 'index' => 1, 'position' => 10, 'searchall' => 1, 'help' => 'Example: MyCollector1', 'csslist' => 'tdoverflowmax200'),
 		'label'         => array('type' => 'varchar(255)', 'label' => 'Label', 'visible' => 1, 'enabled' => 1, 'position' => 30, 'notnull' => -1, 'searchall' => 1, 'help' => 'Example: My Email collector', 'csslist' => 'tdoverflowmax150', 'tdcss' => 'titlefieldmiddle'),
@@ -897,23 +897,28 @@ class EmailCollector extends CommonObject
 	{
 		global $user;
 
-		$nberror = 0;
+		$nbErrors = 0;
 
 		$arrayofcollectors = $this->fetchAll($user, 1);
-
 		// Loop on each collector
 		foreach ($arrayofcollectors as $emailcollector) {
 			$result = $emailcollector->doCollectOneCollector(0);
+
 			dol_syslog("doCollect result = ".$result." for emailcollector->id = ".$emailcollector->id);
 
 			$this->error .= 'EmailCollector ID '.$emailcollector->id.':'.$emailcollector->error.'<br>';
 			if (!empty($emailcollector->errors)) {
 				$this->error .= implode('<br>', $emailcollector->errors);
+				$nbErrors++;
 			}
 			$this->output .= 'EmailCollector ID '.$emailcollector->id.': '.$emailcollector->lastresult.'<br>';
+
+			if ($result < 0) {
+				$nbErrors++;
+			}
 		}
 
-		return $nberror;
+		return $nbErrors;
 	}
 
 	/**
@@ -1868,9 +1873,28 @@ class EmailCollector extends CommonObject
 				}
 
 				if ($searchfilterisanswer > 0) {
-					if (empty($headers['In-Reply-To'])) {
+					$referencesforanswer = '';
+					if (!empty($headers['References'])) {
+						$referencesforanswer .= $headers['References'].' ';
+					}
+					if (!empty($headers['In-Reply-To'])) {
+						$referencesforanswer .= $headers['In-Reply-To'];
+					}
+
+					$hasdolibarrreference = 0;
+					if (!empty($referencesforanswer)) {
+						if (preg_match('/dolibarr-([a-z]+)([0-9]+)@'.preg_quote($host, '/').'/', $referencesforanswer)) {
+							$hasdolibarrreference = 1;
+						} elseif (getDolGlobalString('EMAIL_ALTERNATIVE_HOST_SIGNATURE')) {
+							if (preg_match('/dolibarr-([a-z]+)([0-9]+)@'.preg_quote(getDolGlobalString('EMAIL_ALTERNATIVE_HOST_SIGNATURE'), '/').'/', $referencesforanswer)) {
+								$hasdolibarrreference = 1;
+							}
+						}
+					}
+
+					if (empty($headers['In-Reply-To']) && empty($hasdolibarrreference)) {
 						$nbemailprocessed++;
-						dol_syslog(" Discarded - Email is not an answer (no In-Reply-To header)");
+						dol_syslog(" Discarded - Email is not an answer (no In-Reply-To header and no Dolibarr reference)");
 						continue; // Exclude email
 					}
 					$isanswer = 0;
@@ -1883,6 +1907,9 @@ class EmailCollector extends CommonObject
 						if (!empty($headers['In-Reply-To'])) {
 							$isanswer = 1;
 						}
+					}
+					if ($hasdolibarrreference) {
+						$isanswer = 1;
 					}
 					//if ($headers['In-Reply-To'] != $headers['Message-ID'] && empty($headers['References'])) $isanswer = 1;	// If in-reply-to differs of message-id, this is a reply
 					//if ($headers['In-Reply-To'] != $headers['Message-ID'] && !empty($headers['References']) && strpos($headers['References'], $headers['Message-ID']) !== false) $isanswer = 1;
@@ -1977,7 +2004,11 @@ class EmailCollector extends CommonObject
 						$attachments = [];
 					}
 				} else {
-					$this->getmsg($connection, $imapemail);	// This set global var $charset, $htmlmsg, $plainmsg, $attachments
+					$getMsg = $this->getmsg($connection, $imapemail); // This set global var $charset, $htmlmsg, $plainmsg, $attachments
+					if ($getMsg < 0) {
+						$this->errors = array_merge($this->errors, [$this->error]);
+						return $getMsg;
+					}
 				}
 				'@phan-var-force Webklex\PHPIMAP\Attachment[] $attachments';
 
@@ -3302,7 +3333,11 @@ class EmailCollector extends CommonObject
 														$this->saveAttachment($destdir, $filename, $content);
 													}
 												} else {
-													$this->getmsg($connection, $imapemail, $destdir);
+													$getMsg = $this->getmsg($connection, $imapemail, $destdir);
+													if ($getMsg < 0) {
+														$this->errors = array_merge($this->errors, [$this->error]);
+														return $getMsg;
+													}
 												}
 
 												$operationslog .= '<br>Project created with attachments -> id='.dol_escape_htmltag((string) $projecttocreate->id);
@@ -3459,7 +3494,11 @@ class EmailCollector extends CommonObject
 														$this->saveAttachment($destdir, $filename, $content);
 													}
 												} else {
-													$this->getmsg($connection, $imapemail, $destdir);
+													$getMsg = $this->getmsg($connection, $imapemail, $destdir);
+													if ($getMsg < 0) {
+														$this->errors = array_merge($this->errors, [$this->error]);
+														return $getMsg;
+													}
 												}
 
 												$operationslog .= '<br>Ticket created with attachments -> id='.dol_escape_htmltag((string) $tickettocreate->id);
@@ -3779,7 +3818,7 @@ class EmailCollector extends CommonObject
 			$this->update($user);
 		}
 
-		dol_syslog("EmailCollector::doCollectOneCollector end", LOG_INFO);
+		dol_syslog("EmailCollector::doCollectOneCollector end error=".$error, LOG_INFO);
 
 		return $error ? -1 : 1;
 	}
@@ -3794,9 +3833,9 @@ class EmailCollector extends CommonObject
 	 * @param 	IMAP\Connection|resource $mbox   	Structure
 	 * @param 	int				$mid		Message Id / Message Number  Email
 	 * @param 	string			$destdir    Target dir for attachments. Leave blank to parse without writing to disk.
-	 * @return 	void
+	 * @return 	int
 	 */
-	private function getmsg($mbox, $mid, $destdir = '')
+	private function getmsg($mbox, $mid, $destdir = ''): int
 	{
 		// input $mbox = IMAP stream, $mid = message id
 		// output all the following:
@@ -3810,9 +3849,12 @@ class EmailCollector extends CommonObject
 
 		// BODY
 		$s = imap_fetchstructure($mbox, $mid, FT_UID);
+		if ($s === false) {
+			$this->errors = array_merge($this->errors, [imap_last_error()]);
+			return -1;
+		}
 
-
-		if (!$s->parts) {
+		if (empty($s->parts)) {
 			// simple
 			$this->getpart($mbox, $mid, $s, '0'); // pass '0' as part-number
 		} else {
@@ -3821,6 +3863,8 @@ class EmailCollector extends CommonObject
 				$this->getpart($mbox, $mid, $p, (string) ($partno0 + 1), $destdir);
 			}
 		}
+
+		return 1;
 	}
 
 	/* partno string

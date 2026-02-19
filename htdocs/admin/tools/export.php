@@ -1,10 +1,11 @@
 <?php
-/* Copyright (C) 2006-2014  Laurent Destailleur <eldy@users.sourceforge.net>
- * Copyright (C) 2011       Juanjo Menent       <jmenent@2byte.es>
- * Copyright (C) 2015       Raphaël Doursenaud  <rdoursenaud@gpcsolutions.fr>
+/* Copyright (C) 2006-2014	Laurent Destailleur	<eldy@users.sourceforge.net>
+ * Copyright (C) 2011		Juanjo Menent		<jmenent@2byte.es>
+ * Copyright (C) 2015		Raphaël Doursenaud	<rdoursenaud@gpcsolutions.fr>
  * Copyright (C) 2021		Regis Houssin		<regis.houssin@inodbox.com>
- * Copyright (C) 2024       Frédéric France         <frederic.france@free.fr>
- * Copyright (C) 2025		MDW						<mdeweerd@users.noreply.github.com>
+ * Copyright (C) 2024		Frédéric France		<frederic.france@free.fr>
+ * Copyright (C) 2025		MDW					<mdeweerd@users.noreply.github.com>
+ * Copyright (C) 2025		Anthony Berton		<anthony.berton@bb2a.fr>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -121,7 +122,7 @@ $outputdir  = $conf->admin->dir_output.'/backup';
 $result = dol_mkdir($outputdir);
 
 
-$lowmemorydump = GETPOSTISSET("lowmemorydump") ? GETPOST("lowmemorydump") : getDolGlobalString('MAIN_LOW_MEMORY_DUMP');
+$lowmemorydump = (int) (GETPOSTISSET("lowmemorydump") ? GETPOSTINT("lowmemorydump") : getDolGlobalInt('MAIN_LOW_MEMORY_DUMP'));
 
 
 // MYSQL
@@ -152,11 +153,11 @@ if ($what == 'mysql') {
 	}
 
 	if (!$errormsg && $cmddump) {
-		dolibarr_set_const($db, 'SYSTEMTOOLS_MYSQLDUMP', $cmddump, 'chaine', 0, '', $conf->entity);
+		dolibarr_set_const($db, 'SYSTEMTOOLS_MYSQLDUMP', $cmddump, 'chaine', 0, '', 0);
 	}
 
 	if (!$errormsg) {
-		$result = $utils->dumpDatabase(GETPOST('compression', 'alpha'), $what, 0, $file, 0, 0, (int) $lowmemorydump);
+		$result = $utils->dumpDatabase(GETPOST('compression', 'alpha'), $what, 0, $file, 0, 0, $lowmemorydump);
 
 		$errormsg = $utils->error;
 		$_SESSION["commandbackuplastdone"] = $utils->result['commandbackuplastdone'];
@@ -166,7 +167,7 @@ if ($what == 'mysql') {
 
 // MYSQL NO BIN
 if ($what == 'mysqlnobin') {
-	$utils->dumpDatabase(GETPOST('compression', 'alpha'), $what, 0, $file, 0, 0, (int) $lowmemorydump);
+	$utils->dumpDatabase(GETPOST('compression', 'alpha'), $what, 0, $file, 0, 0, $lowmemorydump);
 
 	$errormsg = $utils->error;
 	$_SESSION["commandbackuplastdone"] = $utils->result['commandbackuplastdone'];
@@ -192,11 +193,11 @@ if ($what == 'postgresql') {
 	} */
 
 	if (!$errormsg && $cmddump) {
-		dolibarr_set_const($db, 'SYSTEMTOOLS_POSTGRESQLDUMP', $cmddump, 'chaine', 0, '', $conf->entity);
+		dolibarr_set_const($db, 'SYSTEMTOOLS_POSTGRESQLDUMP', $cmddump, 'chaine', 0, '', 0);
 	}
 
 	if (!$errormsg) {
-		$utils->dumpDatabase(GETPOST('compression', 'alpha'), $what, 0, $file, 0, 0, (int) $lowmemorydump);
+		$utils->dumpDatabase(GETPOST('compression', 'alpha'), $what, 0, $file, 0, 0, $lowmemorydump);
 		$errormsg = $utils->error;
 		$_SESSION["commandbackuplastdone"] = $utils->result['commandbackuplastdone'];
 		$_SESSION["commandbackuptorun"] = $utils->result['commandbackuptorun'];

@@ -248,7 +248,7 @@ if ($step == 3 && $datatoimport) {
 	}
 
 	// Delete file
-	if ($action == 'confirm_deletefile' && $confirm == 'yes') {
+	if ($action == 'confirm_deletefile' && $confirm == 'yes' && $user->hasRight('import', 'run')) {
 		$langs->load("other");
 
 		$param = '&datatoimport='.urlencode($datatoimport).'&format='.urlencode($format);
@@ -347,9 +347,25 @@ if ($step == 1 || !$datatoimport) {
 
 	print dol_get_fiche_head($head, 'step1', 'Import', -1, 'upload');
 
-	print '<div class="opacitymedium">'.$langs->trans("SelectImportDataSet").'</div><br>';
+	print '<div class="opacitymedium">'.$langs->trans("SelectImportDataSet").'</div>';
 
-	// Affiche les modules d'imports
+
+	// Define $nbmodulesnotautoenabled - TODO This code is at different places
+	$nbmodulesnotautoenabled = count($conf->modules);
+	$listofmodulesautoenabled = array('user', 'agenda', 'fckeditor', 'export', 'import');
+	foreach ($listofmodulesautoenabled as $moduleautoenable) {
+		if (in_array($moduleautoenable, $conf->modules)) {
+			$nbmodulesnotautoenabled--;
+		}
+	}
+
+	if ($user->admin && $nbmodulesnotautoenabled < getDolGlobalInt('MAIN_MIN_NB_ENABLED_MODULE_FOR_WARNING', 1)) {	// If only minimal initial modules enabled
+		print info_admin($langs->trans("WarningOnlyProfilesOfActivatedModules").' '.$langs->trans("YouCanEnableModulesFrom"));
+	}
+
+	print '<br>';
+
+	// Show profile for import
 	print '<div class="div-table-responsive-no-min">'; // You can use div-table-responsive-no-min if you don't need reserved height for your table
 	print '<table class="noborder centpercent nomarginbottom">';
 	print '<tr class="liste_titre">';
@@ -1882,7 +1898,7 @@ if ($step == 5 && $datatoimport) {
 				//dol_syslog("line ".$sourcelinenb.' - '.$nboflines.' - '.$excludefirstline.' - '.$endatlinenb);
 				$arrayrecord = $obj->import_read_record();
 				if ($arrayrecord === false) {
-					$arrayofwarnings[$sourcelinenb][0] = array('lib' => 'File has '.$nboflines.' lines. However we reach the end of file or an empty line at record '.$sourcelinenb.'. This may occurs when some records are split onto several lines and not correctly delimited by the "Char delimiter", or if there is line with no data on all fields.', 'type' => 'EOF_RECORD_ON_SEVERAL_LINES');
+					$arrayofwarnings[$sourcelinenb][0] = array('lib' => $langs->trans('ErrorFileLinesReachEOF', $nboflines, $sourcelinenb), 'type' => 'EOF_RECORD_ON_SEVERAL_LINES');
 					$endoffile++;
 					continue;
 				}
@@ -2313,7 +2329,7 @@ if ($step == 6 && $datatoimport) {
 			$sourcelinenb++;
 			$arrayrecord = $obj->import_read_record();
 			if ($arrayrecord === false) {
-				$arrayofwarnings[$sourcelinenb][0] = array('lib' => 'File has '.$nboflines.' lines. However we reach the end of file or an empty line at record '.$sourcelinenb.'. This may occurs when some records are split onto several lines and not correctly delimited by the "Char delimiter", or if there is line with no data on all fields.', 'type' => 'EOF_RECORD_ON_SEVERAL_LINES');
+				$arrayofwarnings[$sourcelinenb][0] = array('lib' => $langs->trans('ErrorFileLinesReachEOF', $nboflines, $sourcelinenb), 'type' => 'EOF_RECORD_ON_SEVERAL_LINES');
 				$endoffile++;
 				continue;
 			}

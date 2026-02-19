@@ -5670,11 +5670,11 @@ div.titre {
 div.titre.small {
 	font-size: 1em;
 }
+div.fiche > table.table-fiche-title:first-of-type div, div.fiche > form > table.table-fiche-title:first-of-type div {
+	font-size: 1.1em;
+}
 div.fiche > table.table-fiche-title:first-of-type div {
 	color: var(--colortexttitlenotab);
-	font-size: 1.1em;
-	/* text-transform: uppercase; */
-	/* font-weight: 600; */
 }
 div.titre {
 	color: var(--colortexttitlenotab);
@@ -5850,6 +5850,9 @@ button.ui-button-icon-only.ui-dialog-titlebar-close {
 }
 .ui-dialog .ui-dialog-buttonpane {
 	padding: .5em 1em .3em .4em;
+}
+.ui-dialog .ui-dialog-content, .ui-dialog .ui-dialog-titlebar.ui-widget-header {
+	padding-left: 1em !important;
 }
 
 

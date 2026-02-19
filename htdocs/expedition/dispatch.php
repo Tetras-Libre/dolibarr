@@ -795,7 +795,7 @@ if ($object->id > 0 || !empty($object->ref)) {
 						print '</td>'; // Dispatch column
 						print '<td></td>'; // Warehouse column
 
-						$sql  = "SELECT ed.rowid";
+						$sql  = "SELECT ed.rowid, ed.fk_parent";
 						$sql .= ", cd.fk_product";
 						$sql .= ", ".$db->ifsql('eb.rowid IS NULL', 'ed.qty', 'eb.qty')." as qty";
 						$sql .= ", ".$db->ifsql('eb.rowid IS NULL OR eb.fk_warehouse IS NULL', 'ed.fk_entrepot', 'eb.fk_warehouse')." as fk_warehouse";
@@ -908,7 +908,7 @@ if ($object->id > 0 || !empty($object->ref)) {
 													$resql_child = $db->query($sql_child);
 													if ($resql_child) {
 														if ($child_obj = $db->fetch_object($resql_child)) {
-															$line_obj->iskit = (int) $child_obj->iskit;
+															if (!getDolGlobalInt('PRODUIT_SOUSPRODUITS_ALSO_ENABLE_PARENT_STOCK_MOVE')) $line_obj->iskit = (int) $child_obj->iskit;
 															if ($can_manage_stock) {
 																$line_obj->incdec = (int) $child_obj->incdec; // reset value to 0 or 1 if stock can be managed
 															}

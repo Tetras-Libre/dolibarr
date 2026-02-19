@@ -84,7 +84,7 @@ $socid = GETPOSTINT('socid');
 $suffix = "";
 
 $action = GETPOST('action', 'aZ09');
-$cancel = GETPOST('cancel', 'aZ09');
+$cancel = GETPOST('cancel');
 
 
 $backtopage = '';
@@ -178,7 +178,7 @@ if (empty($reshook)) {
 
 			// Ensure that contact is active and select first active contact
 			foreach ($contacts as $key => $contact) {
-				if ((int) $contact->status == 1) {
+				if ((int) $contact->statut == 1) {
 					$cid = $key;
 					break;
 				}

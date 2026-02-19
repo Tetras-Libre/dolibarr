@@ -85,8 +85,7 @@ if (!$sortorder) {
 $hookmanager->initHooks(array('warehousecard', 'stocklist', 'globalcard'));
 
 // Security check
-//$result=restrictedArea($user,'stock', $id, 'entrepot&stock');
-$result = restrictedArea($user, 'stock');
+$result=restrictedArea($user, 'stock', $id, 'entrepot&stock');
 
 $object = new Entrepot($db);
 $extrafields = new ExtraFields($db);
@@ -109,7 +108,7 @@ $usercandelete = $user->hasRight('stock', 'supprimer');
 $permissiontoeditextra = $usercancreate;
 if (GETPOST('attribute', 'aZ09') && isset($extrafields->attributes[$object->table_element]['perms'][GETPOST('attribute', 'aZ09')])) {
 	// For action 'update_extras', is there a specific permission set for the attribute to update
-	$permissiontoeditextra = dol_eval($extrafields->attributes[$object->table_element]['perms'][GETPOST('attribute', 'aZ09')]);
+	$permissiontoeditextra = dol_eval((string) $extrafields->attributes[$object->table_element]['perms'][GETPOST('attribute', 'aZ09')]);
 }
 
 
@@ -829,7 +828,7 @@ if ($action == 'create') {
 						if (is_null($productstatic->fk_unit)) {
 							$productstatic->fk_unit = 1;
 						}
-						print $langs->trans($productstatic->getLabelOfUnit());
+						print $productstatic->getLabelOfUnit('long', $langs);
 						print '</td>';
 					}
 
@@ -892,7 +891,7 @@ if ($action == 'create') {
 				$totalarray['val']['totalunit'] = $totalunit;
 				$totalarray['val']['totalvalue'] = price2num($totalvalue, 'MT');
 				$totalarray['val']['totalvaluesell'] = price2num($totalvaluesell, 'MT');
-				$totalarray['val']['units'] = $langs->trans($productstatic->getLabelOfUnit());
+				$totalarray['val']['units'] = $productstatic->getLabelOfUnit('long', $langs);
 
 				$parameters = array('context' => 'warehousecard', 'totalarray' => &$totalarray);
 				// Note that $action and $object may have been modified by hook

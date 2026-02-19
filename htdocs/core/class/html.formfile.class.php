@@ -818,7 +818,9 @@ class FormFile
 			$out .= '<input type="hidden" name="page_y" value="">';
 			$out .= '<input type="hidden" name="token" value="'.newToken().'">';
 
-			$out .= load_fiche_titre($titletoshow, '', '');
+			if ($titletoshow) {
+				$out .= load_fiche_titre($titletoshow, '', '');
+			}
 			$out .= '<div class="div-table-responsive-no-min">';
 			$out .= '<table class="liste formdoc noborder centpercent">';
 
@@ -955,10 +957,13 @@ class FormFile
 				foreach ($file_list as $file) {
 					$i++;
 
-					if (!empty($file['rowid'])) {
+					if (!empty($file['rowid']) && $user->hasRight('ecm', 'read')) {
+						// If we have permission to read ECM files, we can use link for ECM file (not blocked by security test),
+						// so it will show the expended information found into ECM table
 						$ecmfile = new EcmFiles($this->db);
 						$ecmfile->fetch($file['rowid']);
 					} else {
+						// If no permission to read ECM files, popup for ECM extended information will not work so we show a simple link with no popup.
 						$ecmfile = null;
 					}
 
@@ -986,8 +991,10 @@ class FormFile
 					if (getDolGlobalInt('PREVIEW_PICTO_ON_LEFT_OF_NAME')) {
 						$out .= $imgpreview;
 					}
+
 					if (is_object($ecmfile)) {
-						$out .= $ecmfile->getNomUrl(1, $modulepart, 0, 0, ' documentdownload');
+						$out .= $ecmfile->getNomUrl(1, $modulepart, 0, 0, ' documentdownload');				// We show property in ECM
+						//$out .= $ecmfile->getNomUrl(1, $modulepart, 0, 0, ' documentdownload', $object);	// We show property on object
 					} else {
 						$out .= '<a class="documentdownload paddingright" ';
 						if (getDolGlobalInt('MAIN_DISABLE_FORCE_SAVEAS') == 2) {
@@ -1318,10 +1325,11 @@ class FormFile
 		// Define relative path used to store the file
 		if (empty($relativepath)) {
 			$relativepath = (!empty($object->ref) ? dol_sanitizeFileName($object->ref) : '').'/';
-			if (!empty($object->element) && $object->element == 'invoice_supplier') {
+			if (!empty($object->element) && $object->element == "societe" && !empty($object->id)) {
+				$relativepath = ($object->id).'/';
+			} elseif (!empty($object->element) && $object->element == 'invoice_supplier') {
 				$relativepath = get_exdir($object->id, 2, 0, 0, $object, 'invoice_supplier').$relativepath; // TODO Call using a defined value for $relativepath
-			}
-			if (!empty($object->element) && $object->element == 'project_task') {
+			} elseif (!empty($object->element) && $object->element == 'project_task') {
 				$relativepath = 'Call_not_supported_._Call_function_using_a_defined_relative_path_.';
 			}
 		}
@@ -1599,7 +1607,6 @@ class FormFile
 								$smallfile = getImageFileNameForSize($file['name'], ''); // This is in case no _small image exist
 							}
 							//print $file['path'].'/'.$smallfile.'<br>';
-
 
 							$urlforhref = getAdvancedPreviewUrl($modulepart, $relativepath.$fileinfo['filename'].'.'.strtolower($fileinfo['extension']), 1, '&entity='.(empty($object->entity) ? $conf->entity : $object->entity));
 							if (empty($urlforhref)) {

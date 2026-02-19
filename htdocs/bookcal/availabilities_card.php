@@ -51,7 +51,7 @@ $lineid = GETPOSTINT('lineid');
 
 $action = GETPOST('action', 'aZ09');
 $confirm = GETPOST('confirm', 'alpha');
-$cancel = GETPOST('cancel', 'aZ09');
+$cancel = GETPOST('cancel');
 $contextpage = GETPOST('contextpage', 'aZ') ? GETPOST('contextpage', 'aZ') : str_replace('_', '', basename(dirname(__FILE__)).basename(__FILE__, '.php')); // To manage different context of search
 $backtopage = GETPOST('backtopage', 'alpha');
 $backtopageforcancel = GETPOST('backtopageforcancel', 'alpha');
@@ -122,6 +122,7 @@ if (!$permissiontoread) {
 /*
  * Actions
  */
+
 $error = 0;
 
 $parameters = array();
@@ -150,7 +151,7 @@ if (empty($reshook)) {
 	$startyear = GETPOSTINT('startyear');
 	$starthour = GETPOSTINT('startHour');
 
-	if (GETPOST('startHour') == "" && ($action == 'add' || $action == 'update')) {
+	if (GETPOST('startHour') == "" && ($action == 'add' || $action == 'update')) {	// Test on permission not required
 		$error++;
 		setEventMessages($langs->trans("ErrorStartHourIsNull"), $hookmanager->errors, 'errors');
 	}
@@ -162,7 +163,7 @@ if (empty($reshook)) {
 	$endyear = GETPOSTINT('endyear');
 	$endhour = GETPOSTINT('endHour');
 
-	if (GETPOST('endHour') == "" && ($action == 'add' || $action == 'update')) {
+	if (GETPOST('endHour') == "" && ($action == 'add' || $action == 'update')) {	// Test on permission not required
 		$error++;
 		setEventMessages($langs->trans("ErrorEndHourIsNull"), $hookmanager->errors, 'errors');
 	}

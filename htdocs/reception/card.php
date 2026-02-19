@@ -54,6 +54,7 @@ if (isModEnabled("propal")) {
 	require_once DOL_DOCUMENT_ROOT.'/comm/propal/class/propal.class.php';
 }
 require_once DOL_DOCUMENT_ROOT.'/fourn/class/fournisseur.commande.class.php';
+require_once DOL_DOCUMENT_ROOT.'/fourn/class/fournisseur.orderline.class.php';
 require_once DOL_DOCUMENT_ROOT.'/fourn/class/fournisseur.commande.dispatch.class.php';
 if (isModEnabled('productbatch')) {
 	require_once DOL_DOCUMENT_ROOT.'/product/class/productbatch.class.php';
@@ -180,7 +181,7 @@ if (isModEnabled("reception")) {
 $permissiontoeditextra = $permissiontoadd;
 if (GETPOST('attribute', 'aZ09') && isset($extrafields->attributes[$object->table_element]['perms'][GETPOST('attribute', 'aZ09')])) {
 	// For action 'update_extras', is there a specific permission set for the attribute to update
-	$permissiontoeditextra = dol_eval($extrafields->attributes[$object->table_element]['perms'][GETPOST('attribute', 'aZ09')]);
+	$permissiontoeditextra = dol_eval((string) $extrafields->attributes[$object->table_element]['perms'][GETPOST('attribute', 'aZ09')]);
 }
 
 $error = 0;
@@ -312,10 +313,10 @@ if (empty($reshook)) {
 		$object->origin = $origin;
 		$object->origin_id = $origin_id;
 		$object->fk_project = GETPOSTINT('projectid');
-		$object->weight = GETPOSTINT('weight') == '' ? null : GETPOSTINT('weight');
-		$object->trueHeight = GETPOSTINT('trueHeight') == '' ? null : GETPOSTINT('trueHeight');
-		$object->trueWidth = GETPOSTINT('trueWidth') == '' ? null : GETPOSTINT('trueWidth');
-		$object->trueDepth = GETPOSTINT('trueDepth') == '' ? null : GETPOSTINT('trueDepth');
+		$object->weight = GETPOST('weight') == '' ? null : GETPOSTINT('weight');
+		$object->trueHeight = GETPOST('trueHeight') == '' ? null : GETPOSTINT('trueHeight');
+		$object->trueWidth = GETPOST('trueWidth') == '' ? null : GETPOSTINT('trueWidth');
+		$object->trueDepth = GETPOST('trueDepth') == '' ? null : GETPOSTINT('trueDepth');
 		$object->size_units = GETPOSTINT('size_units');
 		$object->weight_units = GETPOSTINT('weight_units');
 
@@ -549,36 +550,31 @@ if (empty($reshook)) {
 		if ($result < 0) {
 			setEventMessages($object->error, $object->errors, 'errors');
 		}
-	} elseif (($action == 'settracking_number' || $action == 'settracking_url'
-	|| $action == 'settrueWeight'
-	|| $action == 'settrueWidth'
-	|| $action == 'settrueHeight'
-	|| $action == 'settrueDepth'
-		|| $action == 'setshipping_method_id') && $permissiontoadd) {
+	} elseif (in_array($action, array('settracking_number', 'settracking_url', 'settrueWeight', 'settrueWidth', 'settrueHeight', 'settrueDepth', 'setshipping_method_id')) && $permissiontoadd) {
 		// Action update
 		$error = 0;
 
-		if ($action == 'settracking_number') {	// Test on permission to add
+		if ($action == 'settracking_number') {		// Test on permission already done
 			$object->tracking_number = trim(GETPOST('tracking_number', 'alpha'));
 		}
-		if ($action == 'settracking_url') {		// Test on permission to add
+		if ($action == 'settracking_url') {			// Test on permission already done
 			$object->tracking_url = trim(GETPOST('tracking_url', 'restricthtml'));
 		}
-		if ($action == 'settrueWeight') {		// Test on permission to add
-			$object->trueWeight = GETPOSTINT('trueWeight');
+		if ($action == 'settrueWeight') {			// Test on permission already done
+			$object->trueWeight = GETPOST('trueWeight');
 			$object->weight_units = GETPOSTINT('weight_units');
 		}
-		if ($action == 'settrueWidth') {		// Test on permission to add
-			$object->trueWidth = GETPOSTINT('trueWidth');
+		if ($action == 'settrueWidth') {			// Test on permission already done
+			$object->trueWidth = GETPOST('trueWidth');
 		}
-		if ($action == 'settrueHeight') {		// Test on permission to add
-			$object->trueHeight = GETPOSTINT('trueHeight');
+		if ($action == 'settrueHeight') {			// Test on permission already done
+			$object->trueHeight = GETPOST('trueHeight');
 			$object->size_units = GETPOSTINT('size_units');
 		}
-		if ($action == 'settrueDepth') {		// Test on permission to add
-			$object->trueDepth = GETPOSTINT('trueDepth');
+		if ($action == 'settrueDepth') {			// Test on permission already done
+			$object->trueDepth = GETPOST('trueDepth');
 		}
-		if ($action == 'setshipping_method_id') {	// Test on permission to add
+		if ($action == 'setshipping_method_id') {	// Test on permission already done
 			$object->shipping_method_id = GETPOSTINT('shipping_method_id');
 		}
 
@@ -928,7 +924,7 @@ if ($action == 'create') {
 			// Weight
 			print '<tr><td>';
 			print $langs->trans("Weight");
-			print '</td><td colspan="3"><input name="weight" size="4" value="'.GETPOSTINT('weight').'"> ';
+			print '</td><td colspan="3"><input name="weight" size="4" value="'.GETPOST('weight').'"> ';
 			$text = $formproduct->selectMeasuringUnits("weight_units", "weight", (string) GETPOSTINT('weight_units'), 0, 2);
 			$htmltext = $langs->trans("KeepEmptyForAutoCalculation");
 			print $form->textwithpicto($text, $htmltext);
@@ -936,9 +932,9 @@ if ($action == 'create') {
 			// Dim
 			print '<tr><td>';
 			print $langs->trans("Width").' x '.$langs->trans("Height").' x '.$langs->trans("Depth");
-			print ' </td><td colspan="3"><input name="trueWidth" size="4" value="'.GETPOSTINT('trueWidth').'">';
-			print ' x <input name="trueHeight" size="4" value="'.GETPOSTINT('trueHeight').'">';
-			print ' x <input name="trueDepth" size="4" value="'.GETPOSTINT('trueDepth').'">';
+			print ' </td><td colspan="3"><input name="trueWidth" size="4" value="'.GETPOST('trueWidth').'">';
+			print ' x <input name="trueHeight" size="4" value="'.GETPOST('trueHeight').'">';
+			print ' x <input name="trueDepth" size="4" value="'.GETPOST('trueDepth').'">';
 			print ' ';
 			$text = $formproduct->selectMeasuringUnits("size_units", "size", (string) GETPOSTINT('size_units'), 0, 2);
 			$htmltext = $langs->trans("KeepEmptyForAutoCalculation");
@@ -1141,7 +1137,7 @@ if ($action == 'create') {
 			}
 
 			// $objectsrc->lines contains the line of the purchase order
-			// $dispatchLines is list of lines with dispatching detail (with product, qty and warehouse). One purchase order line may have n of this dispatch lines.
+			// $dispatchLines is an array with dispatching detail (with product, qty, warehouse and fk_commandefourndet). One purchase order line may have n of this dispatch lines.
 
 			$arrayofpurchaselinealreadyoutput = array();
 
@@ -1149,6 +1145,7 @@ if ($action == 'create') {
 			$indiceAsked = 1;
 			while ($indiceAsked <= $numAsked) {	// Loop on $dispatchLines. Warning: $dispatchLines must be sorted by fk_commandefourndet (it is a regroupment key on output)
 				$product = new Product($db);
+				$line = new CommandeFournisseurLigne($db);	// By default
 
 				// We search the purchase order line that is linked to the dispatchLines
 				foreach ($objectsrc->lines as $supplierLine) {
@@ -1158,10 +1155,11 @@ if ($action == 'create') {
 					}
 				}
 
+				// Now $line can be CommandeFournisseurLigne but could be other type of line.
+
 				// Show product and description
 				$type = $line->product_type ? $line->product_type : $line->fk_product_type;
-				// Try to enhance type detection using date_start and date_end for free lines where type
-				// was not saved.
+				// Try to enhance type detection using date_start and date_end for free lines where type was not saved.
 				if (!empty($line->date_start)) {
 					$type = 1;
 				}
@@ -1246,7 +1244,7 @@ if ($action == 'create') {
 
 				// Qty already received
 				print '<td class="center">';
-				$quantityDelivered = $objectsrc->receptions[$line->id];
+				$quantityDelivered = isset($objectsrc->receptions[$line->id]) ? $objectsrc->receptions[$line->id] : 0;
 				if (! array_key_exists($line->id, $arrayofpurchaselinealreadyoutput)) {	// Add test to avoid to show qty twice
 					print $quantityDelivered;
 				}
@@ -1287,7 +1285,7 @@ if ($action == 'create') {
 
 					if (getDolGlobalString('STOCK_CALCULATE_ON_RECEPTION') || getDolGlobalString('STOCK_CALCULATE_ON_RECEPTION_CLOSE')) {
 						print '<td>';
-						print '<input class="width75 right" name="cost_price'.$indiceAsked.'" id="cost_price'.$indiceAsked.'" value="'.$cost_price.'">';
+						print '<input class="width75 right" name="cost_price'.$indiceAsked.'" id="cost_price'.$indiceAsked.'" value="'.price($cost_price).'">';
 						print '</td>';
 					}
 
@@ -2268,7 +2266,7 @@ if ($action == 'create') {
 	}
 
 	// Presend form
-	$modelmail = 'shipping_send';
+	$modelmail = 'reception_send';
 	$defaulttopic = 'SendReceptionRef';
 	$diroutput = $conf->reception->dir_output;
 	$trackid = 'rec'.$object->id;

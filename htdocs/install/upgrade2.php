@@ -52,6 +52,21 @@ if (!file_exists($conffile)) {
 	print 'Error: Dolibarr config file was not found. This may means that Dolibarr is not installed yet. Please call the page "/install/index.php" instead of "/install/upgrade.php").';
 }
 require_once $conffile;
+/**
+ * @var Conf $conf
+ * @var Translate $langs
+ *
+ * @var string	$dolibarr_main_db_type
+ * @var string	$dolibarr_main_db_host
+ * @var string	$dolibarr_main_db_port
+ * @var string	$dolibarr_main_db_name
+ * @var string	$dolibarr_main_db_user
+ * @var string	$dolibarr_main_db_pass
+ * @var string	$dolibarr_main_document_root
+ * @var string	$dolibarr_main_db_encryption
+ * @var string	$dolibarr_main_db_encrypted_pass
+ * @var string	$dolibarr_main_db_cryptkey
+ */
 require_once $dolibarr_main_document_root.'/compta/facture/class/facture.class.php';
 require_once $dolibarr_main_document_root.'/comm/propal/class/propal.class.php';
 require_once $dolibarr_main_document_root.'/contrat/class/contrat.class.php';
@@ -64,11 +79,6 @@ require_once $dolibarr_main_document_root.'/core/lib/files.lib.php';
 
 global $langs;
 
-/**
- * @var Conf $conf
- * @var Translate $langs
- */
-
 $grant_query = '';
 $step = 2;
 $error = 0;
@@ -77,8 +87,8 @@ $error = 0;
 // This page can be long. We increase the allowed delay, but this does not work when we are in safe_mode.
 $err = error_reporting();
 error_reporting(0);
-if (getDolGlobalString('MAIN_OVERRIDE_TIME_LIMIT')) {
-	@set_time_limit((int) $conf->global->MAIN_OVERRIDE_TIME_LIMIT);
+if (getDolGlobalInt('MAIN_OVERRIDE_TIME_LIMIT')) {
+	@set_time_limit(getDolGlobalInt('MAIN_OVERRIDE_TIME_LIMIT'));
 } else {
 	@set_time_limit(600);
 }
@@ -140,17 +150,17 @@ if (!GETPOST('action', 'aZ09') || preg_match('/upgrade/i', GETPOST('action', 'aZ
 	print '<table class="centpercent">';
 
 	// If password is encoded, we decode it
-	if ((!empty($dolibarr_main_db_pass) && preg_match('/(crypted|dolcrypt):/i', $dolibarr_main_db_pass)) || !empty($dolibarr_main_db_encrypted_pass)) {
+	if ((!empty($dolibarr_main_db_pass) && preg_match('/(crypted|dolcrypt):/i', (string) $dolibarr_main_db_pass)) || !empty($dolibarr_main_db_encrypted_pass)) {
 		require_once $dolibarr_main_document_root.'/core/lib/security.lib.php';
 		if (!empty($dolibarr_main_db_pass) && preg_match('/crypted:/i', $dolibarr_main_db_pass)) {
-			$dolibarr_main_db_pass = preg_replace('/crypted:/i', '', $dolibarr_main_db_pass);
+			$dolibarr_main_db_pass = preg_replace('/crypted:/i', '', (string) $dolibarr_main_db_pass);
 			$dolibarr_main_db_encrypted_pass = $dolibarr_main_db_pass; // We need to set this as it is used to know the password was initially encrypted
-			$dolibarr_main_db_pass = dol_decode($dolibarr_main_db_pass);
-		} elseif (preg_match('/dolcrypt:/i', $dolibarr_main_db_pass)) {
+			$dolibarr_main_db_pass = dol_decode((string) $dolibarr_main_db_pass);
+		} elseif (preg_match('/dolcrypt:/i', (string) $dolibarr_main_db_pass)) {
 			$dolibarr_main_db_encrypted_pass = $dolibarr_main_db_pass; // We need to set this as it is used to know the password was initially encrypted
-			$dolibarr_main_db_pass = dolDecrypt($dolibarr_main_db_pass);
+			$dolibarr_main_db_pass = dolDecrypt((string) $dolibarr_main_db_pass);
 		} else {
-			$dolibarr_main_db_pass = dol_decode($dolibarr_main_db_encrypted_pass);
+			$dolibarr_main_db_pass = dol_decode((string) $dolibarr_main_db_encrypted_pass);
 		}
 	}
 
@@ -189,6 +199,53 @@ if (!GETPOST('action', 'aZ09') || preg_match('/upgrade/i', GETPOST('action', 'aZ
 
 	// Load global conf
 	$conf->setValues($db);
+
+
+	// Reforce log activation (samecode than into the inc.php)
+	$conf->global->MAIN_ENABLE_LOG_TO_HTML = 1;
+	$conf->modules['syslog'] = 'syslog';
+	$conf->global->SYSLOG_LEVEL = constant('LOG_DEBUG');
+	if (!defined('SYSLOG_HANDLERS')) {
+		define('SYSLOG_HANDLERS', '["mod_syslog_file"]');
+	}
+	if (!defined('SYSLOG_FILE')) {	// To avoid warning on systems with constant already defined
+		if (@is_writable('/tmp')) {
+			define('SYSLOG_FILE', '/tmp/dolibarr_install.log');
+		} elseif (!empty($_ENV["TMP"]) && @is_writable($_ENV["TMP"])) {
+			define('SYSLOG_FILE', $_ENV["TMP"].'/dolibarr_install.log');
+		} elseif (!empty($_ENV["TEMP"]) && @is_writable($_ENV["TEMP"])) {
+			define('SYSLOG_FILE', $_ENV["TEMP"].'/dolibarr_install.log');
+		} elseif (@is_writable('../../../../') && @file_exists('../../../../startdoliwamp.bat')) {
+			define('SYSLOG_FILE', '../../../../dolibarr_install.log'); // For DoliWamp
+		} elseif (@is_writable('../../')) {
+			define('SYSLOG_FILE', '../../dolibarr_install.log'); // For others
+		}
+		//print 'SYSLOG_FILE='.SYSLOG_FILE;exit;
+	}
+	if (defined('SYSLOG_FILE')) {
+		$conf->global->SYSLOG_FILE = constant('SYSLOG_FILE');
+	}
+	if (!defined('SYSLOG_FILE_NO_ERROR')) {
+		define('SYSLOG_FILE_NO_ERROR', 1);
+	}
+	// We init log handler for install
+	$handlers = array('mod_syslog_file');
+	foreach ($handlers as $handler) {
+		$file = DOL_DOCUMENT_ROOT.'/core/modules/syslog/'.$handler.'.php';
+		if (!file_exists($file)) {
+			throw new Exception('Missing log handler file '.$handler.'.php');
+		}
+
+		require_once $file;
+		$loghandlerinstance = new $handler();
+		if (!$loghandlerinstance instanceof LogHandler) {
+			throw new Exception('Log handler does not extend LogHandler');
+		}
+
+		if (empty($conf->loghandlers[$handler])) {
+			$conf->loghandlers[$handler] = $loghandlerinstance;
+		}
+	}
 
 
 	$listofentities = array(1);
@@ -4160,6 +4217,7 @@ function migrate_delete_old_files($db, $langs, $conf)
 		'/core/modules/modCommercial.class.php',
 		'/core/modules/modProduit.class.php',
 		'/core/modules/modSkype.class.php',
+		'/core/modules/modactivite.class.php',		// A file from external module that should not be here
 		'/core/triggers/interface_modWebcalendar_Webcalsynchro.class.php',
 		'/core/triggers/interface_modCommande_Ecotax.class.php',
 		'/core/triggers/interface_modCommande_fraisport.class.php',
@@ -4187,6 +4245,9 @@ function migrate_delete_old_files($db, $langs, $conf)
 		'/core/modules/mailings/peche.modules.php',
 		'/core/modules/mailings/poire.modules.php',
 		'/core/modules/mailings/kiwi.modules.php',
+		'/core/modules/syslog/mod_syslog_chromephp.php',
+		'/core/modules/syslog/mod_syslog_firephp.php',
+		'/core/modules/syslog/logHandlerInterface.php',
 		'/core/boxes/box_members.php',
 
 		'/includes/restler/framework/Luracast/Restler/Data/Object.php',
@@ -4307,7 +4368,7 @@ function migrate_reload_modules($db, $langs, $conf, $listofmodule = array(), $fo
 		$user = new User($db);	// To avoid error during migration
 	}
 
-	dolibarr_install_syslog("upgrade2::migrate_reload_modules force=".$force.", listofmodule=".implode(',', array_keys($listofmodule)));
+	dolibarr_install_syslog("upgrade2::migrate_reload_modules force=".$force.", listofmodule=".implode(',', array_keys($listofmodule)), LOG_NOTICE);
 
 	$reloadactionformodules = array(
 		'MAIN_MODULE_AGENDA' => array('class' => 'modAgenda', 'remove' => 1),
@@ -4377,7 +4438,7 @@ function migrate_reload_modules($db, $langs, $conf, $listofmodule = array(), $fo
 					$moduletoreloadshort = $reg[1];
 				}
 
-				dolibarr_install_syslog("upgrade2::migrate_reload_modules Reactivate module ".$moduletoreloadshort." with mode ".$reloadmode." (generic code)");
+				dolibarr_install_syslog("upgrade2::migrate_reload_modules Reactivate module ".$moduletoreloadshort." with mode ".$reloadmode." (generic code)", LOG_NOTICE);
 
 				$res = @include_once DOL_DOCUMENT_ROOT.'/core/modules/mod'.$moduletoreloadshort.'.class.php';
 				if ($res) {
@@ -4389,7 +4450,7 @@ function migrate_reload_modules($db, $langs, $conf, $listofmodule = array(), $fo
 					$mod->delete_menus(); // We must delete to be sure it is inserted with new values
 					$mod->init($reloadmode);
 				} else {
-					dolibarr_install_syslog('Failed to include '.DOL_DOCUMENT_ROOT.'/core/modules/mod'.$moduletoreloadshort.'.class.php');
+					dolibarr_install_syslog('Failed to include '.DOL_DOCUMENT_ROOT.'/core/modules/mod'.$moduletoreloadshort.'.class.php', LOG_ERR);
 
 					$res = @dol_include_once(strtolower($moduletoreloadshort).'/core/modules/mod'.$moduletoreloadshort.'.class.php');
 					if ($res) {

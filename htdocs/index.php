@@ -56,7 +56,7 @@ $hookmanager->initHooks(array('index'));
 
 // Define $nbmodulesnotautoenabled - TODO This code is at different places
 $nbmodulesnotautoenabled = count($conf->modules);
-$listofmodulesautoenabled = array('agenda', 'fckeditor', 'export', 'import');
+$listofmodulesautoenabled = array('user', 'agenda', 'fckeditor', 'export', 'import');
 foreach ($listofmodulesautoenabled as $moduleautoenable) {
 	if (in_array($moduleautoenable, $conf->modules)) {
 		$nbmodulesnotautoenabled--;
@@ -68,7 +68,7 @@ if (!getDolGlobalString('MAIN_INFO_SOCIETE_NOM') || !getDolGlobalString('MAIN_IN
 	header("Location: ".DOL_URL_ROOT."/admin/index.php?mainmenu=home&leftmenu=setup&mesg=setupnotcomplete");
 	exit;
 }
-if ($nbmodulesnotautoenabled <= getDolGlobalInt('MAIN_MIN_NB_ENABLED_MODULE_FOR_WARNING', 1)) {	// If only autoenabled modules (property ->enabled_bydefault in modules) are activated
+if ($nbmodulesnotautoenabled < getDolGlobalInt('MAIN_MIN_NB_ENABLED_MODULE_FOR_WARNING', 1)) {	// If only autoenabled modules (property ->enabled_bydefault in modules) are activated
 	header("Location: ".DOL_URL_ROOT."/admin/index.php?mainmenu=home&leftmenu=setup&mesg=setupnotcomplete");
 	exit;
 }
@@ -130,11 +130,13 @@ if (getDolGlobalString('MAIN_MOTD')) {
  */
 
 // Specific warning to propose to upgrade invoice situation to progressive mode
+/*
 if (getDolGlobalInt('INVOICE_USE_SITUATION') == 1) {
 	$langs->loadLangs(array("admin"));
 	print info_admin($langs->trans("WarningExperimentalFeatureInvoiceSituationNeedToUpgradeToProgressiveMode", 'https://partners.dolibarr.org'));
 	//print "<br>";
 }
+*/
 
 /*
  * Show security warnings
@@ -646,26 +648,32 @@ if (!getDolGlobalString('MAIN_DISABLE_GLOBAL_WORKBOARD') && getDolGlobalInt('MAI
 					}
 					$openedDashBoard .= '<a href="'.$board->url.'" class="info-box-text info-box-text-a">';
 					$openedDashBoard .= $infoName;
+					$openedDashBoard .= '</a>';
 					$openedDashBoard .= '<div class="inline-block nowraponall">';
+					$openedDashBoard .= '<a href="'.$board->url.'" class="info-box-text info-box-text-a">';
 					$openedDashBoard .= '<span class="classfortooltip'.($nbtodClass ? ' '.$nbtodClass : '').'" title="'.$labeltoshow.'">';
 					$openedDashBoard .= $board->nbtodo;
 					if ($board->total > 0 && getDolGlobalString('MAIN_WORKBOARD_SHOW_TOTAL_WO_TAX')) {
 						$openedDashBoard .= ' : '.price($board->total, 0, $langs, 1, -1, -1, $conf->currency);
 					}
 					$openedDashBoard .= '</span>';
+					$openedDashBoard .= '</a>';
 
 					if ($textLate) {
 						if ($board->url_late) {
-							$openedDashBoard .= '</div></a>';
+							$openedDashBoard .= '</div>';
 							$openedDashBoard .= ' <div class="inline-block"><a href="'.$board->url_late.'" class="info-box-text info-box-text-a paddingleft">';
 						} else {
 							$openedDashBoard .= ' ';
 						}
 						$openedDashBoard .= $textLate;
+						if ($board->url_late) {
+							$openedDashBoard .= '</a>';
+						}
 					}
-					$openedDashBoard .= '</a>'."\n";
-					$openedDashBoard .= '</div>';
 					$openedDashBoard .= '</div>'."\n";
+					//$openedDashBoard .= '</div>';
+					$openedDashBoard .= '</div>'."\n"; // info-box-line
 				}
 
 				// TODO Add hook here to add more "info-box-line"

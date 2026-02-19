@@ -420,9 +420,10 @@ class EcmFiles extends CommonObject
 	 * @param  string $hashforshare    	Hash of file sharing, or 'shared'
 	 * @param  string $src_object_type 	src_object_type to search (value of object->table_element)
 	 * @param  int    $src_object_id 	src_object_id to search
+	 * @param  int    $entity 	        entity
 	 * @return int                 	   	Return integer <0 if KO, 0 if not found, >0 if OK
 	 */
-	public function fetch($id, $ref = '', $relativepath = '', $hashoffile = '', $hashforshare = '', $src_object_type = '', $src_object_id = 0)
+	public function fetch($id, $ref = '', $relativepath = '', $hashoffile = '', $hashforshare = '', $src_object_type = '', $src_object_id = 0, $entity = 0)
 	{
 		global $conf;
 
@@ -470,17 +471,29 @@ class EcmFiles extends CommonObject
 			if ($filename != '*') {
 				$sql .= " AND t.filename = '".$this->db->escape($filename)."'";
 			}
-			$sql .= " AND t.entity = ".$conf->entity; // unique key include the entity so each company has its own index
+			if (! empty($entity)) {
+				$sql .= " AND t.entity = " . (int) $entity;
+			} else {
+				$sql .= " AND t.entity = " . $conf->entity; // unique key include the entity so each company has its own index
+			}
 			$filterfound++;
 		}
 		if (!empty($ref)) {		// hash of file path
 			$sql .= " AND t.ref = '".$this->db->escape($ref)."'";
-			$sql .= " AND t.entity = ".$conf->entity; // unique key include the entity so each company has its own index
+			if (! empty($entity)) {
+				$sql .= " AND t.entity = " . (int) $entity;
+			} else {
+				$sql .= " AND t.entity = " . $conf->entity; // unique key include the entity so each company has its own index
+			}
 			$filterfound++;
 		}
 		if (!empty($hashoffile)) {	// hash of content
 			$sql .= " AND t.label = '".$this->db->escape($hashoffile)."'";
-			$sql .= " AND t.entity = ".$conf->entity; // unique key include the entity so each company has its own index
+			if (! empty($entity)) {
+				$sql .= " AND t.entity = " . (int) $entity;
+			} else {
+				$sql .= " AND t.entity = " . $conf->entity; // unique key include the entity so each company has its own index
+			}
 			$filterfound++;
 		}
 		if (!empty($hashforshare)) {
@@ -494,7 +507,11 @@ class EcmFiles extends CommonObject
 		}
 		if ($src_object_type && $src_object_id) {
 			$sql .= " AND t.src_object_type = '".$this->db->escape($src_object_type)."' AND t.src_object_id = ".((int) $src_object_id);
-			$sql .= " AND t.entity = ".((int) $conf->entity);
+			if (! empty($entity)) {
+				$sql .= " AND t.entity = " . (int) $entity;
+			} else {
+				$sql .= " AND t.entity = " . $conf->entity; // unique key include the entity so each company has its own index
+			}
 			$filterfound++;
 		}
 		if ($id > 0 || empty($filterfound)) {
@@ -782,7 +799,6 @@ class EcmFiles extends CommonObject
 		$sql .= ' src_object_type = '.(isset($this->src_object_type) ? "'".$this->db->escape($this->src_object_type)."'" : "null").',';
 		$sql .= ' agenda_id = '.($this->agenda_id > 0 ? (int) $this->agenda_id : "null");
 		$sql .= ' WHERE rowid='.((int) $this->id);
-
 		$this->db->begin();
 
 		$resql = $this->db->query($sql);
@@ -990,12 +1006,12 @@ class EcmFiles extends CommonObject
 	/**
 	 *  Return a link to the object card (with optionally the picto)
 	 *
-	 *	@param	int		$withpicto			Include picto in link (0=No picto, 1=Include picto into link, 2=Only picto)
-	 *	@param	string	$option				On what the link point to (propal, etc) module name
-	 *  @param	int  	$notooltip			1=Disable tooltip
-	 *  @param	int		$maxlen				Max length of visible user name
-	 *  @param  string  $morecss            Add more css on link
-	 *	@return	string						String with URL
+	 *	@param	int					$withpicto			Include picto in link (0=No picto, 1=Include picto into link, 2=Only picto)
+	 *	@param	string				$option				On what the link point to (propal, etc) module name
+	 *  @param	int  				$notooltip			1=Disable tooltip
+	 *  @param	int					$maxlen				Max length of visible user name
+	 *  @param  string  			$morecss            Add more css on link
+	 *	@return	string									String with URL
 	 */
 	public function getNomUrl($withpicto = 0, $option = '', $notooltip = 0, $maxlen = 24, $morecss = '')
 	{
@@ -1070,9 +1086,6 @@ class EcmFiles extends CommonObject
 				$result .= ($linkstart.img_object(($notooltip ? '' : $label), 'label', ($notooltip ? '' : 'class="paddingright"')).$linkend);
 			} else {
 				$result .= ($linkstart.img_mime($this->filename, ($notooltip ? '' : dol_escape_htmltag($label, 1)), ($notooltip ? '' : ' paddingright')).$linkend);
-			}
-			if ($withpicto != 2) {
-				$result .= ' ';
 			}
 		}
 		$result .= $linkstart.$this->filename.$linkend;

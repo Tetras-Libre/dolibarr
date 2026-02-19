@@ -392,16 +392,16 @@ class Task extends CommonObjectLine
 		$this->labelStatus = array(
 			0 => 'Draft',
 			1 => 'Validated',
-			2 => 'In progress',
+			2 => 'InProgress',
 			3 => 'Closed',
-			4 => 'Transferred',
+			//4 => 'Transferred',
 		);
 		$this->labelStatusShort = array(
 			0 => 'Draft',
 			1 => 'Validated',
-			2 => 'In progress',
+			2 => 'InProgress',
 			3 => 'Closed',
-			4 => 'Transferred',
+			//4 => 'Transferred',
 		);
 	}
 
@@ -1753,6 +1753,7 @@ class Task extends CommonObjectLine
 		$sql .= " ptt.element_date_withhour as task_date_withhour,";
 		$sql .= " ptt.element_duration as task_duration,";
 		$sql .= " ptt.fk_user,";
+		$sql .= " ptt.fk_product,";
 		$sql .= " ptt.note,";
 		$sql .= " ptt.thm,";
 		$sql .= " pt.rowid as task_id,";
@@ -1803,6 +1804,7 @@ class Task extends CommonObjectLine
 				$newobj->timespent_line_withhour = $obj->task_date_withhour;
 				$newobj->timespent_line_duration = $obj->task_duration;
 				$newobj->timespent_line_fk_user = $obj->fk_user;
+				$newobj->timespent_line_fk_product = $obj->fk_product;
 				$newobj->timespent_line_thm = $obj->thm;	// hourly rate
 				$newobj->timespent_line_note = $obj->note;
 
@@ -2099,6 +2101,7 @@ class Task extends CommonObjectLine
 
 		$timespent = new TimeSpent($this->db);
 		$timespent->fetch($this->timespent_id);
+		$old_fk_element = $timespent->fk_element; // Store old task ID before potential change
 
 		$timespent->element_date = $this->timespent_date;
 		$timespent->element_datehour = $this->timespent_datehour;
@@ -2108,6 +2111,7 @@ class Task extends CommonObjectLine
 			$timespent->fk_user = $this->timespent_fk_user;
 		}
 		$timespent->fk_product = $this->timespent_fk_product;
+		$timespent->fk_element = $this->id; // Update task assignment (may be changed)
 		$timespent->note = $this->timespent_note;
 		$timespent->invoice_id = $this->timespent_invoiceid;
 		$timespent->invoice_line_id = $this->timespent_invoicelineid;
@@ -2166,6 +2170,32 @@ class Task extends CommonObjectLine
 			if ($res_update <= 0) {
 				$this->error = $this->db->lasterror();
 				$ret = -2;
+			}
+		}
+
+		// If task assignment changed, recalculate duration_effective for both old and new tasks
+		if ($ret == 1 && $old_fk_element != $this->id) {
+			// Recalculate duration_effective for the OLD task
+			$sql = "UPDATE " . MAIN_DB_PREFIX . "projet_task";
+			$sql .= " SET duration_effective = (SELECT COALESCE(SUM(element_duration), 0) FROM " . MAIN_DB_PREFIX . "element_time as ptt where ptt.elementtype = 'task' AND ptt.fk_element = " . ((int) $old_fk_element) . ")";
+			$sql .= " WHERE rowid = " . ((int) $old_fk_element);
+			dol_syslog(get_class($this) . "::updateTimeSpent update old task", LOG_DEBUG);
+			if (!$this->db->query($sql)) {
+				$this->error = $this->db->lasterror();
+				$this->db->rollback();
+				$ret = -2;
+			}
+			// Recalculate duration_effective for the NEW task
+			if ($ret == 1) {
+				$sql = "UPDATE " . MAIN_DB_PREFIX . "projet_task";
+				$sql .= " SET duration_effective = (SELECT COALESCE(SUM(element_duration), 0) FROM " . MAIN_DB_PREFIX . "element_time as ptt where ptt.elementtype = 'task' AND ptt.fk_element = " . ((int) $this->id) . ")";
+				$sql .= " WHERE rowid = " . ((int) $this->id);
+				dol_syslog(get_class($this) . "::updateTimeSpent update new task", LOG_DEBUG);
+				if (!$this->db->query($sql)) {
+					$this->error = $this->db->lasterror();
+					$this->db->rollback();
+					$ret = -2;
+				}
 			}
 		}
 
@@ -2483,17 +2513,17 @@ class Task extends CommonObjectLine
 			return $langs->trans($this->labelStatusShort[$status]);
 		} elseif ($mode == 2) {
 			switch ($status) {
-				case 0:
+				case 0:	// draft
 					return img_picto($langs->trans($this->labelStatusShort[$status]), 'statut0').' '.$langs->trans($this->labelStatusShort[$status]);
-				case 1:
+				case 1: // validated
 					return img_picto($langs->trans($this->labelStatusShort[$status]), 'statut1').' '.$langs->trans($this->labelStatusShort[$status]);
-				case 2:
+				case 2:	// in progress
 					return img_picto($langs->trans($this->labelStatusShort[$status]), 'statut3').' '.$langs->trans($this->labelStatusShort[$status]);
-				case 3:
+				case 3:	// closed
 					return img_picto($langs->trans($this->labelStatusShort[$status]), 'statut6').' '.$langs->trans($this->labelStatusShort[$status]);
-				case 4:
+				case 4:	// transferred ?
 					return img_picto($langs->trans($this->labelStatusShort[$status]), 'statut6').' '.$langs->trans($this->labelStatusShort[$status]);
-				case 5:
+				case 5:	// ???
 					return img_picto($langs->trans($this->labelStatusShort[$status]), 'statut5').' '.$langs->trans($this->labelStatusShort[$status]);
 			}
 		} elseif ($mode == 3) {
@@ -2518,11 +2548,11 @@ class Task extends CommonObjectLine
 				case 1:
 					return dolGetStatus($langs->trans($this->labelStatus[$status]), $langs->trans($this->labelStatusShort[$status]), '', 'status1', $mode);
 				case 2:
-					return dolGetStatus($langs->trans($this->labelStatus[$status]), $langs->trans($this->labelStatusShort[$status]), '', 'status2', $mode);
-				case 3:
 					return dolGetStatus($langs->trans($this->labelStatus[$status]), $langs->trans($this->labelStatusShort[$status]), '', 'status3', $mode);
+				case 3:
+					return dolGetStatus($langs->trans($this->labelStatus[$status]), $langs->trans($this->labelStatusShort[$status]), '', 'status6', $mode);
 				case 4:
-					return dolGetStatus($langs->trans($this->labelStatus[$status]), $langs->trans($this->labelStatusShort[$status]), '', 'status4', $mode);
+					return dolGetStatus($langs->trans($this->labelStatus[$status]), $langs->trans($this->labelStatusShort[$status]), '', 'status6', $mode);
 				case 5:
 					return dolGetStatus($langs->trans($this->labelStatus[$status]), $langs->trans($this->labelStatusShort[$status]), '', 'status5', $mode);
 			}

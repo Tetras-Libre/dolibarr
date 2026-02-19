@@ -55,7 +55,7 @@ $id          = GETPOSTINT('id');
 $ref         = GETPOST('ref', 'alpha');
 $action      = GETPOST('action', 'aZ09');
 $confirm     = GETPOST('confirm', 'alpha');
-$cancel      = GETPOST('cancel', 'aZ09');
+$cancel      = GETPOST('cancel');
 $contextpage = GETPOST('contextpage', 'aZ') ? GETPOST('contextpage', 'aZ') : 'mostockmovement'; // To manage different context of search
 $backtopage  = GETPOST('backtopage', 'alpha');
 $optioncss   = GETPOST('optioncss', 'aZ'); // Option for the css output (always '' except when 'print')
@@ -254,7 +254,7 @@ if (empty($reshook)) {
 		$object->setProject(GETPOSTINT('projectid'));
 	}
 
-	if ($action == 'confirm_reopen') {
+	if ($action == 'confirm_reopen' && $permissiontoadd) {
 		$result = $object->setStatut($object::STATUS_INPROGRESS, 0, '', 'MRP_REOPEN');
 	}
 }

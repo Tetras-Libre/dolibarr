@@ -155,7 +155,7 @@ $permissiontodelete = $user->hasRight('ticket', 'delete');
 $permissiontoeditextra = $permissiontoadd;
 if (GETPOST('attribute', 'aZ09') && isset($extrafields->attributes[$object->table_element]['perms'][GETPOST('attribute', 'aZ09')])) {
 	// For action 'update_extras', is there a specific permission set for the attribute to update
-	$permissiontoeditextra = dol_eval($extrafields->attributes[$object->table_element]['perms'][GETPOST('attribute', 'aZ09')]);
+	$permissiontoeditextra = dol_eval((string) $extrafields->attributes[$object->table_element]['perms'][GETPOST('attribute', 'aZ09')]);
 }
 
 $upload_dir = $conf->ticket->dir_output;
@@ -281,7 +281,7 @@ if (empty($reshook)) {
 				$object->origin_email = null;
 				$notifyTiers = GETPOST("notify_tiers_at_create", 'alpha');
 				$object->notify_tiers_at_create = empty($notifyTiers) ? 0 : 1;
-				$object->context['contact_id'] = GETPOSTINT('contact_id');
+				$object->context['contact_id'] = GETPOSTINT('contactid');
 				$id = $object->create($user);
 			} else {
 				$id = $object->update($user);
@@ -457,8 +457,11 @@ if (empty($reshook)) {
 
 	if (($action == "confirm_close" || $action == "confirm_abandon") && GETPOST('confirm', 'alpha') == 'yes' && $permissiontoadd) {
 		$object->fetch(GETPOSTINT('id'), '', GETPOST('track_id', 'alpha'));
+		if (GETPOSTISSET('contactid')) {
+			$object->context['contact_id'] = GETPOSTINT('contactid');
+		}
 
-		if ($object->close($user, ($action == "confirm_abandon" ? 1 : 0))) {
+		if ($object->close($user, ($action == "confirm_abandon" ? 1 : 0))) {	// Test on pemrission already done
 			setEventMessages($langs->trans('TicketMarkedAsClosed'), null, 'mesgs');
 
 			$url = 'card.php?track_id=' . GETPOST('track_id', 'alpha');
@@ -473,7 +476,7 @@ if (empty($reshook)) {
 	if ($action == "confirm_public_close" && GETPOST('confirm', 'alpha') == 'yes' && $permissiontoadd) {
 		$object->fetch(GETPOSTINT('id'), '', GETPOST('track_id', 'alpha'));
 		if ($_SESSION['email_customer'] == $object->origin_email || $_SESSION['email_customer'] == $object->thirdparty->email) {
-			$object->context['contact_id'] = GETPOSTINT('contact_id');
+			$object->context['contact_id'] = GETPOSTINT('contactid');
 
 			$object->close($user);
 
@@ -618,8 +621,9 @@ if (empty($reshook)) {
 		// Reopen ticket
 		if ($object->fetch(GETPOSTINT('id'), GETPOST('track_id', 'alpha')) >= 0) {
 			$new_status = GETPOSTINT('new_status');
-			//$old_status = $object->status;
-			$res = $object->setStatut($new_status);
+
+			$res = $object->setStatut($new_status, null, '', 'TICKET_MODIFY');
+
 			if ($res) {
 				$url = 'card.php?track_id=' . $object->track_id;
 				header("Location: " . $url);
@@ -956,29 +960,36 @@ if ($action == 'create' || $action == 'presend') {
 			// If ticket create from public interface - TODO Add a more robust test to know if created by public interface
 			$createdfrompublicticket = 1;
 		} elseif (!empty($object->email_msgid)) {
-			// If ticket create by emailcollector - TODO Add a more robust test to know if created by email collector (using import ky ?)
+			// If ticket create by emailcollector - TODO Add a more robust test to know if created by email collector (using import key ?)
 			$createdfromemailcollector = 1;
 		}
 
 		//var_dump($object);
+		$htmltooltip = '';
 		if ($createdfrompublicticket) {
-			$htmltooptip = $langs->trans("OriginEmail").': '.$object->origin_email;
-			$htmltooptip .= '<br>'.$langs->trans("IP").': '.dol_print_ip($object->ip);
+			$htmltooltip .= $langs->trans("OriginEmail").': '.$object->origin_email;
+			$htmltooltip .= '<br>'.$langs->trans("IP").': '.dol_print_ip($object->ip);
 			$morehtmlref .= ($createdbyshown ? ' - ' : '<br>');
 			//$morehtmlref .= ($createdbyshown ? '' : '<span class="opacitymedium">'.$langs->trans("CreatedBy").' </span> ');
 			$morehtmlref .= img_picto('', 'email', 'class="paddingrightonly"');
-			$morehtmlref .= dol_escape_htmltag($object->origin_email).' <small class="hideonsmartphone opacitymedium">- '.$form->textwithpicto($langs->trans("CreatedByPublicPortal"), $htmltooptip, 1, 'help', '', 0, 3, 'tooltip').'</small>';
+			$morehtmlref .= dol_escape_htmltag($object->origin_email).' <small class="hideonsmartphone opacitymedium">- '.$form->textwithpicto($langs->trans("CreatedByPublicPortal"), $htmltooltip, 1, 'help', '', 0, 3, 'tooltipcreatedbyportal').'</small>';
 		} elseif ($createdfromemailcollector) {
 			$langs->load("mails");
-			$htmltooltip = $langs->trans("EmailMsgID").': '.$object->email_msgid;
-			$htmltooltip .= '<br>'.$langs->trans("EmailDate").': '.dol_print_date($object->email_date, 'dayhour');
-			$htmltooltip .= '<br>'.$langs->trans("MailFrom").': '.$object->origin_email;
-			$htmltooltip .= '<br>'.$langs->trans("MailReply").': '.$object->origin_replyto;
-			$htmltooltip .= '<br>'.$langs->trans("MailReferences").': '.$object->origin_references;
+
+			$htmltooltip .= '<b>'.$langs->trans("EmailMsgID").':</b> '.$object->email_msgid;
+			$htmltooltip .= '<br><b>'.$langs->trans("EmailDate").':</b> '.dol_print_date($object->email_date, 'dayhour');
+			$htmltooltip .= '<br><b>'.$langs->trans("MailFrom").':</b> '.$object->origin_email;
+			$htmltooltip .= '<br><b>'.$langs->trans("MailReply").':</b> '.$object->origin_replyto;
+			$htmltooltip .= '<br><b>'.$langs->trans("MailReferences").':</b> '.$object->origin_references;
 			$morehtmlref .= ($createdbyshown ? ' - ' : '<br>');
 			//$morehtmlref .= ($createdbyshown ? '' : '<span class="opacitymedium">'.$langs->trans("CreatedBy").'</span> ');
-			$morehtmlref .= img_picto('', 'email', 'class="paddingrightonly"');
-			$morehtmlref .= dol_escape_htmltag($object->origin_email).' <small class="hideonsmartphone opacitymedium">- '.$form->textwithpicto($langs->trans("CreatedByEmailCollector"), $htmltooltip, 1, 'help', '', 0, 3, 'tooltip').'</small>';
+			$morehtmlref .= img_picto('From', 'email', 'class="paddingrightonly"');
+			$morehtmlref .= dol_escape_htmltag($object->origin_email);
+			if ($object->origin_replyto) {
+				$morehtmlref .= ' - '.img_picto('ReplyTo', 'email', 'class="paddingrightonly"');
+				$morehtmlref .= dol_escape_htmltag($object->origin_replyto);
+			}
+			$morehtmlref .= ' <small class="hideonsmartphone opacitymedium">- '.$form->textwithpicto($langs->trans("CreatedByEmailCollector"), $htmltooltip, 1, 'help', '', 0, 3, 'tooltipcreatedbyemailcollector').'</small>';
 		}
 
 		$permissiontoedit = $object->status < 8 && !$user->socid && $user->hasRight('ticket', 'write');

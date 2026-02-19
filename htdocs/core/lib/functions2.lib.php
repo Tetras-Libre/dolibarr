@@ -1961,11 +1961,13 @@ function version_webserver()
  * 	@param	DoliDB		$db				    Database handler
  * 	@param	string		$type			    Type of models (company, invoice, ...)
  *  @param  int		    $maxfilenamelength  Max length of value to show
+ *  @param	int			$showempty			Add an empty record if 1
  * 	@return	string[]|int<-1,0>	    		0 if no module is activated, or array(key=>label). For modules that need directory scan, key is completed with ":filename", -1 if error
  */
-function getListOfModels($db, $type, $maxfilenamelength = 0)
+function getListOfModels($db, $type, $maxfilenamelength = 0, $showempty = 0)
 {
 	global $conf, $langs;
+
 	$liste = array();
 	$found = 0;
 	$dirtoscan = '';
@@ -1973,18 +1975,29 @@ function getListOfModels($db, $type, $maxfilenamelength = 0)
 	$sql = "SELECT nom as id, nom as doc_template_name, libelle as label, description as description";
 	$sql .= " FROM ".MAIN_DB_PREFIX."document_model";
 	$sql .= " WHERE type = '".$db->escape($type)."'";
-	$sql .= " AND entity IN (0,".$conf->entity.")";
+	$sql .= " AND entity IN (0,".((int) $conf->entity).")";
 	$sql .= " ORDER BY description DESC";
 
 	dol_syslog('/core/lib/function2.lib.php::getListOfModels', LOG_DEBUG);
+
 	$resql_models = $db->query($sql);
 	if ($resql_models) {
 		$num = $db->num_rows($resql_models);
+
+		if ($showempty) {
+				$liste[0] = '&nbsp;';
+		}
+
 		$i = 0;
 		while ($i < $num) {
 			$found = 1;
 
 			$obj = $db->fetch_object($resql_models);
+
+			if ($obj->id == '0') {	// We discard bad record (should not happen)
+				$i++;
+				continue;
+			}
 
 			// If this generation module needs to scan a directory, then description field is filled
 			// with the constant that contains list of directories to scan (COMPANY_ADDON_PDF_ODT_PATH, ...).
@@ -2023,7 +2036,7 @@ function getListOfModels($db, $type, $maxfilenamelength = 0)
 					$liste[0] = $obj->label.': '.$langs->trans("None");
 				}
 			} else {
-				if ($type == 'member' && $obj->doc_template_name == 'standard') {   // Special case, if member template, we add variant per format
+				if ($type == 'member' && $obj->doc_template_name == 'standard_member') {   // Special case, if member template, we add variant per format
 					global $_Avery_Labels;
 					include_once DOL_DOCUMENT_ROOT.'/core/lib/format_cards.lib.php';
 					foreach ($_Avery_Labels as $key => $val) {
@@ -2034,6 +2047,7 @@ function getListOfModels($db, $type, $maxfilenamelength = 0)
 					$liste[$obj->id] = $obj->label ? $obj->label : $obj->doc_template_name;
 				}
 			}
+
 			$i++;
 		}
 	} else {
@@ -2474,8 +2488,8 @@ function colorStringToArray($stringcolor, $colorifnotfound = array(88, 88, 88))
 
 /**
  * @param string 	$color 			the color you need to valid
- * @param boolean 	$allow_white 	in case of white isn't valid
- * @return boolean
+ * @param bool	 	$allow_white 	in case of white isn't valid
+ * @return bool
  */
 function colorValidateHex($color, $allow_white = true)
 {
@@ -2738,7 +2752,7 @@ function getModuleDirForApiClass($moduleobject)
 		$moduledirforclass = 'api';
 	} elseif ($moduleobject == 'contact' || $moduleobject == 'contacts' || $moduleobject == 'customer' || $moduleobject == 'thirdparty' || $moduleobject == 'thirdparties') {
 		$moduledirforclass = 'societe';
-	} elseif ($moduleobject == 'propale' || $moduleobject == 'proposals') {
+	} elseif ($moduleobject == 'propal' || $moduleobject == 'propale' || $moduleobject == 'proposals') {
 		$moduledirforclass = 'comm/propal';
 	} elseif ($moduleobject == 'agenda' || $moduleobject == 'agendaevents') {
 		$moduledirforclass = 'comm/action';
@@ -2780,6 +2794,10 @@ function getModuleDirForApiClass($moduleobject)
 		$moduledirforclass = 'salaries';
 	} elseif ($moduleobject == 'paymentexpensereports') {
 		$moduledirforclass = 'expensereport';
+	} elseif ($moduleobject == 'eventattendees') {
+		$moduledirforclass = 'eventorganization';
+	} elseif ($moduleobject == 'holidays') {
+		$moduledirforclass = 'holiday';
 	}
 
 	return $moduledirforclass;

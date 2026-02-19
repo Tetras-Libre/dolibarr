@@ -10,7 +10,7 @@
  * Copyright (C) 2014-2016	Marcos García			<marcosgdf@gmail.com>
  * Copyright (C) 2015		Bahfir Abbes			<bafbes@gmail.com>
  * Copyright (C) 2015-2022	Ferran Marcet			<fmarcet@2byte.es>
- * Copyright (C) 2016-2023	Alexandre Spangaro		<aspangaro@open-dsi.fr>
+ * Copyright (C) 2016-2026	Alexandre Spangaro		<alexandre@inovea-conseil.com>
  * Copyright (C) 2018       Nicolas ZABOURI			<info@inovea-conseil.com>
  * Copyright (C) 2018-2025  Frédéric France         <frederic.france@free.fr>
  * Copyright (C) 2022      	Gauthier VERDOL     	<gauthier.verdol@atm-consulting.fr>
@@ -1013,6 +1013,8 @@ class FactureFournisseur extends CommonInvoice
 
 				$this->socid  = $obj->socid;
 
+				$this->thirdparty = null; // Clear if another value was already set by fetch_thirdparty
+
 				// Retrieve all extrafield
 				// fetch optionals attributes and labels
 				$this->fetch_optionals();
@@ -1116,7 +1118,7 @@ class FactureFournisseur extends CommonInvoice
 					$line->extraparams = !empty($obj->extraparams) ? (array) json_decode($obj->extraparams, true) : array();
 
 					// Accountancy
-					$line->fk_accounting_account = $obj->fk_code_ventilation;
+					$line->fk_code_ventilation = $obj->fk_code_ventilation;
 
 					// Multicurrency
 					$line->fk_multicurrency = $obj->fk_multicurrency;
@@ -1235,6 +1237,9 @@ class FactureFournisseur extends CommonInvoice
 				$this->fk_project = (int) $this->fk_project;
 			}
 		}
+		if (isset($this->mode_reglement_id)) {
+			$this->mode_reglement_id = (int) $this->mode_reglement_id;
+		}
 		if (isset($this->cond_reglement_id)) {
 			$this->cond_reglement_id = (int) $this->cond_reglement_id;
 		}
@@ -1285,6 +1290,7 @@ class FactureFournisseur extends CommonInvoice
 		$sql .= " fk_facture_source=".($this->fk_facture_source ? ((int) $this->fk_facture_source) : "null").",";
 		$sql .= " vat_reverse_charge = ".($this->vat_reverse_charge != '' ? ((int) $this->vat_reverse_charge) : 0).",";
 		$sql .= " fk_projet=".(!empty($this->fk_project) ? ((int) $this->fk_project) : "null").",";
+		$sql .= " fk_mode_reglement=".(isset($this->mode_reglement_id) ? ((int) $this->mode_reglement_id) : "null").",";
 		$sql .= " fk_cond_reglement=".(isset($this->cond_reglement_id) ? ((int) $this->cond_reglement_id) : "null").",";
 		$sql .= " date_lim_reglement=".(dol_strlen((string) $this->date_echeance) != 0 ? "'".$this->db->idate($this->date_echeance)."'" : 'null').",";
 		$sql .= " note_private=".(isset($this->note_private) ? "'".$this->db->escape($this->note_private)."'" : "null").",";
@@ -2087,8 +2093,8 @@ class FactureFournisseur extends CommonInvoice
 	 *	already have the right value (the caller has to manage the multilanguage).
 	 *
 	 *	@param      string      $desc                   Description of the line
-	 *	@param      float      $pu                     Unit price (HT or TTC according to price_base_type, > 0 even for credit note)
-	 *	@param      float      $txtva                  Force Vat rate to use, -1 for auto.
+	 *	@param      float      $pu                      Unit price (HT or TTC according to price_base_type, > 0 even for credit note)
+	 *	@param      float|string	$txtva           	Force Vat rate, -1 for auto (Can contain the vat_src_code too with syntax '9.9 (CODE)')
 	 *	@param      float      $txlocaltax1            LocalTax1 Rate
 	 *	@param      float      $txlocaltax2            LocalTax2 Rate
 	 *	@param      float      $qty                    Quantity

@@ -100,7 +100,7 @@ $permissiondellink = $user->hasRight('expedition', 'creer'); // Used by the incl
 $permissiontoeditextra = $permissiontoadd;
 if (GETPOST('attribute', 'aZ09') && isset($extrafields->attributes[$object->table_element]['perms'][GETPOST('attribute', 'aZ09')])) {
 	// For action 'update_extras', is there a specific permission set for the attribute to update
-	$permissiontoeditextra = dol_eval($extrafields->attributes[$object->table_element]['perms'][GETPOST('attribute', 'aZ09')]);
+	$permissiontoeditextra = dol_eval((string) $extrafields->attributes[$object->table_element]['perms'][GETPOST('attribute', 'aZ09')]);
 }
 
 
@@ -171,7 +171,7 @@ if (empty($reshook)) {
 		if ($result < 0) {
 			setEventMessages($object->error, $object->errors, 'errors');
 		}
-	} elseif ($action == 'set_incoterms' && isModEnabled('incoterm')) {
+	} elseif ($action == 'set_incoterms' && isModEnabled('incoterm') && $permissiontoadd) {
 		// Set incoterm
 		$result = $object->setIncoterms(GETPOSTINT('incoterm_id'), GETPOST('location_incoterms'));
 		if ($result < 0) {
@@ -620,6 +620,7 @@ if ($order_id > 0 || !empty($ref)) {
 		$sql .= ' p.surface, p.surface_units, p.volume, p.volume_units';
 		$sql .= ', p.tobatch, p.tosell, p.tobuy, p.barcode';
 		$sql .= ', u.short_label as unit_order';
+		$sql .= ', p.stockable_product';
 		$sql .= " FROM ".MAIN_DB_PREFIX."commandedet as cd";
 		$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."product as p ON cd.fk_product = p.rowid";
 		$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."c_units as u ON cd.fk_unit = u.rowid";
@@ -801,13 +802,17 @@ if ($order_id > 0 || !empty($ref)) {
 
 					if ($objp->fk_product > 0 && ($type == Product::TYPE_PRODUCT || getDolGlobalString('STOCK_SUPPORTS_SERVICES')) && isModEnabled('stock')) {
 						print '<td class="center">';
-						print $product->stock_reel;
-						if ($product->stock_reel < $toBeShipped[$objp->fk_product]) {
-							print ' '.img_warning($langs->trans("StockTooLow"));
-							if (getDolGlobalString('STOCK_CORRECT_STOCK_IN_SHIPMENT')) {
-								$nbPiece = $toBeShipped[$objp->fk_product] - $product->stock_reel;
-								print ' &nbsp; '.$langs->trans("GoTo").' <a href="'.DOL_URL_ROOT.'/product/stock/product.php?id='.((int) $product->id).'&action=correction&token='.newToken().'&nbpiece='.urlencode((string) ($nbPiece)).'&backtopage='.urlencode((string) ($_SERVER["PHP_SELF"].'?id='.((int) $object->id))).'">'.$langs->trans("CorrectStock").'</a>';
+						if ($objp->stockable_product == Product::ENABLED_STOCK) {
+							print $product->stock_reel;
+							if ($product->stock_reel < $toBeShipped[$objp->fk_product]) {
+								print ' ' . img_warning($langs->trans("StockTooLow"));
+								if (getDolGlobalString('STOCK_CORRECT_STOCK_IN_SHIPMENT')) {
+									$nbPiece = $toBeShipped[$objp->fk_product] - $product->stock_reel;
+									print ' &nbsp; ' . $langs->trans("GoTo") . ' <a href="' . DOL_URL_ROOT . '/product/stock/product.php?id=' . ((int) $product->id) . '&action=correction&token=' . newToken() . '&nbpiece=' . urlencode((string) ($nbPiece)) . '&backtopage=' . urlencode((string) ($_SERVER["PHP_SELF"] . '?id=' . ((int) $object->id))) . '">' . $langs->trans("CorrectStock") . '</a>';
+								}
 							}
+						} else {
+							print img_warning().' '.$langs->trans('StockDisabled');
 						}
 						print '</td>';
 					} elseif ($objp->fk_product > 0 && $type == Product::TYPE_SERVICE && getDolGlobalString('SHIPMENT_SUPPORTS_SERVICES') && isModEnabled('stock')) {
@@ -899,36 +904,27 @@ if ($order_id > 0 || !empty($ref)) {
 				print '<input type="hidden" name="origin" value="commande">';
 				print '<input type="hidden" name="origin_id" value="'.$object->id.'">';
 				print '<input type="hidden" name="projectid" value="'.$object->fk_project.'">';
-				//print '<table class="border centpercent">';
 
 				$langs->load("stocks");
 
-				//print '<tr>';
+				print '<div class="center formconsumeproduce">';
 
 				if (isModEnabled('stock')) {
-					//print '<td>';
 					print $langs->trans("WarehouseSource");
-					//print '</td>';
-					//print '<td>';
-					print $formproduct->selectWarehouses(!empty($object->warehouse_id) ? $object->warehouse_id : 'ifone', 'entrepot_id', '', 1, 0, 0, '', 0, 0, array(), 'minwidth200');
+					print $formproduct->selectWarehouses(empty($object->warehouse_id) ? 'ifone' : $object->warehouse_id, 'entrepot_id', '', 1, 0, 0, $langs->trans("Any"), 0, 0, array(), 'minwidth200');
 					if (count($formproduct->cache_warehouses) <= 0) {
 						print ' &nbsp; '.$langs->trans("WarehouseSourceNotDefined").' <a href="'.DOL_URL_ROOT.'/product/stock/card.php?action=create">'.$langs->trans("AddOne").'</a>';
 					}
-					//print '</td>';
 				}
-				//print '<td class="center">';
-				print '<input type="submit" class="butAction" named="save" value="'.$langs->trans("CreateShipment").'">';
+				print '<input type="submit" class="butAction marginbottomonly margintoponly" name="save" value="'.$langs->trans("CreateShipment").'">';
 				if ($toBeShippedTotal <= 0) {
 					print ' '.img_warning($langs->trans("WarningNoQtyLeftToSend"));
 				}
-				//print '</td></tr>';
-
-				//print "</table>";
+				print '<br><br>';
+				print '</div>';
 				print "</form>\n";
 
 				print '</div>';
-
-				$somethingshown = 1;
 			} else {
 				print '<div class="tabsAction">';
 				print '<a class="butActionRefused classfortooltip" href="#" title="'.dol_escape_htmltag($langs->trans("NotAllowed")).'">'.$langs->trans("CreateShipment").'</a>';

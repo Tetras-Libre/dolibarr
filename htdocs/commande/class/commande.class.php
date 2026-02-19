@@ -1538,7 +1538,7 @@ class Commande extends CommonOrder
 	 *	@param      string			$desc            	Description of line
 	 *	@param      float			$pu_ht    	        Unit price (without tax)
 	 *	@param      float			$qty             	Quantite
-	 * 	@param    	float			$txtva           	Force Vat rate, -1 for auto (Can contain the vat_src_code too with syntax '9.9 (CODE)')
+	 * 	@param    	float|string	$txtva           	Force Vat rate, -1 for auto (Can contain the vat_src_code too with syntax '9.9 (CODE)')
 	 * 	@param		float			$txlocaltax1		Local tax 1 rate (deprecated, use instead txtva with code inside)
 	 * 	@param		float			$txlocaltax2		Local tax 2 rate (deprecated, use instead txtva with code inside)
 	 *	@param      int				$fk_product      	Id of product
@@ -3101,7 +3101,7 @@ class Commande extends CommonOrder
 	 *  @param    	float			$pu               	Unit price
 	 *  @param    	float			$qty              	Quantity
 	 *  @param    	float			$remise_percent   	Percent of discount
-	 *  @param    	float			$txtva           	Taux TVA
+	 *  @param    	float|string	$txtva	 			VAT Rate (Can be '8.5', '8.5 (ABC)')
 	 * 	@param		float			$txlocaltax1		Local tax 1 rate
 	 *  @param		float			$txlocaltax2		Local tax 2 rate
 	 *  @param    	string			$price_base_type	HT or TTC
@@ -3285,7 +3285,10 @@ class Commande extends CommonOrder
 				if ($qty < $this->line->packaging) {
 					$qty = $this->line->packaging;
 				} else {
-					if (!empty($this->line->packaging) && fmod($qty, $this->line->packaging) > 0) {
+					if (!empty($this->line->packaging)
+						&& is_numeric($this->line->packaging)
+						&& (float) $this->line->packaging > 0
+						&& fmod((float) $qty, (float) $this->line->packaging) > 0) {
 						$coeff = intval($qty / $this->line->packaging) + 1;
 						$qty = $this->line->packaging * $coeff;
 						setEventMessage($langs->trans('QtyRecalculatedWithPackaging'), 'mesgs');
@@ -3431,6 +3434,7 @@ class Commande extends CommonOrder
 		$sql .= " note_private=".(isset($this->note_private) ? "'".$this->db->escape($this->note_private)."'" : "null").",";
 		$sql .= " note_public=".(isset($this->note_public) ? "'".$this->db->escape($this->note_public)."'" : "null").",";
 		$sql .= " model_pdf=".(isset($this->model_pdf) ? "'".$this->db->escape($this->model_pdf)."'" : "null").",";
+		$sql .= " fk_warehouse=".($this->warehouse_id > 0 ? $this->warehouse_id : "null").",";
 		$sql .= " import_key=".(isset($this->import_key) ? "'".$this->db->escape($this->import_key)."'" : "null").",";
 		$sql .= " module_source = ".(isset($this->module_source) ? "'".$this->db->escape($this->module_source)."'" : "null").",";
 		$sql .= " pos_source = ".(isset($this->pos_source) ? "'".$this->db->escape($this->pos_source)."'" : "null");
@@ -3694,8 +3698,7 @@ class Commande extends CommonOrder
 				$response->nbtodo++;
 				$response->total += $obj->total_ht;
 
-				$generic_commande->statut = $obj->fk_statut;
-				$generic_commande->date_commande = $this->db->jdate($obj->date_commande);
+				$generic_commande->status = $obj->fk_statut;
 				$generic_commande->date = $this->db->jdate($obj->date_commande);
 				$generic_commande->delivery_date = $this->db->jdate($obj->delivery_date);
 
@@ -3758,6 +3761,7 @@ class Commande extends CommonOrder
 		if (empty($donotshowbilled)) {
 			$billedtext .= ($billed ? ' - '.$langs->transnoentitiesnoconv("Billed") : '');
 		}
+		$billedtextlong = ($billed ? ' - '.$langs->transnoentitiesnoconv("Billed") : '');
 
 		$labelTooltip = '';
 
@@ -3770,11 +3774,11 @@ class Commande extends CommonOrder
 			$labelStatusShort = $langs->transnoentitiesnoconv('StatusOrderDraftShort');
 			$statusType = 'status0';
 		} elseif ($status == self::STATUS_VALIDATED) {
-			$labelStatus = $langs->transnoentitiesnoconv('StatusOrderValidated').$billedtext;
+			$labelStatus = $langs->transnoentitiesnoconv('StatusOrderValidated').$billedtextlong;
 			$labelStatusShort = $langs->transnoentitiesnoconv('StatusOrderValidatedShort').$billedtext;
 			$statusType = 'status1';
 		} elseif ($status == self::STATUS_SHIPMENTONPROCESS) {
-			$labelStatus = $langs->transnoentitiesnoconv('StatusOrderSent').$billedtext;
+			$labelStatus = $langs->transnoentitiesnoconv('StatusOrderSent').$billedtextlong;
 			$labelStatusShort = $langs->transnoentitiesnoconv('StatusOrderSentShort').$billedtext;
 			$labelTooltip = $langs->transnoentitiesnoconv("StatusOrderSent");
 			if (!empty($this->delivery_date)) {
@@ -3782,7 +3786,7 @@ class Commande extends CommonOrder
 			}
 			$statusType = 'status4';
 		} elseif ($status == self::STATUS_CLOSED) {
-			$labelStatus = $langs->transnoentitiesnoconv('StatusOrderDelivered').$billedtext;
+			$labelStatus = $langs->transnoentitiesnoconv('StatusOrderDelivered').$billedtextlong;
 			$labelStatusShort = $langs->transnoentitiesnoconv('StatusOrderDeliveredShort').$billedtext;
 			$statusType = 'status6';
 		} else {

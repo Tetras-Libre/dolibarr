@@ -51,7 +51,7 @@ $lineid  = GETPOSTINT('lineid');
 $ref     = GETPOST('ref', 'alpha');
 $action  = GETPOST('action', 'aZ09');
 $confirm = GETPOST('confirm', 'alpha');
-$cancel  = GETPOST('cancel', 'aZ09');
+$cancel  = GETPOST('cancel');
 $contextpage = GETPOST('contextpage', 'aZ') ? GETPOST('contextpage', 'aZ') : 'bomcard'; // To manage different context of search
 $backtopage  = GETPOST('backtopage', 'alpha');
 
@@ -135,8 +135,9 @@ if (empty($reshook)) {
 
 	// Actions cancel, add, update, delete or clone
 	include DOL_DOCUMENT_ROOT.'/core/actions_addupdatedelete.inc.php';
+
 	// The fetch/fetch_lines was redone into the inc.php so we must recall the calculateCosts()
-	if ($action == 'confirm_validate' && $object->id > 0) {
+	if ($action == 'confirm_validate' && $object->id > 0) {		// Test on permission not required
 		$object->calculateCosts();
 	}
 

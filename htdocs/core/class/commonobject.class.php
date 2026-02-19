@@ -70,7 +70,7 @@ abstract class CommonObject
 	public $id;
 
 	/**
-	 * @var int 		The environment ID when using a multicompany module
+	 * @var ?int 		The environment ID when using a multicompany module
 	 */
 	public $entity;
 
@@ -124,8 +124,8 @@ abstract class CommonObject
 	public $table_element_line = '';
 
 	/**
-	 * @var int<0,1>|string  	Does this object support multicompany module ?
-	 * 							0=No test on entity, 1=Test with field entity in local table, 'field@table'=Test entity into the field@table (example 'fk_soc@societe')
+	 * @var int<0,1>|string|null  	Does this object support multicompany module ?
+	 * 								0=No test on entity, 1=Test with field entity in local table, 'field@table'=Test entity into the field@table (example 'fk_soc@societe')
 	 */
 	public $ismultientitymanaged;
 
@@ -447,19 +447,19 @@ abstract class CommonObject
 	public $barcode_type_coder;
 
 	/**
-	 * @var int 		Payment method ID (cheque, cash, ...)
+	 * @var ?int 		Payment method ID (cheque, cash, ...)
 	 * @see setPaymentMethods()
 	 */
 	public $mode_reglement_id;
 
 	/**
-	 * @var int 		Payment terms ID
+	 * @var ?int 		Payment terms ID
 	 * @see setPaymentTerms()
 	 */
 	public $cond_reglement_id;
 
 	/**
-	 * @var int 		Demand reason ID
+	 * @var ?int 		Demand reason ID
 	 */
 	public $demand_reason_id;
 
@@ -490,7 +490,7 @@ abstract class CommonObject
 	public $fk_delivery_address;
 
 	/**
-	 * @var int 		Shipping method ID
+	 * @var ?int 		Shipping method ID
 	 * @see setShippingMethod()
 	 */
 	public $shipping_method_id;
@@ -798,7 +798,7 @@ abstract class CommonObject
 	public $labelStatusShort = array();
 
 	/**
-	 * @var array<string,int|string>	Array to store lists of tpl
+	 * @var array<string,int|float|string|null>	Array to store lists of tpl
 	 */
 	public $tpl;
 
@@ -1014,11 +1014,11 @@ abstract class CommonObject
 					$enabled = (int) dol_eval((string) $extrafields->attributes[$this->table_element]['enabled'][$key], 1, 1, '2');
 				}
 				if ($enabled && isset($extrafields->attributes[$this->table_element]['list'][$key])) {
-					$enabled = (int) dol_eval($extrafields->attributes[$this->table_element]['list'][$key], 1, 1, '2');
+					$enabled = (int) dol_eval((string) $extrafields->attributes[$this->table_element]['list'][$key], 1, 1, '2');
 				}
 				$perms = 1;
 				if ($perms && isset($extrafields->attributes[$this->table_element]['perms'][$key])) {
-					$perms = (int) dol_eval($extrafields->attributes[$this->table_element]['perms'][$key], 1, 1, '2');
+					$perms = (int) dol_eval((string) $extrafields->attributes[$this->table_element]['perms'][$key], 1, 1, '2');
 				}
 				if (empty($enabled)) {
 					continue; // 0 = Never visible field
@@ -1275,7 +1275,7 @@ abstract class CommonObject
 			} elseif ($obj = $this->db->fetch_object($resql_allowed_contacts)) {
 				if ($obj->cnt == 0) {
 					$langs->load("companies");
-					$this->error = $langs->trans("ErrorCommercialNotAllowedForThirdparty", $user->admin);
+					$this->error = $langs->trans("ErrorCommercialNotAllowedForThirdparty", $user->id);
 					dol_syslog(get_class($this)."::add_contact ".$this->error, LOG_ERR);
 					return -3;
 				}
@@ -1706,7 +1706,7 @@ abstract class CommonObject
 			$obj = $this->db->fetch_object($resql);
 
 			$transkey = "TypeContact_".$this->element."_".$source."_".$obj->code;
-			$libelle_type = ($langs->trans($transkey) != $transkey ? $langs->trans($transkey) : $obj->type_label);
+			$libelle_type = ($langs->trans($transkey) != $transkey ? $langs->trans($transkey) : $langs->trans($obj->type_label));
 			if (empty($option)) {
 				$tab[$obj->rowid] = $libelle_type;
 			} elseif ($option == 1) {
@@ -4867,6 +4867,8 @@ abstract class CommonObject
 				$this->context = array_merge($this->context, array('newstatus' => $status));
 
 				if ($trigkey) {
+					$this->oldcopy = dol_clone($this);
+
 					// Call trigger
 					$result = $this->call_trigger($trigkey, $user);
 					if ($result < 0) {
@@ -5008,7 +5010,7 @@ abstract class CommonObject
 
 			// Check if module is enabled (to avoid error if tables of module not created)
 			if (isset($element['enabled']) && !empty($element['enabled'])) {
-				$enabled = (int) dol_eval($element['enabled'], 1);
+				$enabled = (int) dol_eval((string) $element['enabled'], 1);
 				if (empty($enabled)) {
 					continue;
 				}
@@ -5732,13 +5734,17 @@ abstract class CommonObject
 		$this->tpl['multicurrency_price'] = price($line->multicurrency_subprice);
 		$this->tpl['qty'] = (($line->info_bits & 2) != 2) ? $line->qty : '&nbsp;';
 		if (getDolGlobalInt('PRODUCT_USE_UNITS')) {
-			$this->tpl['unit'] = $langs->transnoentities($line->getLabelOfUnit('long'));
+			$this->tpl['unit'] = $line->getLabelOfUnit('long', $langs);
+			$this->tpl['unit_short'] = $line->getLabelOfUnit('short', $langs);
+			//$this->tpl['unit_code'] = $line->getLabelOfUnit('code');
 		}
 		$this->tpl['remise_percent'] = (($line->info_bits & 2) != 2) ? vatrate((string) $line->remise_percent, true) : '&nbsp;';
 
 		// Is the line strike or not
 		$this->tpl['strike'] = 0;
 		if ($restrictlist == 'services' && $line->product_type != Product::TYPE_SERVICE) {
+			$this->tpl['strike'] = 1;
+		} elseif ($line->special_code == SUBTOTALS_SPECIAL_CODE) {
 			$this->tpl['strike'] = 1;
 		}
 
@@ -6463,12 +6469,12 @@ abstract class CommonObject
 
 			$enabled = 1;
 			if (isset($this->fields[$key]['enabled'])) {
-				$enabled = (int) dol_eval($this->fields[$key]['enabled'], 1, 1, '1');
+				$enabled = (int) dol_eval((string) $this->fields[$key]['enabled'], 1, 1, '1');
 			}
 			/*$perms = 1;
 			 if (isset($this->fields[$key]['perms']))
 			 {
-			 $perms = (int) dol_eval($this->fields[$key]['perms'], 1, 1, '1');
+			 $perms = (int) dol_eval((string) $this->fields[$key]['perms'], 1, 1, '1');
 			 }*/
 			if (empty($enabled)) {
 				continue;
@@ -6649,7 +6655,7 @@ abstract class CommonObject
 							if (empty($conf->disable_compute)) {
 								global $objectoffield;        // We set a global variable to $objectoffield so
 								$objectoffield = $this;        // we can use it inside computed formula
-								$this->array_options['options_' . $key] = dol_eval($extrafields->attributes[$this->table_element]['computed'][$key], 1, 0, '2');
+								$this->array_options['options_' . $key] = dol_eval((string) $extrafields->attributes[$this->table_element]['computed'][$key], 1, 0, '2');
 							}
 						}
 					}
@@ -6778,7 +6784,7 @@ abstract class CommonObject
 
 			if (!empty($attrfieldcomputed)) {
 				if (getDolGlobalString('MAIN_STORE_COMPUTED_EXTRAFIELDS')) {
-					$value = dol_eval($attrfieldcomputed, 1, 0, '2');
+					$value = dol_eval((string) $attrfieldcomputed, 1, 0, '2');
 					dol_syslog($langs->trans("Extrafieldcomputed")." on ".$attributeLabel."(".$value.")", LOG_DEBUG);
 					$new_array_options[$key] = $value;
 				} else {
@@ -7227,7 +7233,7 @@ abstract class CommonObject
 			//dol_syslog("attributeType=".$attributeType, LOG_DEBUG);
 			if (!empty($attrfieldcomputed)) {
 				if (getDolGlobalString('MAIN_STORE_COMPUTED_EXTRAFIELDS')) {
-					$value = dol_eval($attrfieldcomputed, 1, 0, '2');
+					$value = dol_eval((string) $attrfieldcomputed, 1, 0, '2');
 					dol_syslog($langs->trans("Extrafieldcomputed")." on ".$attributeLabel."(".$value.")", LOG_DEBUG);
 
 					$new_array_options["options_".$key] = $value;
@@ -8224,9 +8230,9 @@ abstract class CommonObject
 						if (strpos($InfoFieldList[4], 'extra') !== false) {
 							$sql .= ' as main, ' . $this->db->sanitize($this->db->prefix() . $InfoFieldList[0]) . '_extrafields as extra';
 							$sqlwhere .= " WHERE extra.fk_object = main." . $this->db->sanitize($InfoFieldList[2]);
-							$sqlwhere .= " AND " . $InfoFieldList[4];
+							$sqlwhere .= " AND " . forgeSQLFromUniversalSearchCriteria($InfoFieldList[4], $errstr, 1);
 						} else {
-							$sqlwhere .= " WHERE " . $InfoFieldList[4];
+							$sqlwhere .= " WHERE " . forgeSQLFromUniversalSearchCriteria($InfoFieldList[4], $errstr, 1);
 						}
 					} else {
 						$sqlwhere .= ' WHERE 1=1';
@@ -8313,7 +8319,7 @@ abstract class CommonObject
 									$isDependList = 1;
 								}
 
-								$data[(int) $obj->rowid] = $labeltoshow;
+								$data[$obj->rowid] = $labeltoshow;	// Warning: $obj->rowid is an alias and can be an int, but also a string ref.
 							}
 
 							$i++;
@@ -8544,7 +8550,7 @@ abstract class CommonObject
 		if ($computed) {
 			// Make the eval of compute string
 			//var_dump($computed);
-			$value = dol_eval($computed, 1, 0, '2');
+			$value = dol_eval((string) $computed, 1, 0, '2');
 		}
 
 		if (empty($morecss)) {
@@ -9173,7 +9179,7 @@ abstract class CommonObject
 			} else {
 				return true;
 			}
-		} elseif ($type == 'mail') {
+		} elseif ($type == 'mail' || $type == 'email') {
 			if (!$validate->isEmail($fieldValue)) {
 				$this->setFieldError($fieldKey, $validate->error);
 				return false;
@@ -9306,12 +9312,12 @@ abstract class CommonObject
 
 					$visibility = 1;
 					if (isset($extrafields->attributes[$this->table_element]['list'][$key])) {
-						$visibility = (int) dol_eval($extrafields->attributes[$this->table_element]['list'][$key], 1, 1, '2');
+						$visibility = (int) dol_eval((string) $extrafields->attributes[$this->table_element]['list'][$key], 1, 1, '2');
 					}
 
 					$perms = 1;
 					if ($perms && isset($extrafields->attributes[$this->table_element]['perms'][$key])) {
-						$perms = (int) dol_eval($extrafields->attributes[$this->table_element]['perms'][$key], 1, 1, '2');
+						$perms = (int) dol_eval((string) $extrafields->attributes[$this->table_element]['perms'][$key], 1, 1, '2');
 					}
 
 					if (($mode == 'create') && !in_array(abs($visibility), array(1, 3))) {

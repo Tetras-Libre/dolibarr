@@ -71,7 +71,7 @@ class TimeSpent extends CommonObject
 	 *   	'double(24,8)', 'real', 'price',
 	 *  	'date', 'datetime', 'timestamp', 'duration',
 	 *  	'boolean', 'checkbox', 'radio', 'array',
-	 *  	'mail', 'phone', 'url', 'password', 'ip'
+	 *  	'email', 'phone', 'url', 'password', 'ip'
 	 *		Note: Filter must be a Dolibarr filter syntax string. Example: "(t.ref:like:'SO-%') or (t.date_creation:<:'20160101') or (t.status:!=:0) or (t.nature:is:NULL)"
 	 *  'label' the translation key.
 	 *  'picto' is code of a picto to show before value in forms
@@ -105,6 +105,7 @@ class TimeSpent extends CommonObject
 	 */
 	public $fields = array(
 		'rowid' => array('type' => 'integer', 'label' => 'TechnicalID', 'enabled' => 1, 'position' => 1, 'notnull' => 1, 'visible' => 0, 'noteditable' => 1, 'index' => 1, 'css' => 'left', 'comment' => "Id"),
+		'ref_ext' => array('type' => 'varchar(255)', 'label' => 'RefExt', 'enabled' => 1, 'visible' => 0, 'position' => 20),
 		'tms' => array('type' => 'timestamp', 'label' => 'DateModification', 'enabled' => 1, 'position' => 17, 'notnull' => 0, 'visible' => -2,),
 		'import_key' => array('type' => 'varchar(14)', 'label' => 'import_key', 'enabled' => 1, 'position' => 15, 'notnull' => 0, 'visible' => -1,),
 		'fk_element' => array('type' => 'integer', 'label' => 'fk_element', 'enabled' => 1, 'position' => 2, 'notnull' => 1, 'visible' => -1,),

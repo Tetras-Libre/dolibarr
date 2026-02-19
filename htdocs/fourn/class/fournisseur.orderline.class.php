@@ -358,8 +358,8 @@ class CommandeFournisseurLigne extends CommonOrderLine
 		} else {
 			$sql .= "null,";
 		}
-		$sql .= "'".$this->db->escape((string) $this->product_type)."',";
-		$sql .= ((int) $this->special_code) . ",";
+		$sql .= ((int) $this->product_type).",";
+		$sql .= ((int) $this->special_code).",";
 		$sql .= "'".$this->db->escape((string) $this->rang)."',";
 		$sql .= "'".$this->db->escape((string) $this->qty)."', ";
 		$sql .= " ".(empty($this->vat_src_code) ? "''" : "'".$this->db->escape((string) $this->vat_src_code)."'").",";
@@ -466,7 +466,7 @@ class CommandeFournisseurLigne extends CommonOrderLine
 		}
 		// Multicurrency
 		$sql .= ", multicurrency_subprice = ".((float) price2num($this->multicurrency_subprice));
-		$sql .= ", multicurrency_subprice = ".((float) price2num($this->multicurrency_subprice_ttc));
+		$sql .= ", multicurrency_subprice_ttc = ".((float) price2num($this->multicurrency_subprice_ttc));
 		$sql .= ", multicurrency_total_ht = ".((float) price2num($this->multicurrency_total_ht));
 		$sql .= ", multicurrency_total_tva = ".((float) price2num($this->multicurrency_total_tva));
 		$sql .= ", multicurrency_total_ttc = ".((float) price2num($this->multicurrency_total_ttc));
