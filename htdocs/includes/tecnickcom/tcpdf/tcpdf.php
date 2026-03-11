@@ -7460,7 +7460,7 @@ class TCPDF
 						$color = imagecolorat($img, $xpx, $ypx);
 						// get and correct gamma color
 						$alpha = $this->getGDgamma($img, $color);
-						imagesetpixel($imgalpha, $xpx, $ypx, $alpha);
+						imagesetpixel($imgalpha, $xpx, $ypx, (int) $alpha);
 					}
 				}
 				imagepng($imgalpha, $tempfile_alpha);
@@ -10031,6 +10031,11 @@ class TCPDF
 				$out .= ' >> >>';
 			}
 			$font = $this->getFontBuffer('helvetica');
+			// @DOLCHANGE LDR Fix PHP warning
+			if (empty($font['i'])) {
+				//var_dump($this->fonts['helvetica']['i']);exit;
+				$font['i'] = '';
+			}
 			$out .= ' /DA (/F'.$font['i'].' 0 Tf 0 g)';
 			$out .= ' /Q '.(($this->rtl)?'2':'0');
 			//$out .= ' /XFA ';
@@ -10516,9 +10521,9 @@ class TCPDF
 	/**
 	 * Output a string to the document.
 	 * @param $s (string) string to output.
-	 * @protected
+	 * @public
 	 */
-	protected function _out($s)
+	public function _out($s)
 	{
 		if ($this->state == 2) {
 			if ($this->inxobj) {
@@ -19226,10 +19231,14 @@ class TCPDF
 					break;
 				}
 				$imgsrc = $tag['attribute']['src'];
+				$reg = array(); // @CHANGE DOL support 'data:' URLs (tcpdf backport https://github.com/tecnickcom/TCPDF/pull/552)
 				if ($imgsrc[0] === '@') {
 					// data stream
 					$imgsrc = '@'.base64_decode(substr($imgsrc, 1));
 					$type = '';
+				} elseif (preg_match('@^data:image/([^;]*);base64,(.*)@', $imgsrc, $reg)) { // @CHANGE DOL support 'data:' URLs (tcpdf backport https://github.com/tecnickcom/TCPDF/pull/552)
+					$imgsrc = '@'.base64_decode($reg[2]); // @CHANGE DOL support 'data:' URLs (tcpdf backport https://github.com/tecnickcom/TCPDF/pull/552)
+					$type = $reg[1]; // @CHANGE DOL support 'data:' URLs (tcpdf backport https://github.com/tecnickcom/TCPDF/pull/552)
 				} else {
 					// @CHANGE LDR Add support for src="file://..." links
 					if (strpos($imgsrc, 'file://') === 0) {

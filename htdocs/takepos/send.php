@@ -44,11 +44,11 @@ require '../main.inc.php'; // Load $user and permissions
 require_once DOL_DOCUMENT_ROOT.'/core/lib/company.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/compta/facture/class/facture.class.php';
 
-$facid = GETPOST('facid', 'int');
+$facid = GETPOSTINT('facid');
 $action = GETPOST('action', 'aZ09');
 $email = GETPOST('email', 'alpha');
 
-if (empty($user->rights->takepos->run)) {
+if (!$user->hasRight('takepos', 'run')) {
 	accessforbidden();
 }
 
@@ -81,7 +81,7 @@ if ($action == "send") {
 	$msg = "<html>".$arraydefaultmessage->content."<br>".$receipt."</html>";
 	$sendto = $email;
 	$from = $mysoc->email;
-	$mail = new CMailFile($subject, $sendto, $from, $msg, array(), array(), array(), '', '', 0, 1, '', '', '', '', '', '', DOL_DOCUMENT_ROOT.'/documents/takepos/temp');
+	$mail = new CMailFile($subject, $sendto, $from, $msg, array(), array(), array(), '', '', 0, 1, '', '', '', '', '', '', DOL_DATA_ROOT.'/documents/takepos/temp');
 	if ($mail->error || !empty($mail->errors)) {
 		setEventMessages($mail->error, $mail->errors, 'errors');
 	} else {

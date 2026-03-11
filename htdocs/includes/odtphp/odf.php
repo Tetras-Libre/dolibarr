@@ -10,6 +10,13 @@ class OdfException extends Exception
 }
 
 /**
+ * Class of ODT Exception
+ */
+class OdfExceptionSegmentNotFound extends Exception
+{
+}
+
+/**
  * Templating class for odt file
  * You need PHP 5.2 at least
  * You need Zip Extension or PclZip library
@@ -46,8 +53,8 @@ class Odf
 	public $userdefined=array();
 
 	const PIXEL_TO_CM = 0.026458333;
-	const FIND_TAGS_REGEX = '/<([A-Za-z0-9]+)(?:\s([A-Za-z]+(?:\-[A-Za-z]+)?(?:=(?:".*?")|(?:[0-9]+))))*(?:(?:\s\/>)|(?:>(.*)<\/\1>))/s';
-	const FIND_ENCODED_TAGS_REGEX = '/&lt;([A-Za-z]+)(?:\s([A-Za-z]+(?:\-[A-Za-z]+)?(?:=(?:".*?")|(?:[0-9]+))))*(?:(?:\s\/&gt;)|(?:&gt;(.*)&lt;\/\1&gt;))/';
+	const FIND_TAGS_REGEX = '/<([A-Za-z0-9]+)(?:\s([A-Za-z]+(?:\-[A-Za-z]+)?(?:=(?:".*?")|(?:[0-9]+))))*(?:(?:\s\/>)|(?:>(((?!<\1(\s.*)?>).)*)<\/\1>))/s';
+	const FIND_ENCODED_TAGS_REGEX = '/&lt;([A-Za-z]+)(?:\s([A-Za-z]+(?:\-[A-Za-z]+)?(?:=(?:".*?")|(?:[0-9]+))))*(?:(?:\s\/&gt;)|(?:&gt;(((?!&lt;\1(\s.*)?&gt;).)*)&lt;\/\1&gt;))/';
 
 
 	/**
@@ -297,7 +304,7 @@ class Odf
 							}
 							if (strlen($odtStyles) > 0) {
 								// Generate a unique id for the style (using microtime and random because some CPUs are really fast...)
-								$key = floatval(str_replace('.', '', microtime(true))) + rand(0, 10);
+								$key = str_replace('.', '', (string) microtime(true)) . uniqid(mt_rand());
 								$customStyles[$key] = $odtStyles;
 								$odtResult .= '<text:span text:style-name="customStyle' . $key . '">' . ($tag['children'] != null ? $this->_replaceHtmlWithOdtTag($tag['children'], $customStyles, $fontDeclarations, $encode) : $this->encode_chars($tag['innerText'], $encode, $charset)) . '</text:span>';
 							}
@@ -323,7 +330,7 @@ class Odf
 	private function encode_chars($text, $encode = false, $charset = '')
 	{
 		$newtext = $encode ? htmlspecialchars($text, ENT_QUOTES | ENT_XML1) : $text;
-		$newtext = ($charset == 'ISO-8859') ? utf8_encode($newtext) : $newtext;
+		$newtext = ($charset == 'ISO-8859') ? mb_convert_encoding($newtext, 'UTF-8', 'ISO-8859-1') : $newtext;
 		return $newtext;
 	}
 
@@ -549,10 +556,15 @@ IMG;
 	 */
 	private function _parse($type = 'content')
 	{
+		if ($type == 'content') $xml = &$this->contentXml;
+		elseif ($type == 'styles') $xml = &$this->stylesXml;
+		elseif ($type == 'meta') $xml = &$this->metaXml;
+		else return;
+
 		// Search all tags found into condition to complete $this->vars, so we will proceed all tests even if not defined
-		$reg='@\[!--\sIF\s([{}a-zA-Z0-9\.\,_]+)\s--\]@smU';
+		$reg='@\[!--\sIF\s([\[\]{}a-zA-Z0-9\.\,_]+)\s--\]@smU';
 		$matches = array();
-		preg_match_all($reg, $this->contentXml, $matches, PREG_SET_ORDER);
+		preg_match_all($reg, $xml, $matches, PREG_SET_ORDER);
 
 		//var_dump($this->vars);exit;
 		foreach ($matches as $match) {   // For each match, if there is no entry into this->vars, we add it
@@ -568,13 +580,13 @@ IMG;
 			// If value is true (not 0 nor false nor null nor empty string)
 			if ($value) {
 				//dol_syslog("Var ".$key." is defined, we remove the IF, ELSE and ENDIF ");
-				//$sav=$this->contentXml;
+				//$sav=$xml;
 				// Remove the IF tag
-				$this->contentXml = str_replace('[!-- IF '.$key.' --]', '', $this->contentXml);
+				$xml = str_replace('[!-- IF '.$key.' --]', '', $xml);
 				// Remove everything between the ELSE tag (if it exists) and the ENDIF tag
-				$reg = '@(\[!--\sELSE\s' . $key . '\s--\](.*))?\[!--\sENDIF\s' . $key . '\s--\]@smU'; // U modifier = all quantifiers are non-greedy
-				$this->contentXml = preg_replace($reg, '', $this->contentXml);
-				/*if ($sav != $this->contentXml)
+				$reg = '@(\[!--\sELSE\s' . preg_quote($key, '@') . '\s--\](.*))?\[!--\sENDIF\s' . preg_quote($key, '@') . '\s--\]@smU'; // U modifier = all quantifiers are non-greedy
+				$xml = preg_replace($reg, '', $xml);
+				/*if ($sav != $xml)
 				 {
 				 dol_syslog("We found a IF and it was processed");
 				 //var_dump($sav);exit;
@@ -583,16 +595,16 @@ IMG;
 				// Else the value is false, then two cases: no ELSE and we're done, or there is at least one place where there is an ELSE clause, then we replace it
 
 				//dol_syslog("Var ".$key." is not defined, we remove the IF, ELSE and ENDIF ");
-				//$sav=$this->contentXml;
+				//$sav=$xml;
 				// Find all conditional blocks for this variable: from IF to ELSE and to ENDIF
-				$reg = '@\[!--\sIF\s' . $key . '\s--\](.*)(\[!--\sELSE\s' . $key . '\s--\](.*))?\[!--\sENDIF\s' . $key . '\s--\]@smU'; // U modifier = all quantifiers are non-greedy
-				preg_match_all($reg, $this->contentXml, $matches, PREG_SET_ORDER);
+				$reg = '@\[!--\sIF\s' . preg_quote($key, '@') . '\s--\](.*)(\[!--\sELSE\s' . preg_quote($key, '@') . '\s--\](.*))?\[!--\sENDIF\s' . preg_quote($key, '@') . '\s--\]@smU'; // U modifier = all quantifiers are non-greedy
+				preg_match_all($reg, $xml, $matches, PREG_SET_ORDER);
 				foreach ($matches as $match) { // For each match, if there is an ELSE clause, we replace the whole block by the value in the ELSE clause
-					if (!empty($match[3])) $this->contentXml = str_replace($match[0], $match[3], $this->contentXml);
+					if (!empty($match[3])) $xml = str_replace($match[0], $match[3], $xml);
 				}
 				// Cleanup the other conditional blocks (all the others where there were no ELSE clause, we can just remove them altogether)
-				$this->contentXml = preg_replace($reg, '', $this->contentXml);
-				/*if ($sav != $this->contentXml)
+				$xml = preg_replace($reg, '', $xml);
+				/*if ($sav != $xml)
 				 {
 				 dol_syslog("We found a IF and it was processed");
 				 //var_dump($sav);exit;
@@ -601,9 +613,7 @@ IMG;
 		}
 
 		// Static substitution
-		if ($type == 'content')	$this->contentXml = str_replace(array_keys($this->vars), array_values($this->vars), $this->contentXml);
-		if ($type == 'styles')	$this->stylesXml = str_replace(array_keys($this->vars), array_values($this->vars), $this->stylesXml);
-		if ($type == 'meta')	$this->metaXml = str_replace(array_keys($this->vars), array_values($this->vars), $this->metaXml);
+		$xml = str_replace(array_keys($this->vars), array_values($this->vars), $xml);
 	}
 
 	/**
@@ -661,7 +671,7 @@ IMG;
 	 * Extract the segment and store it into $this->segments[]. Return it for next call.
 	 *
 	 * @param  string      $segment        Segment
-	 * @throws OdfException
+	 * @throws OdfExceptionSegmentNotFound
 	 * @return Segment
 	 */
 	public function setSegment($segment)
@@ -673,7 +683,7 @@ IMG;
 		$reg = "#\[!--\sBEGIN\s$segment\s--\](.*)\[!--\sEND\s$segment\s--\]#sm";
 		$m = array();
 		if (preg_match($reg, html_entity_decode($this->contentXml), $m) == 0) {
-			throw new OdfException("'".$segment."' segment not found in the document. The tag [!-- BEGIN xxx --] or [!-- END xxx --] is not present into content file.");
+			throw new OdfExceptionSegmentNotFound("'".$segment."' segment not found in the document. The tag [!-- BEGIN xxx --] or [!-- END xxx --] is not present into content file.");
 		}
 		$this->segments[$segment] = new Segment($segment, $m[1], $this);
 		return $this->segments[$segment];
@@ -730,7 +740,7 @@ IMG;
 			// Add the image to the Manifest (which maintains a list of images, necessary to avoid "Corrupt ODT file. Repair?" when opening the file with LibreOffice)
 			$this->addImageToManifest($imageValue);
 		}
-		if (! $this->file->addFromString('./META-INF/manifest.xml', $this->manifestXml)) {
+		if (! $this->file->addFromString('META-INF/manifest.xml', $this->manifestXml)) {
 			throw new OdfException('Error during file export: manifest.xml');
 		}
 		$this->file->close();
@@ -833,7 +843,7 @@ IMG;
 			// using windows libreoffice that must be in path
 			// using linux/mac libreoffice that must be in path
 			// Note PHP Config "fastcgi.impersonate=0" must set to 0 - Default is 1
-			$command ='soffice --headless -env:UserInstallation=file:\''.$conf->user->dir_temp.'/odtaspdf\' --convert-to pdf --outdir '. escapeshellarg(dirname($name)). " ".escapeshellarg($name);
+			$command ='soffice --headless -env:UserInstallation=file:'.escapeshellarg((getDolGlobalString('MAIN_ODT_ADD_SLASH_FOR_WINDOWS') ? '///' : '').dol_sanitizePathName($conf->user->dir_temp).'/odtaspdf').' --convert-to pdf --outdir '. escapeshellarg(dirname($name)). " ".escapeshellarg($name);
 		} elseif (preg_match('/unoconv/', getDolGlobalString('MAIN_ODT_AS_PDF'))) {
 			// If issue with unoconv, see https://github.com/dagwieers/unoconv/issues/87
 
@@ -859,17 +869,19 @@ IMG;
 			// - set shell of user to bash instead of nologin.
 			// - set permission to read/write to user on home directory /var/www so user can create the libreoffice , dconf and .cache dir and files then set permission back
 
-			$command = getDolGlobalString('MAIN_ODT_AS_PDF').' '.escapeshellcmd($name);
+			$command = getDolGlobalString('MAIN_ODT_AS_PDF').' '.escapeshellarg($name);
 			//$command = '/usr/bin/unoconv -vvv '.escapeshellcmd($name);
 		} else {
 			// deprecated old method using odt2pdf.sh (native, jodconverter, ...)
 			$tmpname=preg_replace('/\.odt/i', '', $name);
 
 			if (getDolGlobalString('MAIN_DOL_SCRIPTS_ROOT')) {
-				$command = getDolGlobalString('MAIN_DOL_SCRIPTS_ROOT').'/scripts/odt2pdf/odt2pdf.sh '.escapeshellcmd($tmpname).' '.(is_numeric(getDolGlobalString('MAIN_ODT_AS_PDF'))?'jodconverter':getDolGlobalString('MAIN_ODT_AS_PDF'));
+				$command = dol_sanitizePathName(getDolGlobalString('MAIN_DOL_SCRIPTS_ROOT')).'/scripts/odt2pdf/odt2pdf.sh '.escapeshellarg($tmpname).' '.escapeshellarg(is_numeric(getDolGlobalString('MAIN_ODT_AS_PDF')) ? 'jodconverter' : getDolGlobalString('MAIN_ODT_AS_PDF'));
 			} else {
 				dol_syslog(get_class($this).'::exportAsAttachedPDF is used but the constant MAIN_DOL_SCRIPTS_ROOT with path to script directory was not defined.', LOG_WARNING);
-				$command = '../../scripts/odt2pdf/odt2pdf.sh '.escapeshellcmd($tmpname).' '.(is_numeric(getDolGlobalString('MAIN_ODT_AS_PDF'))?'jodconverter':getDolGlobalString('MAIN_ODT_AS_PDF'));
+				$paramodt2pdf = (is_numeric(getDolGlobalString('MAIN_ODT_AS_PDF')) ? 'jodconverter' : getDolGlobalString('MAIN_ODT_AS_PDF'));
+				$paramodt2pdf = dol_sanitizePathName($paramodt2pdf);
+				$command = '../../scripts/odt2pdf/odt2pdf.sh '.escapeshellarg($tmpname).' '.escapeshellarg($paramodt2pdf);
 			}
 		}
 
@@ -877,6 +889,7 @@ IMG;
 		//$command = DOL_DOCUMENT_ROOT.'/includes/odtphp/odt2pdf.sh '.$name.' '.$dirname;
 
 		dol_syslog(get_class($this).'::exportAsAttachedPDF $execmethod='.$execmethod.' Run command='.$command, LOG_DEBUG);
+
 		// TODO Use:
 		// $outputfile = DOL_DATA_ROOT.'/odt2pdf.log';
 		// $result = $utils->executeCLI($command, $outputfile);  and replace test on $execmethod.
@@ -884,17 +897,17 @@ IMG;
 		// $errorstring will be $result['output']
 		$retval=0; $output_arr=array();
 		if ($execmethod == 1) {
-			exec($command, $output_arr, $retval);
+			exec(escapeshellcmd($command), $output_arr, $retval);
 		}
 		if ($execmethod == 2) {
 			$outputfile = DOL_DATA_ROOT.'/odt2pdf.log';
 
-			$ok=0;
 			$handle = fopen($outputfile, 'w');
 			if ($handle) {
 				dol_syslog(get_class($this)."Run command ".$command, LOG_DEBUG);
+				dol_syslog(get_class($this)."escapeshellcmd(command) = ".escapeshellcmd($command), LOG_DEBUG);
 				fwrite($handle, $command."\n");
-				$handlein = popen($command, 'r');
+				$handlein = popen(escapeshellcmd($command), 'r');
 				while (!feof($handlein)) {
 					$read = fgets($handlein);
 					fwrite($handle, $read);
@@ -918,7 +931,7 @@ IMG;
 				if (!empty($conf->global->MAIN_DISABLE_PDF_AUTOUPDATE)) {
 					$name=preg_replace('/\.od(x|t)/i', '', $name);
 					header('Content-type: application/pdf');
-					header('Content-Disposition: attachment; filename="'.$name.'.pdf"');
+					header('Content-Disposition: attachment; filename="'.basename($name).'.pdf"');
 					readfile($name.".pdf");
 				}
 			}
@@ -937,7 +950,7 @@ IMG;
 				foreach ($output_arr as $line) {
 					$errorstring.= $line."<br>";
 				}
-				throw new OdfException('ODT to PDF convert fail (option MAIN_ODT_AS_PDF is '.$conf->global->MAIN_ODT_AS_PDF.', command was '.$command.', retval='.$retval.') : ' . $errorstring);
+				throw new OdfException('ODT to PDF convert fail (option MAIN_ODT_AS_PDF is '.getDolGlobalString('MAIN_ODT_AS_PDF').', command was '.$command.', retval='.$retval.') : ' . $errorstring);
 			}
 		}
 	}
@@ -1015,6 +1028,9 @@ IMG;
 		$matches = array();
 		preg_match($searchreg, $this->contentXml, $matches);
 		$this->contentXml = preg_replace($searchreg, "", $this->contentXml);
-		return  $matches[1];
+		if ($matches) {
+			return  $matches[1];
+		}
+		return "";
 	}
 }

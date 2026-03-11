@@ -36,7 +36,6 @@ include_once DOL_DOCUMENT_ROOT.'/core/modules/DolibarrModules.class.php';
  */
 class modAdherent extends DolibarrModules
 {
-
 	/**
 	 *   Constructor. Define names, constants, directories, boxes, permissions
 	 *
@@ -148,7 +147,7 @@ class modAdherent extends DolibarrModules
 		$this->const[$r][0] = "ADHERENT_MAILMAN_ADMIN_PASSWORD";
 		$this->const[$r][1] = "chaine";
 		$this->const[$r][2] = "";
-		$this->const[$r][3] = "Mot de passe Admin des liste mailman";
+		$this->const[$r][3] = "Password admin mailman lists";
 		$this->const[$r][4] = 0;
 		$r++;
 
@@ -183,7 +182,7 @@ class modAdherent extends DolibarrModules
 
 		$this->const[$r][0] = "MEMBER_ADDON_PDF_ODT_PATH";
 		$this->const[$r][1] = "chaine";
-		$this->const[$r][2] = "DOL_DATA_ROOT/doctemplates/members";
+		$this->const[$r][2] = "DOL_DATA_ROOT".($conf->entity > 1 ? '/'.$conf->entity : '')."/doctemplates/members";
 		$this->const[$r][3] = "";
 		$this->const[$r][4] = 0;
 		$r++;
@@ -208,9 +207,9 @@ class modAdherent extends DolibarrModules
 		$r = 0;
 
 		// $this->rights[$r][0]     Id permission (unique tous modules confondus)
-		// $this->rights[$r][1]     Libelle par defaut si traduction de cle "PermissionXXX" non trouvee (XXX = Id permission)
+		// $this->rights[$r][1]     Libelle par default si traduction de cle "PermissionXXX" non trouvee (XXX = Id permission)
 		// $this->rights[$r][2]     Non utilise
-		// $this->rights[$r][3]     1=Permis par defaut, 0=Non permis par defaut
+		// $this->rights[$r][3]     1=Permis par default, 0=Non permis par default
 		// $this->rights[$r][4]     Niveau 1 pour nommer permission dans code
 		// $this->rights[$r][5]     Niveau 2 pour nommer permission dans code
 
@@ -363,8 +362,8 @@ class modAdherent extends DolibarrModules
 		$this->import_convertvalue_array[$r] = array(
 			'a.ref'=>array(
 				'rule'=>'getrefifauto',
-				'class'=>(empty($conf->global->MEMBER_ADDON) ? 'mod_member_simple' : $conf->global->MEMBER_ADDON),
-				'path'=>"/core/modules/member/".(empty($conf->global->MEMBER_ADDON) ? 'mod_member_simple' : $conf->global->MEMBER_ADDON).'.php'
+				'class' => getDolGlobalString('MEMBER_ADDON', 'mod_member_simple'),
+				'path'=>"/core/modules/member/".getDolGlobalString('MEMBER_ADDON', 'mod_member_simple').'.php'
 			),
 			'a.state_id' => array(
 				'rule' => 'fetchidfromcodeid',
@@ -415,7 +414,7 @@ class modAdherent extends DolibarrModules
 				'unitfrequency'=> 3600 * 24,
 				'priority'=>50,
 				'status'=>1,
-				'test'=>'$conf->adherent->enabled',
+				'test'=>'isModEnabled("member")',
 				'datestart'=>$datestart
 			),
 		);
@@ -432,15 +431,15 @@ class modAdherent extends DolibarrModules
 	 */
 	public function init($options = '')
 	{
-		global $conf, $langs;
+		global $conf;
 
 		// Permissions
 		$this->remove($options);
 
 		// ODT template
 		/*
-		$src=DOL_DOCUMENT_ROOT.'/install/doctemplates/orders/template_order.odt';
-		$dirodt=DOL_DATA_ROOT.'/doctemplates/orders';
+		$src=DOL_DOCUMENT_ROOT.'/install/doctemplates/members/template_member.odt';
+		$dirodt=DOL_DATA_ROOT.($conf->entity > 1 ? '/'.$conf->entity : '').'/doctemplates/members';
 		$dest=$dirodt.'/template_order.odt';
 
 		if (file_exists($src) && ! file_exists($dest)) {

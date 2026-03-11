@@ -26,9 +26,13 @@
 // Load Dolibarr environment
 require '../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
-require_once DOL_DOCUMENT_ROOT.'/core/lib/oauth.lib.php'; // This define $list and $supportedoauth2array
+require_once DOL_DOCUMENT_ROOT.'/core/lib/oauth.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/doleditor.class.php';
+
 use OAuth\Common\Storage\DoliStorage;
+use OAuth\Common\Consumer\Credentials;
+
+$supportedoauth2array = getSupportedOauth2Array();
 
 // Load translation files required by the page
 $langs->loadLangs(array('admin', 'printing', 'oauth'));
@@ -111,6 +115,101 @@ if ($action == 'setvalue' && $user->admin) {
 	$action = '';
 }
 
+// Test a refresh of a token using the refresh token
+if ($action == 'refreshtoken' && $user->admin) {
+	$keyforprovider = GETPOST('keyforprovider');
+	$OAUTH_SERVICENAME = GETPOST('service');
+
+	// Show value of token
+	$tokenobj = null;
+	// Load OAUth libraries
+	require_once DOL_DOCUMENT_ROOT.'/includes/OAuth/bootstrap.php';
+
+	$keyforsupportedoauth2array = $OAUTH_SERVICENAME;
+	if (preg_match('/^.*-/', $keyforsupportedoauth2array)) {
+		$keyforprovider = preg_replace('/^.*-/', '', $keyforsupportedoauth2array);
+	} else {
+		$keyforprovider = '';
+	}
+	$keyforsupportedoauth2array = preg_replace('/-.*$/', '', strtoupper($keyforsupportedoauth2array));
+	$keyforsupportedoauth2array = 'OAUTH_'.$keyforsupportedoauth2array.'_NAME';
+
+	$keyforparamtenant = 'OAUTH_'.strtoupper(empty($supportedoauth2array[$keyforsupportedoauth2array]['callbackfile']) ? 'Unknown' : $supportedoauth2array[$keyforsupportedoauth2array]['callbackfile']).($keyforprovider ? '-'.$keyforprovider : '').'_TENANT';
+
+	// Dolibarr storage
+	$storage = new DoliStorage($db, $conf, $keyforprovider, getDolGlobalString($keyforparamtenant));
+	try {
+		// $OAUTH_SERVICENAME is for example 'Google-keyforprovider'
+		print '<!-- '.$OAUTH_SERVICENAME.' -->'."\n";
+
+		dol_syslog("oauthlogintokens.php: Read token for service ".$OAUTH_SERVICENAME);
+		$tokenobj = $storage->retrieveAccessToken($OAUTH_SERVICENAME);
+
+		$expire = ($tokenobj->getEndOfLife() !== -9002 && $tokenobj->getEndOfLife() !== -9001 && time() > ($tokenobj->getEndOfLife() - 30));
+		// We have to save the refresh token in a memory variable because Google give it only once
+		$refreshtoken = $tokenobj->getRefreshToken();
+		print '<!-- data stored into field token: '.$storage->token.' - expire '.((string) $expire).' -->';
+
+		//print $tokenobj->getExtraParams()['id_token'].'<br>';
+		//print $tokenobj->getAccessToken().'<br>';
+		//print $tokenobj->getRefreshToken().'<br>';
+
+		//var_dump($expire);
+
+		// We do the refresh even if not expired, this is the goal of action.
+		$oauthname = explode('-', $OAUTH_SERVICENAME);
+		$keyforoauthservice = strtoupper($oauthname[0]).(empty($oauthname[1]) ? '' : '-'.$oauthname[1]);
+		$credentials = new Credentials(
+			getDolGlobalString('OAUTH_'.$keyforoauthservice.'_ID'),
+			getDolGlobalString('OAUTH_'.$keyforoauthservice.'_SECRET'),
+			getDolGlobalString('OAUTH_'.$keyforoauthservice.'_URLCALLBACK')
+			);
+
+		$serviceFactory = new \OAuth\ServiceFactory();
+		$httpClient = new \OAuth\Common\Http\Client\CurlClient();
+		// TODO Set options for proxy and timeout
+		// $params=array('CURLXXX'=>value, ...)
+		//$httpClient->setCurlParameters($params);
+		$serviceFactory->setHttpClient($httpClient);
+
+		$scopes = array();
+		if (preg_match('/^Microsoft/', $OAUTH_SERVICENAME)) {
+			//$extraparams = $tokenobj->getExtraParams();
+			$tmp = explode('-', $OAUTH_SERVICENAME);
+			$scopes = explode(',', getDolGlobalString('OAUTH_'.strtoupper($tmp[0]).(empty($tmp[1]) ? '' : '-'.$tmp[1]).'_SCOPE'));
+		}
+
+		// ex service is Google-Emails we need only the first part Google
+		$apiService = $serviceFactory->createService($oauthname[0], $credentials, $storage, $scopes);
+
+		if ($apiService instanceof OAuth\OAuth2\Service\AbstractService || $apiService instanceof OAuth\OAuth1\Service\AbstractService) {
+			// ServiceInterface does not provide refreshAccessToekn, AbstractService does
+			dol_syslog("oauthlogintokens.php: call refreshAccessToken to get the new access token");
+			$tokenobj = $apiService->refreshAccessToken($tokenobj);		// This call refresh and store the new token (but does not include the refresh token)
+
+			dol_syslog("oauthlogintokens.php: call setRefreshToken");
+			$tokenobj->setRefreshToken($refreshtoken);	// Restore the refresh token
+
+			dol_syslog("oauthlogintokens.php: call storeAccessToken to save the new access token + the old refresh token");
+			$storage->storeAccessToken($OAUTH_SERVICENAME, $tokenobj);	// This save the new token including the refresh token
+
+			if ($expire) {
+				setEventMessages($langs->trans("OldTokenWasExpiredItHasBeenRefresh"), null, 'mesgs');
+			} else {
+				setEventMessages($langs->trans("OldTokenWasNotExpiredButItHasBeenRefresh"), null, 'mesgs');
+			}
+		} else {
+			dol_print_error($db, 'apiService is not a correct OAUTH2 Abstract service');
+		}
+
+		dol_syslog("oauthlogintokens.php: Read token again for service ".$OAUTH_SERVICENAME);
+		$tokenobj = $storage->retrieveAccessToken($OAUTH_SERVICENAME);
+	} catch (Exception $e) {
+		// Return an error if token not found
+		print $e->getMessage();
+	}
+}
+
 
 /*
  * View
@@ -123,7 +222,10 @@ $urlwithroot = $urlwithouturlroot.DOL_URL_ROOT; // This is to use external domai
 
 $form = new Form($db);
 
-llxHeader('', $langs->trans("TokenManager"));
+$title = $langs->trans("TokenManager");
+$help_url = 'EN:Module_OAuth|FR:Module_OAuth_FR|ES:Módulo_OAuth_ES';
+
+llxHeader('', $title, $help_url, '', 0, 0, '', '', '', 'mod-admin page-oauthlogintokens');
 
 $linkback = '<a href="'.DOL_URL_ROOT.'/admin/modules.php?restore_lastsearch_values=1">'.$langs->trans("BackToModuleList").'</a>';
 print load_fiche_titre($langs->trans('ConfigOAuth'), $linkback, 'title_setup');
@@ -140,6 +242,7 @@ if ($mode == 'setup' && $user->admin) {
 	print '<span class="opacitymedium">'.$langs->trans("OAuthSetupForLogin")."</span><br><br>\n";
 
 	// Define $listinsetup
+	$listinsetup = array();
 	foreach ($conf->global as $key => $val) {
 		if (!empty($val) && preg_match('/^OAUTH_.*_ID$/', $key)) {
 			$provider = preg_replace('/_ID$/', '', $key);
@@ -153,9 +256,9 @@ if ($mode == 'setup' && $user->admin) {
 		}
 	}
 
-	$oauthstateanticsrf = bin2hex(random_bytes(128/8));
+	$oauthstateanticsrf = bin2hex(random_bytes(128 / 8));
 
-	// $list is defined into oauth.lib.php to the list of supporter OAuth providers.
+	// $list is defined into oauth.lib.php to the list of supported OAuth providers.
 	if (!empty($listinsetup)) {
 		foreach ($listinsetup as $key) {
 			$supported = 0;
@@ -169,17 +272,22 @@ if ($mode == 'setup' && $user->admin) {
 				$keybeforeprovider = $keyforsupportedoauth2array;
 				$keyforprovider = '';
 			}
-			$keyforsupportedoauth2array = preg_replace('/-.*$/', '', $keyforsupportedoauth2array);
+			$keyforsupportedoauth2array = preg_replace('/-.*$/', '', strtoupper($keyforsupportedoauth2array));
 			$keyforsupportedoauth2array = 'OAUTH_'.$keyforsupportedoauth2array.'_NAME';
 
+			$nameofservice = ucfirst(strtolower(empty($supportedoauth2array[$keyforsupportedoauth2array]['callbackfile']) ? 'Unknown' : $supportedoauth2array[$keyforsupportedoauth2array]['callbackfile']));
+			$nameofservice .= ($keyforprovider ? '-'.$keyforprovider : '');
+			$OAUTH_SERVICENAME = $nameofservice;
 
-			$OAUTH_SERVICENAME = (empty($supportedoauth2array[$keyforsupportedoauth2array]['name']) ? 'Unknown' : $supportedoauth2array[$keyforsupportedoauth2array]['name'].($keyforprovider ? '-'.$keyforprovider : ''));
+			$keyforparamtenant = 'OAUTH_'.strtoupper(empty($supportedoauth2array[$keyforsupportedoauth2array]['callbackfile']) ? 'Unknown' : $supportedoauth2array[$keyforsupportedoauth2array]['callbackfile']).($keyforprovider ? '-'.$keyforprovider : '').'_TENANT';
 
 			$shortscope = '';
 			if (getDolGlobalString($key[4])) {
 				$shortscope = getDolGlobalString($key[4]);
 			}
 			$state = $shortscope;	// TODO USe a better state
+
+			$urltorefresh = $_SERVER["PHP_SELF"].'?action=refreshtoken&token='.newToken();
 
 			// Define $urltorenew, $urltodelete, $urltocheckperms
 			if ($keyforsupportedoauth2array == 'OAUTH_GITHUB_NAME') {
@@ -210,6 +318,9 @@ if ($mode == 'setup' && $user->admin) {
 			if ($urltorenew) {
 				$urltorenew .= '&keyforprovider='.urlencode($keyforprovider);
 			}
+			if ($urltorefresh) {
+				$urltorefresh .= '&keyforprovider='.urlencode($keyforprovider).'&service='.urlencode($OAUTH_SERVICENAME);
+			}
 			if ($urltodelete) {
 				$urltodelete .= '&keyforprovider='.urlencode($keyforprovider);
 			}
@@ -219,11 +330,12 @@ if ($mode == 'setup' && $user->admin) {
 			// Token
 			require_once DOL_DOCUMENT_ROOT.'/includes/OAuth/bootstrap.php';
 			// Dolibarr storage
-			$storage = new DoliStorage($db, $conf, $keyforprovider);
+			$storage = new DoliStorage($db, $conf, $keyforprovider, getDolGlobalString($keyforparamtenant));
 			try {
 				// $OAUTH_SERVICENAME is for example 'Google-keyforprovider'
 				print '<!-- '.$OAUTH_SERVICENAME.' -->'."\n";
 				$tokenobj = $storage->retrieveAccessToken($OAUTH_SERVICENAME);
+				print '<!-- data stored into field token: '.$storage->token.' -->';
 				//print $storage->token.'<br>';
 				//print $tokenobj->getExtraParams()['id_token'].'<br>';
 				//print $tokenobj->getAccessToken().'<br>';
@@ -261,6 +373,7 @@ if ($mode == 'setup' && $user->admin) {
 			print '<form method="post" action="'.$_SERVER["PHP_SELF"].'?mode=setup&amp;driver='.$driver.'" autocomplete="off">';
 			print '<input type="hidden" name="token" value="'.newToken().'">';
 			print '<input type="hidden" name="action" value="setconst">';
+			print '<input type="hidden" name="page_y" value="">';
 
 			print '<div class="div-table-responsive-no-min">';
 			print '<table class="noborder centpercent">'."\n";
@@ -286,7 +399,7 @@ if ($mode == 'setup' && $user->admin) {
 			print "</tr>\n";
 
 			print '<tr class="oddeven">';
-			print '<td'.(empty($key['required']) ? '' : ' class="required"').'>';
+			print '<td>';
 			//var_dump($key);
 			print $langs->trans("OAuthIDSecret").'</td>';
 			print '<td>';
@@ -305,42 +418,53 @@ if ($mode == 'setup' && $user->admin) {
 			print '</td></tr>';
 
 			print '<tr class="oddeven">';
-			print '<td'.(empty($key['required']) ? '' : ' class="required"').'>';
+			print '<td>';
 			//var_dump($key);
 			print $langs->trans("IsTokenGenerated");
 			print '</td>';
 			print '<td>';
-			if (is_object($tokenobj)) {
-				print $form->textwithpicto(yn(1), $langs->trans("HasAccessToken").' : '.dol_print_date($storage->date_modification, 'dayhour').' state='.dol_escape_htmltag($storage->state));
+			if ($keyforprovider != 'Login') {
+				if (is_object($tokenobj)) {
+					print $form->textwithpicto(yn(1), $langs->trans("HasAccessToken").' : '.dol_print_date($storage->date_modification, 'dayhour').' state='.dol_escape_htmltag($storage->state));
+				} else {
+					print '<span class="opacitymedium">'.$langs->trans("NoAccessToken").'</span>';
+				}
 			} else {
-				print '<span class="opacitymedium">'.$langs->trans("NoAccessToken").'</span>';
+				print '<span class="opacitymedium">'.$langs->trans("TokenNotRequiredForOAuthLogin").'</span>';
 			}
 			print '</td>';
 			print '<td width="50%">';
-			// Links to delete/checks token
-			if (is_object($tokenobj)) {
-				//test on $storage->hasAccessToken($OAUTH_SERVICENAME) ?
-				if ($urltodelete) {
-					print '<a class="button smallpaddingimp" href="'.$urltodelete.'">'.$langs->trans('DeleteAccess').'</a><br>';
-				} else {
-					print '<span class="opacitymedium">'.$langs->trans('GoOnTokenProviderToDeleteToken').'</span><br>';
+			if ($keyforprovider != 'Login') {
+				// Links to delete/checks token
+				if (is_object($tokenobj)) {
+					//test on $storage->hasAccessToken($OAUTH_SERVICENAME) ?
+					if ($urltodelete) {
+						print '<a class="button smallpaddingimp reposition" href="'.$urltodelete.'">'.$langs->trans('DeleteAccess').'</a><br>';
+					} else {
+						print '<span class="opacitymedium">'.$langs->trans('GoOnTokenProviderToDeleteToken').'</span><br>';
+					}
 				}
-			}
-			// Request remote token
-			if ($urltorenew) {
-				print '<a class="button smallpaddingimp" href="'.$urltorenew.'">'.$langs->trans('GetAccess').'</a>';
-				print $form->textwithpicto('', $langs->trans('RequestAccess'));
-				print '<br>';
-			}
-			// Check remote access
-			if ($urltocheckperms) {
-				print '<br>'.$langs->trans("ToCheckDeleteTokenOnProvider", $OAUTH_SERVICENAME).': <a href="'.$urltocheckperms.'" target="_'.strtolower($OAUTH_SERVICENAME).'">'.$urltocheckperms.'</a>';
+				// Request remote token
+				if ($urltorenew) {
+					print '<a class="button smallpaddingimp reposition" href="'.$urltorenew.'">'.$langs->trans('GetAccess').'</a>';
+					print $form->textwithpicto('', $langs->trans('RequestAccess'));
+					print '<br>';
+				}
+				// Request remote token
+				if ($urltorefresh && $refreshtoken) {
+					print '<a class="button smallpaddingimp reposition classfortooltip marginright" href="'.$urltorefresh.'" title="'.dolPrintHTMLForAttribute($langs->trans('RefreshTokenHelp')).'">'.$langs->trans('RefreshToken').'</a>';
+				}
+
+				// Check remote access
+				if ($urltocheckperms) {
+					print '<br>'.$langs->trans("ToCheckDeleteTokenOnProvider", $OAUTH_SERVICENAME).': <a href="'.$urltocheckperms.'" target="_'.strtolower($OAUTH_SERVICENAME).'">'.$urltocheckperms.'</a>';
+				}
 			}
 			print '</td>';
 			print '</tr>';
 
 			print '<tr class="oddeven">';
-			print '<td'.(empty($key['required']) ? '' : ' class="required"').'>';
+			print '<td>';
 			//var_dump($key);
 			print $langs->trans("Token").'</td>';
 			print '<td colspan="2">';
@@ -361,7 +485,7 @@ if ($mode == 'setup' && $user->admin) {
 			if (is_object($tokenobj)) {
 				// Token refresh
 				print '<tr class="oddeven">';
-				print '<td'.(empty($key['required']) ? '' : ' class="required"').'>';
+				print '<td>';
 				//var_dump($key);
 				print $langs->trans("TOKEN_REFRESH");
 				print '</td>';
@@ -372,7 +496,7 @@ if ($mode == 'setup' && $user->admin) {
 
 				// Token expired
 				print '<tr class="oddeven">';
-				print '<td'.(empty($key['required']) ? '' : ' class="required"').'>';
+				print '<td>';
 				//var_dump($key);
 				print $langs->trans("TOKEN_EXPIRED");
 				print '</td>';
@@ -383,7 +507,7 @@ if ($mode == 'setup' && $user->admin) {
 
 				// Token expired at
 				print '<tr class="oddeven">';
-				print '<td'.(empty($key['required']) ? '' : ' class="required"').'>';
+				print '<td>';
 				//var_dump($key);
 				print $langs->trans("TOKEN_EXPIRE_AT");
 				print '</td>';

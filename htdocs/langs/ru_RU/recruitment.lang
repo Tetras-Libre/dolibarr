@@ -26,7 +26,6 @@ ModuleRecruitmentDesc = Управляйте кампаниями по найм�
 # Admin page
 #
 RecruitmentSetup = Настройка набора
-Settings = Настройки
 RecruitmentSetupPage = Введите здесь настройки основных опций модуля найма
 RecruitmentArea=Рекрутинговая зона
 PublicInterfaceRecruitmentDesc=Публичные страницы вакансий - это общедоступные URL-адреса для отображения открытых вакансий и ответа на них. Для каждой открытой вакансии есть одна отдельная ссылка, которая находится в каждой записи о вакансии.
@@ -35,7 +34,6 @@ EnablePublicRecruitmentPages=Включить публичные страниц�
 #
 # About page
 #
-About = О модуле
 RecruitmentAbout = О найме
 RecruitmentAboutPage = Рекрутинг о странице
 NbOfEmployeesExpected=Ожидаемое количество сотрудников
@@ -77,3 +75,6 @@ ExtrafieldsApplication=Дополнительные атрибуты (заявл
 MakeOffer=Сделай предложение
 WeAreRecruiting=Мы набираем. Это список вакансий, которые необходимо заполнить...
 NoPositionOpen=На данный момент открытых позиций нет
+ConfirmClose=Подтвердить отмену
+ConfirmCloseAsk=Вы действительно хотите — отменить этой кандидатуре найма
+Recruitment=Рекрутинг

@@ -27,7 +27,6 @@ require '../../../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/includes/OAuth/bootstrap.php';
 use OAuth\Common\Storage\DoliStorage;
 use OAuth\Common\Consumer\Credentials;
-use OAuth\OAuth2\Service\GitHub;
 
 // Define $urlwithroot
 $urlwithouturlroot = preg_replace('/'.preg_quote(DOL_URL_ROOT, '/').'$/i', '', trim($dolibarr_main_url_root));
@@ -41,7 +40,7 @@ $keyforprovider = GETPOST('keyforprovider', 'aZ09');
 if (empty($keyforprovider) && !empty($_SESSION["oauthkeyforproviderbeforeoauthjump"]) && (GETPOST('code') || $action == 'delete')) {
 	$keyforprovider = $_SESSION["oauthkeyforproviderbeforeoauthjump"];
 }
-$genericstring = 'OTHER';
+$genericstring = 'GENERIC';
 
 
 /**
@@ -57,7 +56,7 @@ $currentUri = $uriFactory->createFromAbsolute($urlwithroot.'/core/modules/oauth/
  * Load the credential for the service
  */
 
-/** @var $serviceFactory \OAuth\ServiceFactory An OAuth service factory. */
+/** @var \OAuth\ServiceFactory $serviceFactory An OAuth service factory. */
 $serviceFactory = new \OAuth\ServiceFactory();
 $httpClient = new \OAuth\Common\Http\Client\CurlClient();
 // TODO Set options for proxy and timeout
@@ -139,7 +138,7 @@ if (GETPOST('code') || GETPOST('error')) {     // We are coming from oauth provi
 	// We should have
 	//$_GET=array('code' => string 'aaaaaaaaaaaaaa' (length=20), 'state' => string 'user,public_repo' (length=16))
 
-	dol_syslog("We are coming from the oauth provider page code=".dol_trunc(GETPOST('code'), 5)." error=".GETPOST('error'));
+	dol_syslog(basename(__FILE__)." We are coming from the oauth provider page code=".dol_trunc(GETPOST('code'), 5)." error=".GETPOST('error'));
 
 	// This was a callback request from service, get the token
 	try {

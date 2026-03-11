@@ -1,5 +1,6 @@
 <?php
 /* Copyright (C) 2022   Open-Dsi		<support@open-dsi.fr>
+ * Copyright (C) 2024       Frédéric France             <frederic.france@free.fr>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,8 +21,8 @@
  * $langs
  * $dateSelector
  * $forceall (0 by default, 1 for supplier invoices/orders)
- * $element     (used to test $user->rights->$element->creer)
- * $permtoedit  (used to replace test $user->rights->$element->creer)
+ * $element     (used to test $user->hasRight($element, 'creer'))
+ * $permtoedit  (used to replace test $user->hasRight($element, 'creer'))
  * $senderissupplier (0 by default, 1 for supplier invoices/orders)
  * $inputalsopricewithtax (0 by default, 1 to also show column with unit price including tax)
  * $outputalsopricetotalwithtax
@@ -35,8 +36,11 @@
 // Protection to avoid direct call of template
 if (empty($object) || !is_object($object)) {
 	print "Error, template page can't be called as URL";
-	exit;
+	exit(1);
 }
+
+'@phan-var-force CommonObject $this
+ @phan-var-force CommonObject $object';
 
 // add html5 elements
 $domData  = ' data-element="'.$line->element.'"';
@@ -46,8 +50,8 @@ $coldisplay = 0;
 ?>
 <!-- BEGIN PHP TEMPLATE productattributevalueline_view.tpl.php -->
 <tr  id="row-<?php print $line->id?>" class="drag drop oddeven" <?php print $domData; ?> >
-<?php if (!empty($conf->global->MAIN_VIEW_LINE_NUMBER)) { ?>
-	<td class="linecolnum center"><span class="opacitymedium"><?php $coldisplay++; ?><?php print ($i + 1); ?></span></td>
+<?php if (getDolGlobalString('MAIN_VIEW_LINE_NUMBER')) { ?>
+	<td class="linecolnum center"><span class="opacitymedium"><?php $coldisplay++; ?><?php print($i + 1); ?></span></td>
 <?php } ?>
 	<td class="linecolref nowrap"><?php $coldisplay++; ?><div id="line_<?php print $line->id; ?>"></div>
 		<?php print $line->ref ?>
@@ -59,15 +63,16 @@ if (!empty($object_rights->write) && $action != 'selectlines') {
 	print '<td class="linecoledit center width25">';
 	$coldisplay++;
 	if (empty($disableedit)) { ?>
-		<a class="editfielda reposition" href="<?php print $_SERVER["PHP_SELF"].'?id='.$this->id.'&amp;action=editline&amp;lineid='.$line->id.'#line_'.$line->id; ?>">
-		<?php print img_edit().'</a>';
-	}
+		<a class="editfielda reposition" href="<?php print $_SERVER["PHP_SELF"].'?id='.$this->id.'&action=editline&token='.newToken().'&lineid='.$line->id.'#line_'.$line->id; ?>">
+		<?php print img_edit(); ?>
+		</a>
+	<?php }
 	print '</td>';
 
 	print '<td class="linecoldelete center width25">';
 	$coldisplay++;
 	if (empty($disableremove)) { // For situation invoice, deletion is not possible if there is a parent company.
-		print '<a class="reposition" href="'.$_SERVER["PHP_SELF"].'?id='.$this->id.'&amp;action=ask_deleteline&amp;lineid='.$line->id.'">';
+		print '<a class="reposition" href="'.$_SERVER["PHP_SELF"].'?id='.$this->id.'&action=ask_deleteline&token='.newToken().'&lineid='.$line->id.'">';
 		print img_delete();
 		print '</a>';
 	}
@@ -97,7 +102,7 @@ if (!empty($object_rights->write) && $action != 'selectlines') {
 }
 
 if ($action == 'selectlines') { ?>
-	<td class="linecolcheck center"><input type="checkbox" class="linecheckbox" name="line_checkbox[<?php print $i + 1; ?>]" value="<?php print $line->id; ?>" ></td>
+	<td class="linecolcheck center"><input type="checkbox" class="linecheckbox" name="line_checkbox[<?php print $i + 1; ?>]" value="<?php print $line->id; ?>"></td>
 <?php }
 
 print "</tr>\n";

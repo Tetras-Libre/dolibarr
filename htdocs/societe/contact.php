@@ -10,6 +10,7 @@
  * Copyright (C) 2015       Jean-François Ferry     <jfefe@aternatik.fr>
  * Copyright (C) 2015       Marcos García           <marcosgdf@gmail.com>
  * Copyright (C) 2015       Raphaël Doursenaud      <rdoursenaud@gpcsolutions.fr>
+ * Copyright (C) 2024       Frédéric France             <frederic.france@free.fr>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,14 +44,14 @@ require_once DOL_DOCUMENT_ROOT.'/core/class/html.formfile.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/extrafields.class.php';
 require_once DOL_DOCUMENT_ROOT.'/contact/class/contact.class.php';
 require_once DOL_DOCUMENT_ROOT.'/categories/class/categorie.class.php';
-if (isModEnabled('adherent')) {
+if (isModEnabled('member')) {
 	require_once DOL_DOCUMENT_ROOT.'/adherents/class/adherent.class.php';
 }
 
 // Load translation files required by the page
 $langs->loadLangs(array("companies", "commercial", "bills", "banks", "users"));
 
-if (isModEnabled('categorie')) {
+if (isModEnabled('category')) {
 	$langs->load("categories");
 }
 if (isModEnabled('incoterm')) {
@@ -60,7 +61,8 @@ if (isModEnabled('notification')) {
 	$langs->load("mails");
 }
 
-$mesg = ''; $error = 0; $errors = array();
+$error = 0;
+$errors = array();
 
 
 // Get parameters
@@ -68,7 +70,7 @@ $action		= (GETPOST('action', 'aZ09') ? GETPOST('action', 'aZ09') : 'view');
 $cancel 	= GETPOST('cancel', 'alpha');
 $backtopage = GETPOST('backtopage', 'alpha');
 $confirm 	= GETPOST('confirm');
-$socid 		= GETPOST('socid', 'int') ?GETPOST('socid', 'int') : GETPOST('id', 'int');
+$socid 		= GETPOSTINT('socid') ? GETPOSTINT('socid') : GETPOSTINT('id');
 
 if ($user->socid) {
 	$socid = $user->socid;
@@ -105,7 +107,7 @@ if (!empty($canvas)) {
 
 // Security check
 $result = restrictedArea($user, 'societe', $socid, '&societe', '', 'fk_soc', 'rowid', 0);
-if (empty($user->rights->societe->contact->lire)) {
+if (!$user->hasRight('societe', 'contact', 'lire')) {
 	accessforbidden();
 }
 
@@ -133,6 +135,28 @@ if (empty($reshook)) {
 	include DOL_DOCUMENT_ROOT.'/core/actions_changeselectedfields.inc.php';
 }
 
+if ($action == 'confirm_delete' && $user->hasRight('societe', 'contact', 'delete')) {
+	$id = GETPOST('id', 'int');
+	if (!empty($id) && $socid > 0) {
+		$contact = new Contact($db);
+		$ret = $contact->fetch($id);
+		if ($ret > 0) {
+			if ($contact->priv == 0  || ($contact->user_modification_id == ((int) $user->id) && $contact->priv == 1)) {
+				$contact->oldcopy = clone $contact; // @phan-suppress-current-line PhanTypeMismatchProperty
+				$result = $contact->delete($user);
+				if ($result > 0) {
+					setEventMessages('RecordDeleted', null, 'mesgs');
+					header("Location: ".$_SERVER['PHP_SELF']."?id=".$socid);
+					exit();
+				} else {
+					setEventMessages($contact->error, $contact->errors, 'errors');
+				}
+			}
+		} else {
+			setEventMessages($contact->error, $contact->errors, 'errors');
+		}
+	}
+}
 
 /*
  *  View
@@ -146,12 +170,12 @@ $formcompany = new FormCompany($db);
 if ($socid > 0 && empty($object->id)) {
 	$result = $object->fetch($socid);
 	if ($result <= 0) {
-		dol_print_error('', $object->error);
+		dol_print_error(null, $object->error);
 	}
 }
 
 $title = $langs->trans("ThirdParty");
-if (!empty($conf->global->MAIN_HTML_TITLE) && preg_match('/thirdpartynameonly/', $conf->global->MAIN_HTML_TITLE) && $object->name) {
+if (getDolGlobalString('MAIN_HTML_TITLE') && preg_match('/thirdpartynameonly/', getDolGlobalString('MAIN_HTML_TITLE')) && $object->name) {
 	$title = $object->name." - ".$langs->trans('ContactsAddresses');
 }
 $help_url = 'EN:Module_Third_Parties|FR:Module_Tiers|ES:Empresas';
@@ -180,9 +204,21 @@ print '<br>';
 
 if ($action != 'presend') {
 	// Contacts list
-	if (empty($conf->global->SOCIETE_DISABLE_CONTACTS)) {
+	if (!getDolGlobalString('SOCIETE_DISABLE_CONTACTS')) {
 		$result = show_contacts($conf, $langs, $db, $object, $_SERVER["PHP_SELF"].'?socid='.$object->id, 1);
 	}
+}
+if ($action == 'delete') {
+	$formconfirm = $form->formconfirm(
+		$_SERVER["PHP_SELF"].'?id='.GETPOST('id').'&socid='.$object->id,
+		$langs->trans('Delete'),
+		$langs->trans('ConfirmDeleteContact', GETPOST('id', 'alpha')),
+		'confirm_delete',
+		'',
+		0,
+		1
+	);
+	print $formconfirm;
 }
 
 // End of page

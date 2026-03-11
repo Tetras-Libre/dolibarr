@@ -1,6 +1,6 @@
 <?php
 /* Copyright (C) 2011       Juanjo Menent	        <jmenent@2byte.es>
- * Copyright (C) 2019       Frédéric France         <frederic.france@netlogic.fr>
+ * Copyright (C) 2019-2024  Frédéric France         <frederic.france@free.fr>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,11 +56,12 @@ class mod_expedition_ribera extends ModelNumRefExpedition
 	/**
 	 *	Return default description of numbering model
 	 *
-	 *	@return     string      text description
+	 *	@param	Translate	$langs      Lang object to use for output
+	 *  @return string      			Descriptive text
 	 */
-	public function info()
+	public function info($langs)
 	{
-		global $conf, $langs, $db;
+		global $langs, $db;
 
 		$langs->load("bills");
 
@@ -78,10 +79,11 @@ class mod_expedition_ribera extends ModelNumRefExpedition
 		$tooltip .= $langs->trans("GenericMaskCodes3");
 		$tooltip .= $langs->trans("GenericMaskCodes4a", $langs->transnoentities("Shipment"), $langs->transnoentities("Shipment"));
 		$tooltip .= $langs->trans("GenericMaskCodes5");
+		$tooltip .= '<br>'.$langs->trans("GenericMaskCodes5b");
 
 		$texte .= '<tr><td>'.$langs->trans("Mask").':</td>';
 		$texte .= '<td class="right">'.$form->textwithpicto('<input type="text" class="flat minwidth175" name="maskexpedition" value="'.getDolGlobalString('EXPEDITION_RIBERA_MASK').'">', $tooltip, 1, 1).'</td>';
-		$texte .= '<td class="left" rowspan="2">&nbsp; <input type="submit" class="button button-edit" name="Button" value="'.$langs->trans("Modify").'"></td>';
+		$texte .= '<td class="left" rowspan="2">&nbsp; <input type="submit" class="button button-edit reposition smallpaddingimp" name="Button" value="'.$langs->trans("Modify").'"></td>';
 		$texte .= '</tr>';
 		$texte .= '</table>';
 		$texte .= '</form>';
@@ -96,13 +98,21 @@ class mod_expedition_ribera extends ModelNumRefExpedition
 	 */
 	public function getExample()
 	{
-		global $conf, $langs, $mysoc;
+		global $langs, $mysoc, $db;
 
 		$old_code_client = $mysoc->code_client;
 		$old_code_type = $mysoc->typent_code;
 		$mysoc->code_client = 'CCCCCCCCCC';
 		$mysoc->typent_code = 'TTTTTTTTTT';
-		$numExample = $this->getNextValue($mysoc, '');
+
+
+		if (!class_exists('Expedition')) {
+			require_once DOL_DOCUMENT_ROOT.'/expedition/class/expedition.class.php';
+		}
+
+		$expedition = new Expedition($db);
+
+		$numExample = $this->getNextValue($mysoc, $expedition);
 		$mysoc->code_client = $old_code_client;
 		$mysoc->typent_code = $old_code_type;
 
@@ -115,13 +125,13 @@ class mod_expedition_ribera extends ModelNumRefExpedition
 	/**
 	 *	Return next value
 	 *
-	 *	@param	Societe		$objsoc     Third party object
-	 *	@param	Object		$shipment	Shipment object
-	 *	@return string      			Value if OK, 0 if KO
+	 *	@param	Societe			$objsoc     Third party object
+	 *	@param	Expedition		$shipment	Shipment object
+	 *	@return string|int      			Value if OK, 0 if KO
 	 */
 	public function getNextValue($objsoc, $shipment)
 	{
-		global $db, $conf;
+		global $db;
 
 		require_once DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php';
 
@@ -132,24 +142,10 @@ class mod_expedition_ribera extends ModelNumRefExpedition
 			return 0;
 		}
 
-		$date = $shipment->date_expedition;
+		$date = $shipment->date_shipping;
 
 		$numFinal = get_next_value($db, $mask, 'expedition', 'ref', '', $objsoc, $date);
 
 		return  $numFinal;
-	}
-
-	// phpcs:disable PEAR.NamingConventions.ValidFunctionName.ScopeNotCamelCaps
-	/**
-	 *  Return next free value
-	 *
-	 *	@param	Societe		$objsoc     Third party object
-	 *	@param	Object		$objforref	Shipment object
-	 *	@return string      			Next free value
-	 */
-	public function expedition_get_num($objsoc, $objforref)
-	{
-		// phpcs:enable
-		return $this->getNextValue($objsoc, $objforref);
 	}
 }

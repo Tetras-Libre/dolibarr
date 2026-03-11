@@ -39,10 +39,10 @@ require_once DOL_DOCUMENT_ROOT.'/hrm/class/job.class.php';
 $langs->loadLangs(array('hrm', 'companies', 'other', 'mails'));
 
 // Get Parameters
-$id     = (GETPOST('id') ?GETPOST('id', 'int') : GETPOST('facid', 'int')); // For backward compatibility
+$id     = (GETPOST('id') ? GETPOSTINT('id') : GETPOSTINT('facid')); // For backward compatibility
 $ref    = GETPOST('ref', 'alpha');
-$lineid = GETPOST('lineid', 'int');
-$socid  = GETPOST('socid', 'int');
+$lineid = GETPOSTINT('lineid');
+$socid  = GETPOSTINT('socid');
 $action = GETPOST('action', 'aZ09');
 
 // Initialize technical objects
@@ -57,15 +57,13 @@ $extrafields->fetch_name_optionals_label($object->table_element);
 include DOL_DOCUMENT_ROOT.'/core/actions_fetchobject.inc.php'; // Must be include, not include_once  // Must be include, not include_once. Include fetch and fetch_thirdparty but not fetch_optionals
 
 // Permissions
-$permission = $user->rights->hrm->evaluation->write;
+$permission = $user->hasRight('hrm', 'evaluation', 'write');
 
 // Security check (enable the most restrictive one)
 //if ($user->socid > 0) accessforbidden();
 //if ($user->socid > 0) $socid = $user->socid;
-//$isdraft = (($object->status == $object::STATUS_DRAFT) ? 1 : 0);
-//restrictedArea($user, $object->element, $object->id, $object->table_element, '', 'fk_soc', 'rowid', $isdraft);
-//if (empty($conf->hrm->enabled)) accessforbidden();
-//if (!$permissiontoread) accessforbidden();
+$isdraft = $object->status == Evaluation::STATUS_DRAFT ? 1 : 0;
+restrictedArea($user, $object->element, $object, $object->table_element, '', 'fk_soc', 'rowid', $isdraft);
 
 
 
@@ -76,7 +74,7 @@ $permission = $user->rights->hrm->evaluation->write;
 // Add a new contact
 
 if ($action == 'addcontact' && $permission) {
-	$contactid = (GETPOST('userid') ? GETPOST('userid', 'int') : GETPOST('contactid', 'int'));
+	$contactid = (GETPOST('userid') ? GETPOSTINT('userid') : GETPOSTINT('contactid'));
 	$typeid = (GETPOST('typecontact') ? GETPOST('typecontact') : GETPOST('type'));
 	$result = $object->add_contact($contactid, $typeid, GETPOST("source", 'aZ09'));
 
@@ -93,7 +91,7 @@ if ($action == 'addcontact' && $permission) {
 	}
 } elseif ($action == 'swapstatut' && $permission) {
 	// Toggle the status of a contact
-	$result = $object->swapContactStatus(GETPOST('ligne', 'int'));
+	$result = $object->swapContactStatus(GETPOSTINT('ligne'));
 } elseif ($action == 'deletecontact' && $permission) {
 	// Deletes a contact
 	$result = $object->delete_contact($lineid);

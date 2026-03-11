@@ -38,20 +38,6 @@ class box_scheduled_jobs extends ModeleBoxes
 	public $depends = array("cron");
 
 	/**
-	 * @var DoliDB Database handler.
-	 */
-	public $db;
-
-	/**
-	 * @var string params
-	 */
-	public $param;
-
-	public $info_box_head = array();
-	public $info_box_contents = array();
-
-
-	/**
 	 *  Constructor
 	 *
 	 *  @param  DoliDB  $db         Database handler
@@ -77,7 +63,7 @@ class box_scheduled_jobs extends ModeleBoxes
 		global $user, $langs, $conf, $form;
 
 		$langs->load("cron");
-		$this->info_box_head = array('text' => $langs->trans("BoxScheduledJobs", $max));
+		$this->info_box_head = array('text' => $langs->trans("BoxScheduledJobs", $max), 'nbcol' => 4);
 
 		if ($user->hasRight('cron', 'read')) {
 			include_once DOL_DOCUMENT_ROOT . '/cron/class/cronjob.class.php';
@@ -103,7 +89,7 @@ class box_scheduled_jobs extends ModeleBoxes
 				while ($i < $num) {
 					$objp = $this->db->fetch_object($result);
 
-					if (dol_eval($objp->test, 1, 1, '')) {
+					if ((int) dol_eval($objp->test, 1, 1, '2')) {
 						$nextrun = $this->db->jdate($objp->datenextrun);
 						if (empty($nextrun)) {
 							$nextrun = $this->db->jdate($objp->datestart);
@@ -115,6 +101,8 @@ class box_scheduled_jobs extends ModeleBoxes
 							$cronstatic->ref = $objp->rowid;
 							$cronstatic->label = $langs->trans($objp->label);
 							$cronstatic->status = $objp->status;
+							$cronstatic->processing = $objp->processing;
+							$cronstatic->lastresult = $objp->lastresult ?? '';
 							$cronstatic->datenextrun = $this->db->jdate($objp->datenextrun);
 							$cronstatic->datelastrun = $this->db->jdate($objp->datelastrun);
 						}
@@ -170,6 +158,8 @@ class box_scheduled_jobs extends ModeleBoxes
 					);
 					$line++;
 				}
+
+				// Line nb job in error
 				$this->info_box_contents[$line][] = array(
 					'td' => 'class="tdoverflowmax300" colspan="3"',
 					'text' => $langs->trans("NumberScheduledJobError")
@@ -197,8 +187,8 @@ class box_scheduled_jobs extends ModeleBoxes
 			}
 		} else {
 			$this->info_box_contents[0][0] = array(
-				'td' => 'class="nohover opacitymedium left"',
-				'text' => $langs->trans("ReadPermissionNotAllowed")
+				'td' => 'class="nohover left"',
+				'text' => '<span class="opacitymedium">'.$langs->trans("ReadPermissionNotAllowed").'</span>'
 			);
 		}
 	}

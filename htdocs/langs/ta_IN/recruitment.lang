@@ -26,7 +26,6 @@ ModuleRecruitmentDesc = புதிய வேலை நிலைகளுக்
 # Admin page
 #
 RecruitmentSetup = ஆட்சேர்ப்பு அமைப்பு
-Settings = அமைப்புகள்
 RecruitmentSetupPage = ஆட்சேர்ப்பு தொகுதிக்கான முக்கிய விருப்பங்களின் அமைப்பை இங்கே உள்ளிடவும்
 RecruitmentArea=ஆட்சேர்ப்பு பகுதி
 PublicInterfaceRecruitmentDesc=வேலைகளின் பொதுப் பக்கங்கள், திறந்த வேலைகளைக் காண்பிப்பதற்கும் பதிலளிப்பதற்கும் பொது URLகளாகும். ஒவ்வொரு வேலைப் பதிவிலும் காணப்படும் ஒவ்வொரு வேலைக்கும் வெவ்வேறு இணைப்புகள் உள்ளன.
@@ -35,7 +34,6 @@ EnablePublicRecruitmentPages=திறந்த வேலைகளின் ப�
 #
 # About page
 #
-About = பற்றி
 RecruitmentAbout = ஆட்சேர்ப்பு பற்றி
 RecruitmentAboutPage = பக்கம் பற்றிய ஆட்சேர்ப்பு
 NbOfEmployeesExpected=எதிர்பார்க்கப்படும் ஊழியர்களின் எண்ணிக்கை
@@ -77,3 +75,6 @@ ExtrafieldsApplication=நிரப்பு பண்புக்கூறு�
 MakeOffer=சலுகை கொடு
 WeAreRecruiting=We are recruiting. This is a list of open positions to be filled...
 NoPositionOpen=No positions open at the moment
+ConfirmClose=Confirm cancellation
+ConfirmCloseAsk=Are you sure you want to cancel this recruitment candidature
+Recruitment=Recruitment

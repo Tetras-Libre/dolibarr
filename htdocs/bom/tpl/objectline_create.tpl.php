@@ -37,6 +37,8 @@ if (empty($object) || !is_object($object)) {
 	exit;
 }
 
+'@phan-var-force CommonObject $this
+ @phan-var-force CommonObject $object';
 
 global $forceall, $forcetoshowtitlelines, $filtertype;
 
@@ -44,8 +46,10 @@ if (empty($forceall)) {
 	$forceall = 0;
 }
 
-if (empty($filtertype))	$filtertype = 0;
-if (!empty($object->element) && $object->element == 'contrat' && empty($conf->global->STOCK_SUPPORT_SERVICES)) {
+if (empty($filtertype)) {
+	$filtertype = 0;
+}
+if (!empty($object->element) && $object->element == 'contrat' && !getDolGlobalString('STOCK_SUPPORT_SERVICES')) {
 	$filtertype = -1;
 }
 
@@ -64,7 +68,7 @@ $nolinesbefore = (count($this->lines) == 0 || $forcetoshowtitlelines);
 
 if ($nolinesbefore) {
 	print '<tr class="liste_titre nodrag nodrop">';
-	if (!empty($conf->global->MAIN_VIEW_LINE_NUMBER)) {
+	if (getDolGlobalString('MAIN_VIEW_LINE_NUMBER')) {
 		print '<td class="linecolnum center"></td>';
 	}
 	print '<td class="linecoldescription minwidth500imp">';
@@ -84,7 +88,9 @@ if ($nolinesbefore) {
 		print '<td class="linecollost right">' . $form->textwithpicto($langs->trans('ManufacturingEfficiency'), $langs->trans('ValueOfMeansLoss')) . '</td>';
 	} else {
 		print '<td class="linecolunit right">' . $form->textwithpicto($langs->trans('Unit'), '').'</td>';
-		if (isModEnabled('workstation')) print '<td class="linecolworkstation right">' .  $form->textwithpicto($langs->trans('Workstation'), '') . '</td>';
+		if (isModEnabled('workstation')) {
+			print '<td class="linecolworkstation right">' .  $form->textwithpicto($langs->trans('Workstation'), '') . '</td>';
+		}
 		print '<td class="linecoltotalcost right">' .  $form->textwithpicto($langs->trans('TotalCost'), '') . '</td>';
 	}
 
@@ -95,13 +101,13 @@ print '<tr class="pair nodrag nodrop nohoverpair'.(($nolinesbefore || $object->e
 $coldisplay = 0;
 
 // Adds a line numbering column
-if (!empty($conf->global->MAIN_VIEW_LINE_NUMBER)) {
+if (getDolGlobalString('MAIN_VIEW_LINE_NUMBER')) {
 	$coldisplay++;
 	echo '<td class="bordertop nobottom linecolnum center"></td>';
 }
 
 $coldisplay++;
-print '<td class="bordertop nobottom linecoldescription minwidth500imp">';
+print '<td class="bordertop nobottom linecoldescription bomline minwidth500imp">';
 
 // Predefined product/service
 if (isModEnabled("product") || isModEnabled("service")) {
@@ -112,18 +118,18 @@ if (isModEnabled("product") || isModEnabled("service")) {
 	}
 	echo '<span class="prod_entry_mode_predef">';
 	$statustoshow = -1;
-	if (!empty($conf->global->ENTREPOT_EXTRA_STATUS)) {
+	if (getDolGlobalString('ENTREPOT_EXTRA_STATUS')) {
 		// hide products in closed warehouse, but show products for internal transfer
-		print $form->select_produits(GETPOST('idprod', 'int'), (($filtertype == 1) ? 'idprodservice' : 'idprod'), $filtertype, $conf->product->limit_size, $buyer->price_level, $statustoshow, 2, '', 1, array(), $buyer->id, '1', 0, 'maxwidth500', 0, 'warehouseopen,warehouseinternal', GETPOST('combinations', 'array'), 1);
+		print $form->select_produits(GETPOSTINT('idprod'), (($filtertype == 1) ? 'idprodservice' : 'idprod'), $filtertype, $conf->product->limit_size, $buyer->price_level, $statustoshow, 2, '', 1, array(), $buyer->id, '1', 0, 'maxwidth500', 0, 'warehouseopen,warehouseinternal', GETPOSTINT('combinations'), 1);
 	} else {
-		print $form->select_produits(GETPOST('idprod', 'int'), (($filtertype == 1) ? 'idprodservice' : 'idprod'), $filtertype, $conf->product->limit_size, $buyer->price_level, $statustoshow, 2, '', 1, array(), $buyer->id, '1', 0, 'maxwidth500', 0, '', GETPOST('combinations', 'array'), 1);
+		print $form->select_produits(GETPOSTINT('idprod'), (($filtertype == 1) ? 'idprodservice' : 'idprod'), $filtertype, $conf->product->limit_size, $buyer->price_level, $statustoshow, 2, '', 1, array(), $buyer->id, '1', 0, 'maxwidth500', 0, '', GETPOSTINT('combinations'), 1);
 	}
 	$urltocreateproduct = DOL_URL_ROOT.'/product/card.php?action=create&backtopage='.urlencode($_SERVER["PHP_SELF"].'?id='.$object->id);
 	print '<a href="'.$urltocreateproduct.'"><span class="fa fa-plus-circle valignmiddle paddingleft" title="'.$langs->trans("AddProduct").'"></span></a>';
 
 	echo '</span>';
 }
-if (!empty($conf->global->BOM_SUB_BOM) && $filtertype!=1) {
+if (getDolGlobalString('BOM_SUB_BOM') && $filtertype != 1) {
 	print '<br><span class="opacitymedium">'.$langs->trans("or").'</span><br>'.$langs->trans("BOM");
 	print $form->select_bom('', 'bom_id', 0, 1, 0, '1', '', 1);
 }
@@ -148,7 +154,7 @@ print '</td>';
 if ($filtertype != 1) {
 	if (getDolGlobalInt('PRODUCT_USE_UNITS')) {
 		$coldisplay++;
-		print '<td class="nobottom linecoluseunit left">';
+		print '<td class="nobottom linecoluseunit">';
 		print '</td>';
 	}
 
@@ -175,14 +181,16 @@ if ($filtertype != 1) {
 	require_once DOL_DOCUMENT_ROOT.'/core/class/cunits.class.php';
 	$cUnit = new CUnits($this->db);
 	$fk_unit_default = $cUnit->getUnitFromCode('h', 'short_label', 'time');
-	print '<td class="bordertop nobottom nowrap linecolunit right">';
-	print  $formproduct->selectMeasuringUnits("fk_unit", "time", $fk_unit_default, 0, 0);
+	print '<td class="bordertop nobottom nowrap linecolunit">';
+	print $formproduct->selectMeasuringUnits("fk_unit", "time", $fk_unit_default, 1);
 	print '</td>';
 
-	$coldisplay++;
-	print '<td class="bordertop nobottom nowrap linecolworkstation right">';
-	print '&nbsp;';
-	print '</td>';
+	if (isModEnabled('workstation')) {
+		$coldisplay++;
+		print '<td class="bordertop nobottom nowrap linecolworkstation">';
+		print $formproduct->selectWorkstations('', 'idworkstations', 1);
+		print '</td>';
+	}
 
 	$coldisplay++;
 	print '<td class="bordertop nobottom nowrap linecolcost right">';
@@ -190,11 +198,11 @@ if ($filtertype != 1) {
 	print '</td>';
 }
 
-	$coldisplay += $colspan;
-	print '<td class="bordertop nobottom linecoledit center valignmiddle" colspan="' . $colspan . '">';
-	print '<input type="submit" class="button button-add" name="addline" id="addline" value="' . $langs->trans('Add') . '">';
-	print '</td>';
-	print '</tr>';
+$coldisplay += $colspan;
+print '<td class="bordertop nobottom linecoledit right valignmiddle" colspan="' . $colspan . '">';
+print '<input type="submit" class="button button-add small" name="addline" id="addline" value="' . $langs->trans('Add') . '">';
+print '</td>';
+print '</tr>';
 
 ?>
 
@@ -231,13 +239,25 @@ jQuery(document).ready(function() {
 				,type: 'POST'
 				,data: {
 					'action': 'getDurationUnitByProduct'
+					,'token' : "<?php echo newToken() ?>"
 					,'idproduct' : idproduct
 				}
 			}).done(function(data) {
 
 				console.log(data);
-				var data = JSON.parse(data);
 				$("#fk_unit").val(data).change();
+			});
+
+			$.ajax({
+				url : "<?php echo dol_buildpath('/bom/ajax/ajax.php', 1); ?>"
+				,type: 'POST'
+				,data: {
+					'action': 'getWorkstationByProduct'
+					,'token' :  "<?php echo newToken() ?>"
+					,'idproduct' : idproduct
+				}
+			}).done(function(data) {
+				$('#idworkstations').val(data.defaultWk).select2();
 			});
 	});
 	<?php } ?>

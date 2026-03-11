@@ -37,7 +37,7 @@ require_once DOL_DOCUMENT_ROOT . '/hrm/lib/hrm_evaluation.lib.php';
 $langs->loadLangs(array('hrm', 'companies'));
 
 // Get parameters
-$id   = GETPOST('id', 'int');
+$id   = GETPOSTINT('id');
 $ref  = GETPOST('ref', 'alpha');
 
 $action     = GETPOST('action', 'aZ09');
@@ -60,16 +60,16 @@ if ($id > 0 || !empty($ref)) {
 }
 
 // Permissions
-$permissionnote   = $user->rights->hrm->evaluation->write; // Used by the include of actions_setnotes.inc.php
-$permissiontoread = $user->rights->hrm->evaluation->read;  // Used by the include of actions_addupdatedelete.inc.php
+$permissionnote   = $user->hasRight('hrm', 'evaluation', 'write'); // Used by the include of actions_setnotes.inc.php
+$permissiontoread = $user->hasRight('hrm', 'evaluation', 'read');  // Used by the include of actions_addupdatedelete.inc.php
 
 // Security check (enable the most restrictive one)
 //if ($user->socid > 0) accessforbidden();
 //if ($user->socid > 0) $socid = $user->socid;
-//$isdraft = (($object->status == $object::STATUS_DRAFT) ? 1 : 0);
-//restrictedArea($user, $object->element, $object->id, $object->table_element, '', 'fk_soc', 'rowid', $isdraft);
-//if (empty($conf->hrm->enabled)) accessforbidden();
-//if (!$permissiontoread) accessforbidden();
+$isdraft = (($object->status == Evaluation::STATUS_DRAFT) ? 1 : 0);
+restrictedArea($user, $object->element, $object, $object->table_element, '', 'fk_soc', 'rowid', $isdraft);
+if (empty($conf->hrm->enabled)) accessforbidden();
+if (!$permissiontoread) accessforbidden();
 
 
 /*

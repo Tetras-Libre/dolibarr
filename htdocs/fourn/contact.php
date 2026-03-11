@@ -41,10 +41,10 @@ if ($user->socid > 0) {
 	$socid = $user->socid;
 }
 
-$limit = GETPOST('limit', 'int') ? GETPOST('limit', 'int') : $conf->liste_limit;
+$limit = GETPOSTINT('limit') ? GETPOSTINT('limit') : $conf->liste_limit;
 $sortfield = GETPOST('sortfield', 'aZ09comma');
 $sortorder = GETPOST('sortorder', 'aZ09comma');
-$page = GETPOSTISSET('pageplusone') ? (GETPOST('pageplusone') - 1) : GETPOST("page", 'int');
+$page = GETPOSTISSET('pageplusone') ? (GETPOSTINT('pageplusone') - 1) : GETPOSTINT("page");
 if (empty($page) || $page == -1) {
 	$page = 0;
 }     // If $page is not defined, or '' or -1
@@ -55,13 +55,13 @@ if (!$sortorder) {
 	$sortorder = "ASC";
 }
 if (!$sortfield) {
-	$sortfield = "p.name";
+	$sortfield = "p.lastname";
 }
-$limit = GETPOST('limit', 'int') ?GETPOST('limit', 'int') : $conf->liste_limit;
+$limit = GETPOSTINT('limit') ? GETPOSTINT('limit') : $conf->liste_limit;
 
 
 /*
- * Mode liste
+ * List mode
  */
 
 $sql = "SELECT s.rowid as socid, s.nom as name, st.libelle as stcomm, p.rowid as cidp, p.lastname, p.firstname, p.email, p.phone";
@@ -85,12 +85,12 @@ if (dol_strlen($stcomm)) {
 }
 
 if (dol_strlen($begin)) {
-	$sql .= " AND p.name LIKE '$begin%'";
+	$sql .= " AND p.lastname LIKE '$begin%'";
 }
 
 if ($contactname) {
-	$sql .= " AND p.name LIKE '%".strtolower($contactname)."%'";
-	$sortfield = "p.name";
+	$sql .= " AND p.lastname LIKE '%".strtolower($contactname)."%'";
+	$sortfield = "p.lastname";
 	$sortorder = "ASC";
 }
 
@@ -105,12 +105,12 @@ $result = $db->query($sql);
 if ($result) {
 	$num = $db->num_rows($result);
 
-	$title = (!empty($conf->global->SOCIETE_ADDRESSES_MANAGEMENT) ? $langs->trans("ListOfContacts") : $langs->trans("ListOfContactsAddresses"));
+	$title = (getDolGlobalString('SOCIETE_ADDRESSES_MANAGEMENT') ? $langs->trans("ListOfContacts") : $langs->trans("ListOfContactsAddresses"));
 	print_barre_liste($title." (".$langs->trans("Suppliers").")", $page, $_SERVER["PHP_SELF"], "", $sortfield, $sortorder, "", $num);
 
 	print '<table class="liste centpercent">';
 	print '<tr class="liste_titre">';
-	print_liste_field_titre("Lastname", $_SERVER["PHP_SELF"], "p.name", $begin, "", "", $sortfield, $sortorder);
+	print_liste_field_titre("Lastname", $_SERVER["PHP_SELF"], "p.lastname", $begin, "", "", $sortfield, $sortorder);
 	print_liste_field_titre("Firstname", $_SERVER["PHP_SELF"], "p.firstname", $begin, "", "", $sortfield, $sortorder);
 	print_liste_field_titre("Company", $_SERVER["PHP_SELF"], "s.nom", $begin, "", "", $sortfield, $sortorder);
 	print_liste_field_titre("Email");

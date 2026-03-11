@@ -7,30 +7,32 @@ descWORKFLOW_PROPAL_AUTOCREATE_ORDER=ສ້າງຄໍາສັ່ງຂາຍ�
 descWORKFLOW_PROPAL_AUTOCREATE_INVOICE=ສ້າງໃບແຈ້ງ ໜີ້ ລູກຄ້າໂດຍອັດຕະໂນມັດຫຼັງຈາກມີການເຊັນບົດສະ ເໜີ ທາງການຄ້າ (ໃບຮຽກເກັບເງິນໃwill່ຈະມີຈໍານວນເທົ່າກັນກັບຂໍ້ສະ ເໜີ)
 descWORKFLOW_CONTRACT_AUTOCREATE_INVOICE=ສ້າງໃບແຈ້ງ ໜີ້ ລູກຄ້າໂດຍອັດຕະໂນມັດຫຼັງຈາກສັນຍາໄດ້ຮັບການກວດສອບ
 descWORKFLOW_ORDER_AUTOCREATE_INVOICE=ສ້າງໃບແຈ້ງ ໜີ້ ລູກຄ້າໂດຍອັດຕະໂນມັດຫຼັງຈາກປິດການສັ່ງຊື້ (ໃບຮຽກເກັບເງິນໃwill່ຈະມີຈໍານວນເທົ່າກັບຄໍາສັ່ງ)
-descWORKFLOW_TICKET_CREATE_INTERVENTION=On ticket creation, automatically create an intervention.
+descWORKFLOW_TICKET_CREATE_INTERVENTION=ໃນການສ້າງປີ້, ສ້າງການແຊກແຊງໂດຍອັດຕະໂນມັດ.
 # Autoclassify customer proposal or order
-descWORKFLOW_ORDER_CLASSIFY_BILLED_PROPAL=ຈັດປະເພດຂໍ້ສະ ເໜີ ແຫຼ່ງທີ່ເຊື່ອມໂຍງເປັນໃບບິນເມື່ອຄໍາສັ່ງການຂາຍຖືກຕັ້ງເປັນໃບບິນ (ແລະຖ້າຈໍານວນຄໍາສັ່ງແມ່ນຄືກັນກັບຈໍານວນທັງofົດຂອງການສະ ເໜີ ທີ່ເຊື່ອມໂຍງທີ່ເຊັນແລ້ວ)
-descWORKFLOW_INVOICE_CLASSIFY_BILLED_PROPAL=ຈັດປະເພດຂໍ້ສະ ເໜີ ແຫຼ່ງທີ່ເຊື່ອມຕໍ່ເປັນໃບບິນທີ່ໄດ້ຮັບການກວດສອບໃບແຈ້ງ ໜີ້ ຂອງລູກຄ້າ (ແລະຖ້າຈໍານວນໃບຮຽກເກັບເງິນຄືກັນກັບຈໍານວນທັງofົດຂອງຂໍ້ສະ ເໜີ ທີ່ເຊື່ອມໂຍງທີ່ເຊັນແລ້ວ)
-descWORKFLOW_INVOICE_AMOUNT_CLASSIFY_BILLED_ORDER=ຈັດປະເພດຄໍາສັ່ງຂາຍແຫຼ່ງທີ່ເຊື່ອມຕໍ່ເປັນໃບບິນທີ່ໄດ້ຮັບການກວດສອບໃບແຈ້ງເງິນຂອງລູກຄ້າ (ແລະຖ້າຈໍານວນໃບຮຽກເກັບເງິນຄືກັນກັບຈໍານວນທັງofົດຂອງຄໍາສັ່ງເຊື່ອມໂຍງ)
-descWORKFLOW_INVOICE_CLASSIFY_BILLED_ORDER=ຈັດປະເພດຄໍາສັ່ງຂາຍແຫຼ່ງທີ່ເຊື່ອມຕໍ່ເປັນການເກັບເງິນເມື່ອໃບເກັບເງິນຂອງລູກຄ້າຖືກກໍານົດໃຫ້ຊໍາລະ (ແລະຖ້າຈໍານວນຂອງໃບຮຽກເກັບເງິນຄືກັນກັບຈໍານວນທັງofົດຂອງຄໍາສັ່ງເຊື່ອມໂຍງ)
-descWORKFLOW_ORDER_CLASSIFY_SHIPPED_SHIPPING=ຈັດປະເພດລໍາດັບການຂາຍແຫຼ່ງທີ່ເຊື່ອມໂຍງເປັນການຈັດສົ່ງເມື່ອການກວດສອບການຂົນສົ່ງຖືກຕ້ອງ (ແລະຖ້າປະລິມານທີ່ການຂົນສົ່ງທັງshippedົດຖືກຈັດສົ່ງແມ່ນຄືກັນກັບໃນຄໍາສັ່ງອັບເດດ).
+descWORKFLOW_ORDER_CLASSIFY_BILLED_PROPAL=ຈັດປະເພດການສະເຫນີແຫຼ່ງທີ່ເຊື່ອມໂຍງເປັນໃບບິນເມື່ອຄໍາສັ່ງຂາຍຖືກຕັ້ງໃຫ້ເອີ້ນເກັບເງິນ (ແລະຖ້າຈໍານວນຄໍາສັ່ງແມ່ນເທົ່າກັບຈໍານວນທັງຫມົດຂອງການສະເຫນີທີ່ເຊື່ອມໂຍງ)
+descWORKFLOW_INVOICE_CLASSIFY_BILLED_PROPAL=ຈັດປະເພດບົດສະເໜີແຫຼ່ງທີ່ມາທີ່ເຊື່ອມໂຍງເປັນໃບເກັບເງິນເມື່ອໃບແຈ້ງໜີ້ລູກຄ້າຖືກກວດສອບແລ້ວ (ແລະຖ້າຈຳນວນໃບແຈ້ງໜີ້ແມ່ນເທົ່າກັບຈຳນວນທັງໝົດຂອງຂໍ້ສະເໜີທີ່ເຊື່ອມໂຍງແລ້ວ)
+descWORKFLOW_INVOICE_AMOUNT_CLASSIFY_BILLED_ORDER=ຈັດປະເພດຄໍາສັ່ງຂາຍທີ່ເຊື່ອມໂຍງເປັນໃບເກັບເງິນເມື່ອໃບແຈ້ງຫນີ້ລູກຄ້າຖືກກວດສອບ (ແລະຖ້າຈໍານວນໃບເກັບເງິນແມ່ນເທົ່າກັບຈໍານວນທັງຫມົດຂອງຄໍາສັ່ງຂາຍທີ່ເຊື່ອມໂຍງ). ຖ້າທ່ານມີໃບເກັບເງິນ 1 ໃບທີ່ຖືກກວດສອບແລ້ວສໍາລັບການສັ່ງຊື້ n, ນີ້ອາດຈະກໍານົດຄໍາສັ່ງທັງຫມົດໃຫ້ຖືກເອີ້ນເກັບເງິນເຊັ່ນກັນ.
+descWORKFLOW_INVOICE_CLASSIFY_BILLED_ORDER=ຈັດປະເພດຄໍາສັ່ງຂາຍທີ່ເຊື່ອມໂຍງເປັນໃບເກັບເງິນເມື່ອໃບເກັບເງິນລູກຄ້າຖືກຕັ້ງໃຫ້ຈ່າຍ (ແລະຖ້າຈໍານວນໃບເກັບເງິນແມ່ນເທົ່າກັບຈໍານວນທັງຫມົດຂອງຄໍາສັ່ງຂາຍທີ່ເຊື່ອມໂຍງ). ຖ້າທ່ານມີໃບເກັບເງິນ 1 ຊຸດທີ່ຮຽກເກັບສໍາລັບ n ຄໍາສັ່ງ, ນີ້ອາດຈະກໍານົດການສັ່ງຊື້ທັງຫມົດເປັນໃບບິນເຊັ່ນດຽວກັນ.
+descWORKFLOW_ORDER_CLASSIFY_SHIPPED_SHIPPING=ຈັດປະເພດຄໍາສັ່ງຂາຍທີ່ເຊື່ອມໂຍງເປັນການຂົນສົ່ງເມື່ອການຂົນສົ່ງຖືກກວດສອບ (ແລະຖ້າປະລິມານທີ່ສົ່ງໂດຍການຂົນສົ່ງທັງຫມົດແມ່ນຄືກັນກັບໃນຄໍາສັ່ງທີ່ຈະປັບປຸງ)
 descWORKFLOW_ORDER_CLASSIFY_SHIPPED_SHIPPING_CLOSED=ຈັດປະເພດລໍາດັບການຂາຍແຫຼ່ງທີ່ເຊື່ອມຕໍ່ເປັນການຈັດສົ່ງເມື່ອປິດການຂົນສົ່ງ (ແລະຖ້າປະລິມານການຂົນສົ່ງທັງshippedົດທີ່ສົ່ງອອກແມ່ນຄືກັນກັບໃນຄໍາສັ່ງທີ່ຈະອັບເດດ).
 # Autoclassify purchase proposal
-descWORKFLOW_ORDER_CLASSIFY_BILLED_SUPPLIER_PROPOSAL=ຈັດປະເພດຂໍ້ສະ ເໜີ ຂອງຜູ້ຂາຍແຫຼ່ງເຊື່ອມໂຍງເປັນໃບບິນເມື່ອໃບແຈ້ງ ໜີ້ ຜູ້ຂາຍຖືກກວດສອບ (ແລະຖ້າຈໍານວນໃບຮຽກເກັບເງິນຄືກັນກັບຈໍານວນທັງofົດຂອງການສະ ເໜີ ທີ່ເຊື່ອມໂຍງ)
+descWORKFLOW_ORDER_CLASSIFY_BILLED_SUPPLIER_PROPOSAL=ຈັດປະເພດຂໍ້ສະເຫນີຂອງຜູ້ຂາຍແຫຼ່ງທີ່ເຊື່ອມໂຍງເປັນໃບເກັບເງິນເມື່ອໃບແຈ້ງຫນີ້ຜູ້ຂາຍຖືກກວດສອບ (ແລະຖ້າຈໍານວນໃບແຈ້ງຫນີ້ເທົ່າກັບຈໍານວນທັງຫມົດຂອງການສະເຫນີທີ່ເຊື່ອມໂຍງ)
 # Autoclassify purchase order
-descWORKFLOW_INVOICE_AMOUNT_CLASSIFY_BILLED_SUPPLIER_ORDER=ຈັດປະເພດຄໍາສັ່ງຊື້ແຫຼ່ງທີ່ເຊື່ອມຕໍ່ເປັນໃບບິນທີ່ໄດ້ຮັບການກວດສອບໃບແຈ້ງ ໜີ້ ຜູ້ຂາຍ (ແລະຖ້າຈໍານວນໃບຮຽກເກັບເງິນຄືກັນກັບຈໍານວນທັງofົດຂອງຄໍາສັ່ງເຊື່ອມໂຍງ)
-descWORKFLOW_ORDER_CLASSIFY_RECEIVED_RECEPTION=Classify linked source purchase order as received when a reception is validated (and if the quantity received by all receptions is the same as in the purchase order to update)
-descWORKFLOW_ORDER_CLASSIFY_RECEIVED_RECEPTION_CLOSED=Classify linked source purchase order as received when a reception is closed (and if the quantity received by all rceptions is the same as in the purchase order to update)
-# Autoclassify purchase invoice
-descWORKFLOW_RECEPTION_CLASSIFY_CLOSED_INVOICE=Classify receptions to "billed" when a linked purchase invoice is validated (and if the amount of the invoice is the same as the total amount of the linked receptions)
+descWORKFLOW_INVOICE_AMOUNT_CLASSIFY_BILLED_SUPPLIER_ORDER=ຈັດປະເພດຄໍາສັ່ງຊື້ທີ່ເຊື່ອມໂຍງເປັນໃບເກັບເງິນເມື່ອໃບແຈ້ງຫນີ້ຜູ້ຂາຍຖືກກວດສອບ (ແລະຖ້າຈໍານວນໃບເກັບເງິນແມ່ນເທົ່າກັບຈໍານວນທັງຫມົດຂອງຄໍາສັ່ງທີ່ເຊື່ອມໂຍງ)
+descWORKFLOW_ORDER_CLASSIFY_RECEIVED_RECEPTION=ຈັດປະເພດຄໍາສັ່ງຊື້ແຫຼ່ງທີ່ເຊື່ອມໂຍງຕາມທີ່ໄດ້ຮັບເມື່ອການຕ້ອນຮັບຖືກກວດສອບ (ແລະຖ້າປະລິມານທີ່ໄດ້ຮັບໂດຍ receptions ທັງຫມົດແມ່ນຄືກັນກັບໃນຄໍາສັ່ງຊື້ເພື່ອອັບເດດ)
+descWORKFLOW_ORDER_CLASSIFY_RECEIVED_RECEPTION_CLOSED=ຈັດປະເພດຄໍາສັ່ງຊື້ແຫຼ່ງທີ່ເຊື່ອມໂຍງຕາມທີ່ໄດ້ຮັບເມື່ອການຕ້ອນຮັບຖືກປິດ (ແລະຖ້າປະລິມານທີ່ໄດ້ຮັບຈາກການຮັບທັງຫມົດແມ່ນຄືກັນກັບໃນຄໍາສັ່ງຊື້ເພື່ອອັບເດດ)
+# Autoclassify shipment
+descWORKFLOW_SHIPPING_CLASSIFY_CLOSED_INVOICE=ຈັດປະເພດການຂົນສົ່ງແຫຼ່ງທີ່ເຊື່ອມໂຍງເປັນປິດເມື່ອໃບແຈ້ງໜີ້ລູກຄ້າຖືກກວດສອບແລ້ວ (ແລະຖ້າຈຳນວນຂອງໃບເກັບເງິນແມ່ນເທົ່າກັບຈຳນວນທັງໝົດຂອງການຂົນສົ່ງທີ່ເຊື່ອມໂຍງ)
+descWORKFLOW_SHIPPING_CLASSIFY_BILLED_INVOICE=ຈັດປະເພດການຂົນສົ່ງແຫຼ່ງທີ່ເຊື່ອມໂຍງເປັນໃບເກັບເງິນເມື່ອໃບແຈ້ງໜີ້ລູກຄ້າຖືກກວດສອບແລ້ວ (ແລະຖ້າຈຳນວນຂອງໃບເກັບເງິນແມ່ນເທົ່າກັບຈຳນວນທັງໝົດຂອງການຂົນສົ່ງທີ່ເຊື່ອມໂຍງ)
+# Autoclassify receptions
+descWORKFLOW_RECEPTION_CLASSIFY_CLOSED_INVOICE=ຈັດປະເພດການຮັບແຫຼ່ງທີ່ເຊື່ອມໂຍງເປັນໃບບິນເມື່ອໃບເກັບເງິນຊື້ຖືກກວດສອບ (ແລະຖ້າຈໍານວນໃບເກັບເງິນແມ່ນເທົ່າກັບຈໍານວນທັງຫມົດຂອງການຮັບທີ່ເຊື່ອມຕໍ່)
+descWORKFLOW_RECEPTION_CLASSIFY_BILLED_INVOICE=ຈັດປະເພດການຮັບແຫຼ່ງທີ່ເຊື່ອມໂຍງເປັນໃບບິນເມື່ອໃບເກັບເງິນຊື້ຖືກກວດສອບ (ແລະຖ້າຈໍານວນໃບເກັບເງິນແມ່ນເທົ່າກັບຈໍານວນທັງຫມົດຂອງການຮັບທີ່ເຊື່ອມຕໍ່)
 # Automatically link ticket to contract
-descWORKFLOW_TICKET_LINK_CONTRACT=When creating a ticket, link available contracts of matching thirdparty
-descWORKFLOW_TICKET_USE_PARENT_COMPANY_CONTRACTS=When linking contracts, search among those of parents companies
+descWORKFLOW_TICKET_LINK_CONTRACT=ເມື່ອສ້າງປີ້, ເຊື່ອມຕໍ່ສັນຍາທີ່ມີຢູ່ທັງຫມົດຂອງພາກສ່ວນທີສາມທີ່ກົງກັນ
+descWORKFLOW_TICKET_USE_PARENT_COMPANY_CONTRACTS=ເມື່ອເຊື່ອມຕໍ່ສັນຍາ, ຄົ້ນຫາໃນບັນດາບໍລິສັດພໍ່ແມ່
 # Autoclose intervention
 descWORKFLOW_TICKET_CLOSE_INTERVENTION=ປິດການແຊກແຊງທັງlinkedົດທີ່ເຊື່ອມໂຍງກັບປີ້ເມື່ອປີ້ປິດ
 AutomaticCreation=ການສ້າງອັດຕະໂນມັດ
 AutomaticClassification=ການຈັດປະເພດອັດຕະໂນມັດ
-# Autoclassify shipment
-descWORKFLOW_SHIPPING_CLASSIFY_CLOSED_INVOICE=Classify linked source shipment as closed when customer invoice is validated (and if the amount of the invoice is the same as the total amount of the linked shipments)
-AutomaticClosing=Automatic closing
-AutomaticLinking=Automatic linking
+AutomaticClosing=ປິດອັດຕະໂນມັດ
+AutomaticLinking=ການເຊື່ອມໂຍງອັດຕະໂນມັດ

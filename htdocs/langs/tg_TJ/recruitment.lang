@@ -26,7 +26,6 @@ ModuleRecruitmentDesc = Маъракаҳои ҷалбкуниро барои ҷ�
 # Admin page
 #
 RecruitmentSetup = Танзими кадрӣ
-Settings = Танзимот
 RecruitmentSetupPage = Танзимоти имконоти асосии модули ҷалбкуниро дар ин ҷо ворид кунед
 RecruitmentArea=Минтақаи қабул
 PublicInterfaceRecruitmentDesc=Саҳифаҳои оммавии ҷойҳои корӣ URLҳои оммавӣ барои нишон додан ва ҷавоб додан ба ҷойҳои кушод мебошанд. Барои ҳар як кори кушод як истиноди гуногун мавҷуд аст, ки дар ҳар дафтарчаи корӣ мавҷуд аст.
@@ -35,7 +34,6 @@ EnablePublicRecruitmentPages=Саҳифаҳои оммавии ҷойҳои ко
 #
 # About page
 #
-About = Дар бораи
 RecruitmentAbout = Дар бораи ҷалби кадрҳо
 RecruitmentAboutPage = Ҷалб дар бораи саҳифа
 NbOfEmployeesExpected=Шумораи интизории кормандон
@@ -77,3 +75,6 @@ ExtrafieldsApplication=Хусусиятҳои иловагӣ (дархостҳо
 MakeOffer=Пешниҳод кунед
 WeAreRecruiting=We are recruiting. This is a list of open positions to be filled...
 NoPositionOpen=No positions open at the moment
+ConfirmClose=Confirm cancellation
+ConfirmCloseAsk=Are you sure you want to cancel this recruitment candidature
+Recruitment=Recruitment

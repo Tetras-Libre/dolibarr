@@ -7,6 +7,7 @@
  * Copyright (C) 2018-2021  Frédéric France         <frederic.france@netlogic.fr>
  * Copyright (C) 2019       Eric Seigne             <eric.seigne@cap-rel.fr>
  * Copyright (C) 2021-2022  Open-Dsi                <support@open-dsi.fr>
+ * Copyright (C) 2024		MDW							<mdeweerd@users.noreply.github.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,6 +51,7 @@ $refresh = (GETPOSTISSET('submit') || GETPOSTISSET('vat_rate_show') || GETPOSTIS
 $invoice_type = GETPOSTISSET('invoice_type') ? GETPOST('invoice_type', 'alpha') : '';
 $vat_rate_show = GETPOSTISSET('vat_rate_show') ? GETPOST('vat_rate_show', 'alphanohtml') : -1;
 
+// Set $date_start_xxx and $date_end_xxx...
 include DOL_DOCUMENT_ROOT . '/compta/tva/initdatesforvat.inc.php';
 
 $min = price2num(GETPOST("min", "alpha"));
@@ -131,7 +133,7 @@ $period = $form->selectDate($date_start, 'date_start', 0, 0, 0, '', 1, 0, 0, '',
 $period .= ' - ';
 $period .= $form->selectDate($date_end, 'date_end', 0, 0, 0, '', 1, 0, 0, '', '', '', '', 1, '', '', 'tzserver');
 $prevyear = $date_start_year;
-$q=0;
+$q = 0;
 $prevquarter = $q;
 if ($prevquarter > 1) {
 	$prevquarter--;
@@ -162,13 +164,13 @@ if (getDolGlobalString('TAX_MODE_SELL_SERVICE') == 'invoice') {
 if (getDolGlobalString('TAX_MODE_SELL_SERVICE') == 'payment') {
 	$description .= '<br>' . $langs->trans("RulesVATInServices");
 }
-if (!empty($conf->global->FACTURE_DEPOSITS_ARE_JUST_PAYMENTS)) {
+if (getDolGlobalString('FACTURE_DEPOSITS_ARE_JUST_PAYMENTS')) {
 	$description .= '<br>' . $langs->trans("DepositsAreNotIncluded");
 }
-if (!empty($conf->global->FACTURE_SUPPLIER_DEPOSITS_ARE_JUST_PAYMENTS)) {
+if (getDolGlobalString('FACTURE_SUPPLIER_DEPOSITS_ARE_JUST_PAYMENTS')) {
 	$description .= $langs->trans("SupplierDepositsAreNotIncluded");
 }
-if (!empty($conf->global->MAIN_MODULE_ACCOUNTING)) {
+if (isModEnabled('accounting')) {
 	$description .= '<br>' . $langs->trans("ThisIsAnEstimatedValue");
 }
 
@@ -251,7 +253,7 @@ if (!is_array($x_coll) || !is_array($x_paye)) {
 			$company_static->name = $x_coll[$my_coll_rate]['company_name'][$id];
 			$company_static->name_alias = $x_coll[$my_coll_rate]['company_alias'][$id];
 			$company_static->email = $x_coll[$my_coll_rate]['company_email'][$id];
-			$company_static->tva_intra = isset($x_coll[$my_coll_rate]['tva_intra'][$id])?$x_coll[$my_coll_rate]['tva_intra'][$id]:0;
+			$company_static->tva_intra = isset($x_coll[$my_coll_rate]['tva_intra'][$id]) ? $x_coll[$my_coll_rate]['tva_intra'][$id] : 0;
 			$company_static->client = $x_coll[$my_coll_rate]['company_client'][$id];
 			$company_static->fournisseur = $x_coll[$my_coll_rate]['company_fournisseur'][$id];
 			$company_static->status = $x_coll[$my_coll_rate]['company_status'][$id];
@@ -298,7 +300,7 @@ if (!is_array($x_coll) || !is_array($x_paye)) {
 
 		foreach ($x_paye[$my_paye_rate]['facid'] as $id => $dummy) {
 			// ExpenseReport
-			if ($x_paye[$my_paye_rate]['ptype'][$id] == 'ExpenseReportPayment') {
+			if ($x_paye[$my_paye_rate]['ptype'][$id] === 'ExpenseReportPayment') {
 				$expensereport->id = $x_paye[$my_paye_rate]['facid'][$id];
 				$expensereport->ref = $x_paye[$my_paye_rate]['facnum'][$id];
 				$expensereport->type = $x_paye[$my_paye_rate]['type'][$id];
@@ -416,7 +418,7 @@ if (!is_array($x_coll) || !is_array($x_paye)) {
 			print "<tr>";
 			print '<td class="tax_rate" colspan="' . ($span + 1) . '">';
 			print $langs->trans('Rate') . ' : ' . vatrate($rate) . '%';
-			print ' - <a href="' . DOL_URL_ROOT . '/compta/tva/quadri_detail.php?invoice_type=customer';
+			print ' - <a class="reposition" href="' . DOL_URL_ROOT . '/compta/tva/quadri_detail.php?invoice_type=customer';
 			if ($invoice_type != 'customer' || !GETPOSTISSET('vat_rate_show') || GETPOST('vat_rate_show') != $rate) {
 				print '&amp;vat_rate_show=' . urlencode($rate);
 			}
@@ -499,8 +501,11 @@ if (!is_array($x_coll) || !is_array($x_paye)) {
 					print '<td class="left">' . dol_print_date($fields['datef'], 'day') . '</td>';
 
 					// Payment date
-					if (getDolGlobalString('TAX_MODE_SELL_PRODUCT') == 'payment' || getDolGlobalString('TAX_MODE_SELL_SERVICE') == 'payment') print '<td class="left">' . dol_print_date($fields['datep'], 'day') . '</td>';
-					else print '<td></td>';
+					if (getDolGlobalString('TAX_MODE_SELL_PRODUCT') == 'payment' || getDolGlobalString('TAX_MODE_SELL_SERVICE') == 'payment') {
+						print '<td class="left">' . dol_print_date($fields['datep'], 'day') . '</td>';
+					} else {
+						print '<td></td>';
+					}
 
 					// Company name
 					print '<td class="tdmaxoverflow150">';
@@ -630,8 +635,11 @@ if (!is_array($x_coll) || !is_array($x_paye)) {
 	print '<tr class="liste_titre liste_titre_topborder">';
 	print '<td class="left">' . $elementsup . '</td>';
 	print '<td class="left">' . $langs->trans("DateInvoice") . '</td>';
-	if (getDolGlobalString('TAX_MODE_BUY_PRODUCT') == 'payment' || getDolGlobalString('TAX_MODE_BUY_SERVICE') == 'payment') print '<td class="left">' . $langs->trans("DatePayment") . '</td>';
-	else print '<td></td>';
+	if (getDolGlobalString('TAX_MODE_BUY_PRODUCT') == 'payment' || getDolGlobalString('TAX_MODE_BUY_SERVICE') == 'payment') {
+		print '<td class="left">' . $langs->trans("DatePayment") . '</td>';
+	} else {
+		print '<td></td>';
+	}
 	print '<td class="left">' . $namesup . '</td>';
 	print '<td class="left">' . $productsup . '</td>';
 	if ($modetax != 1) {
@@ -650,7 +658,7 @@ if (!is_array($x_coll) || !is_array($x_paye)) {
 			print "<tr>";
 			print '<td class="tax_rate" colspan="' . ($span + 1) . '">';
 			print $langs->trans('Rate') . ' : ' . vatrate($rate) . '%';
-			print ' - <a href="' . DOL_URL_ROOT . '/compta/tva/quadri_detail.php?invoice_type=supplier';
+			print ' - <a class="reposition" href="' . DOL_URL_ROOT . '/compta/tva/quadri_detail.php?invoice_type=supplier';
 			if ($invoice_type != 'supplier' || !GETPOSTISSET('vat_rate_show') || GETPOST('vat_rate_show') != $rate) {
 				print '&amp;vat_rate_show=' . urlencode($rate);
 			}
@@ -678,13 +686,13 @@ if (!is_array($x_coll) || !is_array($x_paye)) {
 						|| ($type == 1 && getDolGlobalString('TAX_MODE_BUY_SERVICE') == 'invoice')) {
 					} else {
 						if (isset($fields['payment_amount']) && $fields['ftotal_ttc']) {
-							$ratiopaymentinvoice = ($fields['payment_amount'] / $fields['ftotal_ttc']);
+							$ratiopaymentinvoice = ($fields['payment_amount'] / (float) $fields['ftotal_ttc']);
 						}
 					}
 				}
 
 				// VAT paid
-				$temp_ht = $fields['totalht'] * $ratiopaymentinvoice;
+				$temp_ht = (float) $fields['totalht'] * $ratiopaymentinvoice;
 
 				// VAT
 				$temp_vat = $fields['vat'] * $ratiopaymentinvoice;
@@ -720,7 +728,6 @@ if (!is_array($x_coll) || !is_array($x_paye)) {
 					if (!empty($fields['ddate_end'])) {
 						$type = 1;
 					}
-
 
 					print '<tr class="oddeven">';
 
@@ -781,7 +788,7 @@ if (!is_array($x_coll) || !is_array($x_paye)) {
 						print price($fields['totalht']);
 						if (price2num($fields['ftotal_ttc'])) {
 							//print $fields['dtotal_ttc']."/".$fields['ftotal_ttc']." - ";
-							$ratiolineinvoice = ($fields['dtotal_ttc'] / $fields['ftotal_ttc']);
+							$ratiolineinvoice = ((float) $fields['dtotal_ttc'] / (float) $fields['ftotal_ttc']);
 							//print ' ('.round($ratiolineinvoice*100,2).'%)';
 						}
 						print '</td>';
@@ -802,7 +809,7 @@ if (!is_array($x_coll) || !is_array($x_paye)) {
 							print $langs->trans("NA");
 						} else {
 							if (isset($fields['payment_amount']) && $fields['ftotal_ttc']) {
-								$ratiopaymentinvoice = ($fields['payment_amount'] / $fields['ftotal_ttc']);
+								$ratiopaymentinvoice = ($fields['payment_amount'] / (float) $fields['ftotal_ttc']);
 							}
 							print price(price2num($fields['payment_amount'], 'MT'));
 							if (isset($fields['payment_amount'])) {
@@ -814,7 +821,7 @@ if (!is_array($x_coll) || !is_array($x_paye)) {
 
 					// VAT paid
 					print '<td class="nowrap right">';
-					$temp_ht = $fields['totalht'] * $ratiopaymentinvoice;
+					$temp_ht = (float) $fields['totalht'] * $ratiopaymentinvoice;
 					print price(price2num($temp_ht, 'MT'), 1);
 					print '</td>';
 

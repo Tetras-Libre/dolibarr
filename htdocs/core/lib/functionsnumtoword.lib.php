@@ -1,6 +1,7 @@
 <?php
 /* Copyright (C) 2015 Laurent Destailleur  <eldy@users.sourceforge.net>
  * Copyright (C) 2015 Víctor Ortiz Pérez   <victor@accett.com.mx>
+ * Copyright (C) 2024		MDW							<mdeweerd@users.noreply.github.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,30 +36,22 @@
  */
 function dol_convertToWord($num, $langs, $currency = '', $centimes = false)
 {
-	global $conf;
-
 	//$num = str_replace(array(',', ' '), '', trim($num));	This should be useless since $num MUST be a php numeric value
 	if (!$num) {
 		return false;
 	}
 
-	if ($centimes && strlen($num) == 1) {
+	if ($centimes && strlen((string) $num) == 1) {
 		$num = $num * 10;
 	}
 
-	if (!empty($conf->global->MAIN_MODULE_NUMBERWORDS)) {
-		if ($currency) {
-			$type = '1';
-		} else {
-			$type = '0';
-		}
-
-		$concatWords = $langs->getLabelFromNumber($num, $type);
+	if (isModEnabled('numberwords')) {
+		$concatWords = $langs->getLabelFromNumber($num, $currency);
 		return $concatWords;
 	} else {
-		$TNum = explode('.', $num);
+		$TNum = explode('.', (string) $num);
 
-		$num = (int) $TNum[0];
+		$num = abs((int) $TNum[0]);
 		$words = array();
 		$list1 = array(
 			'',
@@ -104,7 +97,7 @@ function dol_convertToWord($num, $langs, $currency = '', $centimes = false)
 			$langs->transnoentitiesnoconv('quadrillion')
 		);
 
-		$num_length = strlen($num);
+		$num_length = strlen((string) $num);
 		$levels = (int) (($num_length + 2) / 3);
 		$max_length = $levels * 3;
 		$num = substr('00'.$num, -$max_length);

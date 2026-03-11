@@ -42,6 +42,8 @@ $langs->loadLangs(array("companies", "mrp"));
 // Security check
 $result = restrictedArea($user, 'bom|mrp');
 
+$max = getDolGlobalInt('MAIN_SIZE_SHORTLIST_LIMIT', 5);
+
 
 /*
  * View
@@ -55,14 +57,18 @@ llxHeader('', $langs->trans("MRP"), '');
 print load_fiche_titre($langs->trans("MRPArea"), '', 'mrp');
 
 
-print '<div class="fichecenter"><div class="fichethirdleft">';
+print '<div class="fichecenter">';
+
+print '<div class="twocolumns">';
+
+print '<div class="firstcolumn fichehalfleft boxhalfleft" id="boxhalfleft">';
 
 
 /*
  * Statistics
  */
 
-if ($conf->use_javascript_ajax) {
+if ($conf->use_javascript_ajax && isModEnabled('mrp')) {
 	$sql = "SELECT COUNT(t.rowid) as nb, status";
 	$sql .= " FROM ".MAIN_DB_PREFIX."mrp_mo as t";
 	$sql .= " GROUP BY t.status";
@@ -93,7 +99,8 @@ if ($conf->use_javascript_ajax) {
 
 		print '<div class="div-table-responsive-no-min">';
 		print '<table class="noborder nohover centpercent">';
-		print '<tr class="liste_titre"><th colspan="2">'.$langs->trans("Statistics").' - '.$langs->trans("ManufacturingOrder").'</th></tr>'."\n";
+		print '<tr class="liste_titre"><th colspan="2">'.$langs->trans("Statistics").' - '.$langs->trans("ManufacturingOrder").'</th>';
+		print '</tr>'."\n";
 		$listofstatus = array(0, 1, 2, 3, 9);
 		foreach ($listofstatus as $status) {
 			$dataseries[] = array($staticmo->LibStatut($status, 1), (isset($vals[$status]) ? (int) $vals[$status] : 0));
@@ -148,13 +155,12 @@ if ($conf->use_javascript_ajax) {
 print '<br>';
 
 
-print '</div><div class="fichetwothirdright">';
+print '</div><div class="secondcolumn fichehalfright boxhalfright" id="boxhalfright">';
+
 
 /*
  * Last modified BOM
  */
-
-$max = 5;
 
 $sql = "SELECT a.rowid, a.status, a.ref, a.tms as datem, a.status, a.fk_product";
 $sql .= " FROM ".MAIN_DB_PREFIX."bom_bom as a";
@@ -167,7 +173,16 @@ if ($resql) {
 	print '<div class="div-table-responsive-no-min">';
 	print '<table class="noborder centpercent">';
 	print '<tr class="liste_titre">';
-	print '<th colspan="4">'.$langs->trans("LatestBOMModified", $max).'</th></tr>';
+	print '<th colspan="2">'.$langs->trans("LatestBOMModified", $max);
+	$lastmodified = '<a href="'.DOL_URL_ROOT.'/bom/bom_list.php?sortfield=t.tms&sortorder=DESC" title="'.$langs->trans("FullList").'">';
+	$lastmodified .= '<span class="badge marginleftonlyshort">...</span>';
+	$lastmodified .= '</a>';
+	print $lastmodified;
+	print '</th>';
+	print '<th class="right">';
+	//print '<a href="'.DOL_URL_ROOT.'/bom/bom_list.php?sortfield=t.tms&sortorder=DESC">'.img_picto($langs->trans("FullList"), 'bom');
+	print '</th>';
+	print '</tr>';
 
 	$num = $db->num_rows($resql);
 	if ($num) {
@@ -190,7 +205,7 @@ if ($resql) {
 		}
 	} else {
 		print '<tr class="oddeven">';
-		print '<td><span class="opacitymedium">'.$langs->trans("None").'</span></td>';
+		print '<td colspan="3"><span class="opacitymedium">'.$langs->trans("None").'</span></td>';
 		print '</tr>';
 	}
 	print "</table></div>";
@@ -203,51 +218,60 @@ if ($resql) {
  * Last modified MOs
  */
 
-$max = 5;
+if (isModEnabled('mrp')) {
+	$sql = "SELECT a.rowid, a.status, a.ref, a.tms as datem, a.status";
+	$sql .= " FROM ".MAIN_DB_PREFIX."mrp_mo as a";
+	$sql .= " WHERE a.entity IN (".getEntity('mo').")";
+	$sql .= $db->order("a.tms", "DESC");
+	$sql .= $db->plimit($max, 0);
 
-$sql = "SELECT a.rowid, a.status, a.ref, a.tms as datem, a.status";
-$sql .= " FROM ".MAIN_DB_PREFIX."mrp_mo as a";
-$sql .= " WHERE a.entity IN (".getEntity('mo').")";
-$sql .= $db->order("a.tms", "DESC");
-$sql .= $db->plimit($max, 0);
-
-$resql = $db->query($sql);
-if ($resql) {
-	print '<div class="div-table-responsive-no-min">';
-	print '<table class="noborder centpercent">';
-	print '<tr class="liste_titre">';
-	print '<th colspan="4">'.$langs->trans("LatestMOModified", $max).'</th></tr>';
-
-	$num = $db->num_rows($resql);
-	if ($num) {
-		$i = 0;
-		while ($i < $num) {
-			$obj = $db->fetch_object($resql);
-
-			$staticmo->id = $obj->rowid;
-			$staticmo->ref = $obj->ref;
-			$staticmo->date_modification = $obj->datem;
-			$staticmo->status = $obj->status;
-
-			print '<tr class="oddeven">';
-			print '<td>'.$staticmo->getNomUrl(1, 32).'</td>';
-			print '<td>'.dol_print_date($db->jdate($obj->datem), 'dayhour').'</td>';
-			print '<td class="right">'.$staticmo->getLibStatut(3).'</td>';
-			print '</tr>';
-			$i++;
-		}
-	} else {
-		print '<tr class="oddeven">';
-		print '<td><span class="opacitymedium">'.$langs->trans("None").'</span></td>';
+	$resql = $db->query($sql);
+	if ($resql) {
+		print '<div class="div-table-responsive-no-min">';
+		print '<table class="noborder centpercent">';
+		print '<tr class="liste_titre">';
+		print '<th colspan="2">'.$langs->trans("LatestMOModified", $max);
+		$lastmodified = '<a href="'.DOL_URL_ROOT.'/mrp/mo_list.php?sortfield=t.tms&sortorder=DESC" title="'.$langs->trans("FullList").'">';
+		$lastmodified .= '<span class="badge marginleftonlyshort">...</span>';
+		$lastmodified .= '</a>';
+		print $lastmodified;
+		print '</th>';
+		print '<th class="right">';
+		//print '<a href="'.DOL_URL_ROOT.'/mrp/mo_list.php?sortfield=t.tms&sortorder=DESC">'.img_picto($langs->trans("FullList"), 'mrp');
+		print '</th>';
 		print '</tr>';
+
+		$num = $db->num_rows($resql);
+		if ($num) {
+			$i = 0;
+			while ($i < $num) {
+				$obj = $db->fetch_object($resql);
+
+				$staticmo->id = $obj->rowid;
+				$staticmo->ref = $obj->ref;
+				$staticmo->date_modification = $obj->datem;
+				$staticmo->status = $obj->status;
+
+				print '<tr class="oddeven">';
+				print '<td>'.$staticmo->getNomUrl(1, 32).'</td>';
+				print '<td>'.dol_print_date($db->jdate($obj->datem), 'dayhour').'</td>';
+				print '<td class="right">'.$staticmo->getLibStatut(3).'</td>';
+				print '</tr>';
+				$i++;
+			}
+		} else {
+			print '<tr class="oddeven">';
+			print '<td colspan="3"><span class="opacitymedium">'.$langs->trans("None").'</span></td>';
+			print '</tr>';
+		}
+		print "</table></div>";
+		print "<br>";
+	} else {
+		dol_print_error($db);
 	}
-	print "</table></div>";
-	print "<br>";
-} else {
-	dol_print_error($db);
 }
 
-print '</div></div>';
+print '</div></div></div>';
 
 $object = new stdClass();
 $parameters = array(
