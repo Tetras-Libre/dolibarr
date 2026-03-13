@@ -52,6 +52,7 @@ $rowid = $id;
 $ref = GETPOST('ref', 'alphanohtml');
 $typeid = GETPOST('typeid', 'int');
 $cancel = GETPOST('cancel');
+$viewMode = GETPOST ('view', 'alpha'); // If set, no header is displayed
 
 // Load variable for pagination
 $limit = GETPOST('limit', 'int') ? GETPOST('limit', 'int') : $conf->liste_limit;
@@ -94,20 +95,62 @@ $datefrom = 0;
 $dateto = 0;
 $paymentdate = -1;
 
+
+// No member id provided we try to find existing member associated to current user
+if ((empty($id)  || empty($ref) ) && $viewMode=='self') {
+	dol_syslog("adherents/subscription.php: No id or ref defined, we try to find the member associated to the current user", LOG_DEBUG);
+	// if we are in displayed view we display adherent of user in current entity
+	$userId = $user->id;
+	$sql = "";
+
+	if(isModEnabled('multicompanyhybridusermanagement')) {
+		$adherenttable = MAIN_DB_PREFIX."adherent";
+		$extratable = $adherenttable . "_extrafields";
+		$sql = "SELECT a.rowid FROM $adherenttable as a LEFT JOIN $extratable as extra ON a.rowid = extra.fk_object WHERE extra.fk_user = \"$userId\"";
+		if ($conf->entity != null) {
+			$sql .= " AND a.entity = $conf->entity";
+		}
+
+		// ask the db
+		$resql = $db->query($sql);
+		if ($resql) {
+			$obj = $db->fetch_object($resql);
+			if($obj){
+				$id = $obj->rowid;
+			}
+		}
+	} else {
+		// Classic case
+		$sql = "SELECT u.rowid FROM ". MAIN_DB_PREFIX."user as u WHERE fk_member = ".((int) $userId);
+		$res = $db->query($sql);
+		if ($res) {
+			$obj = $db->fetch_object($res);
+			if ($obj && $obj->rowid > 0) {
+				$id = $obj->rowid;
+			}
+		}
+	}
+}
+$userIdAssociated = 0; // This variable will contain the user id associated to the member (if any, if not, it will be 0)
+
 // Fetch object
 if ($id > 0 || !empty($ref)) {
+	$rowid = $id;
 	// Load member
 	$result = $object->fetch($id, $ref);
+	// fetch extra fields value fk_user
+	$object->fetch_optionals();
+	$userIdAssociated = $object->user_id ?? $object->array_options['options_fk_user'] ?? 0;
 
 	// Define variables to know what current user can do on users
 	$canadduser = ($user->admin || $user->hasRight("user", "user", "creer"));
 	// Define variables to know what current user can do on properties of user linked to edited member
-	if ($object->user_id) {
-		// $User is the user who edits, $object->user_id is the id of the related user in the edited member
-		$caneditfielduser = ((($user->id == $object->user_id) && $user->hasRight("user", "self", "creer"))
-			|| (($user->id != $object->user_id) && $user->hasRight("user", "user", "creer")));
-		$caneditpassworduser = ((($user->id == $object->user_id) && $user->hasRight("user", "self", "password"))
-			|| (($user->id != $object->user_id) && $user->hasRight("user", "user", "password")));
+	if ($userIdAssociated) {
+		// $User is the user who edits, $userIdAssociated is the id of the related user in the edited member
+		$caneditfielduser = ((($user->id == $userIdAssociated) && $user->hasRight("user", "self", "creer"))
+			|| (($user->id != $userIdAssociated) && $user->hasRight("user", "user", "creer")));
+		$caneditpassworduser = ((($user->id == $userIdAssociated) && $user->hasRight("user", "self", "password"))
+			|| (($user->id != $userIdAssociated) && $user->hasRight("user", "user", "password")));
 	}
 }
 
@@ -119,7 +162,10 @@ if ($id) {
 }
 
 // Security check
-$result = restrictedArea($user, 'adherent', $object->id, '', '', 'socid', 'rowid', 0);
+if($userIdAssociated != $user->id && ($id < 0 && $id =="" && empty($rowid))) {
+	$result = restrictedArea($user, 'adherent', $object->id, '', '', 'socid', 'rowid', 0);
+	accessforbidden();
+}
 
 
 /*
@@ -493,18 +539,23 @@ print '<form action="'.$_SERVER["PHP_SELF"].'" method="POST">';
 print '<input type="hidden" name="token" value="'.newToken().'">';
 print '<input type="hidden" name="rowid" value="'.$object->id.'">';
 
-print dol_get_fiche_head($head, 'subscription', $langs->trans("Member"), -1, 'user');
-
-$linkback = '<a href="'.DOL_URL_ROOT.'/adherents/list.php?restore_lastsearch_values=1">'.$langs->trans("BackToList").'</a>';
 
 $morehtmlref = '<a href="'.DOL_URL_ROOT.'/adherents/vcard.php?id='.$object->id.'" class="refid">';
 $morehtmlref .= img_picto($langs->trans("Download").' '.$langs->trans("VCard"), 'vcard.png', 'class="valignmiddle marginleftonly paddingrightonly"');
 $morehtmlref .= '</a>';
 
-dol_banner_tab($object, 'rowid', $linkback, 1, 'rowid', 'ref', $morehtmlref);
+if($viewMode == "self"){
+	print dol_get_fiche_head([], '', $langs->trans("Member"), 1);
+	dol_banner_tab($object, 'rowid', '', 1, 'rowid', 'ref', $morehtmlref);
+} else {
+	print dol_get_fiche_head($head, 'subscription', $langs->trans("Member"), -1, 'user');
+	$linkback = '<a href="'.DOL_URL_ROOT.'/adherents/list.php?restore_lastsearch_values=1">'.$langs->trans("BackToList").'</a>';
+	dol_banner_tab($object, 'rowid', $linkback, 1, 'rowid', 'ref', $morehtmlref);
+}
 
 print '<div class="fichecenter">';
 print '<div class="fichehalfleft">';
+
 
 print '<div class="underbanner clearboth"></div>';
 print '<table class="border centpercent tableforfield">';
@@ -525,6 +576,8 @@ print '</tr>';
 
 // Company
 print '<tr><td>'.$langs->trans("Company").'</td><td class="valeur">'.dol_escape_htmltag($object->company).'</td></tr>';
+
+print '<tr><td>'.$langs->trans("Blop").'</td><td class="valeur">'.dol_escape_htmltag($object->company).'</td></tr>';
 
 // Civility
 print '<tr><td>'.$langs->trans("UserTitle").'</td><td class="valeur">'.$object->getCivilityLabel().'</td>';
@@ -689,7 +742,7 @@ print "</table>\n";
 print "</div></div>\n";
 print '<div class="clearboth"></div>';
 
-print dol_get_fiche_end();
+//print dol_get_fiche_end();
 
 
 /*
@@ -829,9 +882,17 @@ if (($action != 'addsubscription' && $action != 'create_thirdparty')) {
 		print '<br>';
 
 		require_once DOL_DOCUMENT_ROOT.'/core/lib/payments.lib.php';
-		print showOnlinePaymentUrl('membersubscription', $object->ref);
-		print '<br>';
+		if($viewMode !== "self") {
+			print showOnlinePaymentUrl('membersubscription', $object->ref);
+			print '<br>';
+		}
 	}
+}
+
+if($viewMode=="self"){
+	// Show link to public subscription
+	$url = DOL_URL_ROOT.'/public/members/new.php?entity=' . $conf->entity  . '&memberId='. $object->id;
+	print '<div class="float-right"><input class="button" value="'.$langs->trans("NewCotisation").'" onclick="javascript:document.location.href=\''. $url . '\';"></div>';
 }
 
 /*

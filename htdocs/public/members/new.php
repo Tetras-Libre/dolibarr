@@ -52,11 +52,10 @@ if (!defined('NOBROWSERNOTIF')) {
 
 // For MultiCompany module.
 // Do not use GETPOST here, function is not defined and define must be done before including main.inc.php
-$entity = (!empty($_GET['entity']) ? (int) $_GET['entity'] : (!empty($_POST['entity']) ? (int) $_POST['entity'] : 1));
+$entity = (!empty($_GET['entity']) ? (int) $_GET['entity'] : (!empty($_POST['entity']) ? (int) $_POST['entity'] : 0));
 if (is_numeric($entity)) {
 	define("DOLENTITY", $entity);
 }
-
 
 // Load Dolibarr environment
 require '../../main.inc.php';
@@ -79,6 +78,15 @@ $error = 0;
 
 // Load translation files
 $langs->loadLangs(array("main", "members", "companies", "install", "other", "errors"));
+
+if(isModEnabled('multicompany')) {
+	if($entity===0){
+		httponly_accessforbidden('Multiadmin environment, no entity id provided');
+	}
+	force_switch_entity($entity);
+} else {
+	$entity = 1;
+}
 
 // Security check
 if (!isModEnabled('adherent')) {
@@ -129,6 +137,10 @@ function llxHeaderVierge($title, $head = "", $disablejs = 0, $disablehead = 0, $
 		$urllogo = DOL_URL_ROOT.'/theme/dolibarr_logo.svg';
 	}
 
+	if(isModEnabled('multicompany')) {
+		$urllogo .= '&entity='.((int) $conf->entity);
+	}
+
 	print '<header class="center">';
 
 	// Output html code for logo
@@ -176,6 +188,14 @@ function llxFooterVierge()
 	print "</html>\n";
 }
 
+function force_switch_entity($newEntity)
+{
+	global $db, $conf;
+	if ($newEntity != $conf->entity) {
+		$conf->entity = $newEntity;
+		$conf->setValues($db);
+	}
+}
 
 
 /*
@@ -207,11 +227,12 @@ if (empty($reshook) && $action == 'add') {
 		if ($result) {
 			$num = $db->num_rows($result);
 		}
-		if ($num != 0) {
+		// In FFCU context we can work with login already used by another member (we merged it after)
+	/*	if ($num != 0) {
 			$error++;
 			$langs->load("errors");
 			$errmsg .= $langs->trans("ErrorLoginAlreadyExists")."<br>\n";
-		}
+		}*/
 		if (!GETPOSTISSET("pass1") || !GETPOSTISSET("pass2") || GETPOST("pass1", 'none') == '' || GETPOST("pass2", 'none') == '' || GETPOST("pass1", 'none') != GETPOST("pass2", 'none')) {
 			$error++;
 			$langs->load("errors");
@@ -273,6 +294,7 @@ if (empty($reshook) && $action == 'add') {
 	$public = GETPOSTISSET('public') ? 1 : 0;
 
 	if (!$error) {
+		require_once DOL_DOCUMENT_ROOT.'/core/lib/security2.lib.php';
 		// E-mail looks OK and login does not exist
 		$adh = new Adherent($db);
 		$adh->statut      = -1;
@@ -286,9 +308,12 @@ if (empty($reshook) && $action == 'add') {
 		$adh->zip         = GETPOST('zipcode');
 		$adh->town        = GETPOST('town');
 		$adh->email       = GETPOST('email');
+		$adh->phone_mobile = GETPOST('phone');
 		if (!getDolGlobalString('ADHERENT_LOGIN_NOT_REQUIRED')) {
 			$adh->login       = GETPOST('login');
 			$adh->pass        = GETPOST('pass1');
+		} else {
+			$adh->pass = getRandomPassword(false, 15);
 		}
 		$adh->photo       = GETPOST('photo');
 		$adh->country_id  = getDolGlobalString("MEMBER_NEWFORM_FORCECOUNTRYCODE", GETPOST('country_id', 'int'));
@@ -338,7 +363,41 @@ if (empty($reshook) && $action == 'add') {
 		}
 
 		if (!$error) {
-			$result = $adh->create($user);
+
+			global $conf;
+
+			$constructedLogin = Adherent::createFFCUConstructedLogin($adh->firstname, $adh->lastname, $adh->birth);
+			$escapedEmail = $db->escape($adh->email);
+			$entityId = (int) $conf->entity;
+
+// Search for adherent by login or email within the same entity
+			$sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."adherent";
+			$sql .= " WHERE entity = $entityId AND (login = '".$db->escape($constructedLogin)."' OR email = '".$escapedEmail."')";
+
+			dol_syslog($sql);
+
+			$resql = $db->query($sql);
+
+			$foundAdherentIds = [];
+			if ($resql) {
+				while ($obj = $db->fetch_object($resql)) {
+					$foundAdherentIds[] = $obj->rowid;
+				}
+			}
+
+			// You can use count($foundAdherentIds) for the number of matches
+			// Or use the actual IDs if needed
+			$countOfSameAdherent = count($foundAdherentIds);
+
+			// If we found adherents with same login or email, we can use them
+			if ($countOfSameAdherent > 0) {
+				// Get the first found adherent ID
+				$result = $adh->fetch($foundAdherentIds[0]);
+			} else {
+				// No existing adherent found, we can proceed with the creation
+				$result = $adh->create($user);
+			}
+
 			if ($result > 0) {
 				require_once DOL_DOCUMENT_ROOT.'/core/class/CMailFile.class.php';
 				$object = $adh;
@@ -505,16 +564,33 @@ if (empty($reshook) && $action == 'added') {
  * View
  */
 
+$isReSubmit = false;
+$existingMember = new Adherent($db);
+
+$memberId = GETPOSTINT("memberId");
+if($memberId > 0) {
+	// If we have a memberId, we are in a re-subscription form
+	$existingMember->fetch($memberId);
+	if ($existingMember->id > 0) {
+		$isReSubmit = true; // We have found user so we are in a re-subscription form
+	}
+}
+
 $form = new Form($db);
 $formcompany = new FormCompany($db);
 $adht = new AdherentType($db);
 $extrafields->fetch_name_optionals_label($object->table_element); // fetch optionals attributes and labels
 
+if(!$isReSubmit) {
+	llxHeaderVierge($langs->trans("NewSubscription"));
+	print '<br>';
+	print load_fiche_titre(img_picto('', 'member_nocolor', 'class="pictofixedwidth"').' &nbsp; '.$langs->trans("NewSubscription"), '', '', 0, 0, 'center');
 
-llxHeaderVierge($langs->trans("NewSubscription"));
-
-print '<br>';
-print load_fiche_titre(img_picto('', 'member_nocolor', 'class="pictofixedwidth"').' &nbsp; '.$langs->trans("NewSubscription"), '', '', 0, 0, 'center');
+} else {
+	llxHeaderVierge($langs->trans("RenewSubscription"));
+	print '<br>';
+	print load_fiche_titre(img_picto('', 'member_nocolor', 'class="pictofixedwidth"').' &nbsp; '.$langs->trans("RenewSubscription"), '', '', 0, 0, 'center');
+}
 
 
 print '<div align="center">';
@@ -531,8 +607,14 @@ print '</div>';
 dol_htmloutput_errors($errmsg);
 dol_htmloutput_events();
 
+$additionalRedirectParam = "";
+$receivedMemberId = GETPOSTINT("memberId");
+if($receivedMemberId){
+	$additionalRedirectParam = "?memberId=" . $receivedMemberId;
+}
+
 // Print form
-print '<form action="'.$_SERVER["PHP_SELF"].'" method="POST" name="newmember">'."\n";
+print '<form action="'.$_SERVER["PHP_SELF"]. $additionalRedirectParam . '" method="POST" name="newmember">'."\n";
 print '<input type="hidden" name="token" value="'.newToken().'" />';
 print '<input type="hidden" name="entity" value="'.$entity.'" />';
 print '<input type="hidden" name="page_y" value="" />';
@@ -621,15 +703,24 @@ if (getDolGlobalString('MEMBER_SKIP_TABLE') || getDolGlobalString('MEMBER_NEWFOR
 	}
 
 	// Firstname
-	print '<tr><td class="classfortooltip" title="'.dol_escape_htmltag($messagemandatory).'">'.$langs->trans("Firstname").' <span class="star">*</span></td><td><input type="text" name="firstname" class="minwidth150" value="'.dol_escape_htmltag(GETPOST('firstname')).'"></td></tr>'."\n";
+	$firstnameDefaultValue = !empty(GETPOST('firstname')) ? GETPOST('firstname') : ($isReSubmit ? $existingMember->firstname : "");
+	print '<tr><td class="classfortooltip" title="'.dol_escape_htmltag($messagemandatory).'">'.$langs->trans("Firstname").' <span class="star">*</span></td><td><input type="text" name="firstname" class="minwidth150" value="'.dol_escape_htmltag($firstnameDefaultValue).'"></td></tr>'."\n";
 
 	// Lastname
-	print '<tr><td class="classfortooltip" title="'.dol_escape_htmltag($messagemandatory).'">'.$langs->trans("Lastname").' <span class="star">*</span></td><td><input type="text" name="lastname" class="minwidth150" value="'.dol_escape_htmltag(GETPOST('lastname')).'"></td></tr>'."\n";
+	$lastnameDefaultValue = !empty(GETPOST('lastname')) ? GETPOST('lastname') : ($isReSubmit ? $existingMember->lastname : "");
+	print '<tr><td class="classfortooltip" title="'.dol_escape_htmltag($messagemandatory).'">'.$langs->trans("Lastname").' <span class="star">*</span></td><td><input type="text" name="lastname" class="minwidth150" value="'.dol_escape_htmltag($lastnameDefaultValue).'"></td></tr>'."\n";
 
 	// EMail
+	$emailDefaultValue = !empty(GETPOST('email')) ? GETPOST('email') : ($isReSubmit ? $existingMember->email : "");
 	print '<tr><td class="'.(getDolGlobalString("ADHERENT_MAIL_REQUIRED") ? 'classfortooltip' : '').'" title="'.dol_escape_htmltag($messagemandatory).'">'.$langs->trans("Email").(getDolGlobalString("ADHERENT_MAIL_REQUIRED") ? ' <span class="star">*</span>' : '').'</td><td>';
 	//print img_picto('', 'email', 'class="pictofixedwidth"');
-	print '<input type="text" name="email" maxlength="255" class="minwidth200" value="'.dol_escape_htmltag(GETPOST('email')).'"></td></tr>'."\n";
+	print '<input type="text" name="email" maxlength="255" class="minwidth200" value="'.dol_escape_htmltag($emailDefaultValue).'"></td></tr>'."\n";
+
+	//Phone
+	$phoneDefaultValue = !empty(GETPOST('phone')) ? GETPOST('phone') : ($isReSubmit ? $existingMember->phone_mobile : "");
+	print '<tr><td class="classfortooltip" title="'.dol_escape_htmltag($messagemandatory).'">'.$langs->trans("Phone").'</td><td>';
+	print img_picto('', 'phone', 'class="pictofixedwidth paddingright"');
+	print '<input type="text" name="phone" maxlength="20" class="minwidth200" value="'.dol_escape_htmltag($phoneDefaultValue).'"></td></tr>'."\n";
 
 	// Login
 	if (!getDolGlobalString('ADHERENT_LOGIN_NOT_REQUIRED')) {
@@ -639,27 +730,31 @@ if (getDolGlobalString('MEMBER_SKIP_TABLE') || getDolGlobalString('MEMBER_NEWFOR
 	}
 
 	// Gender
+	$genderDefaultValue = !empty( GETPOST('gender', 'alphanohtml')) ?  GETPOST('gender', 'alphanohtml') : ($isReSubmit ? $existingMember->gender : "");
 	print '<tr><td>'.$langs->trans("Gender").'</td>';
 	print '<td>';
 	$arraygender = array('man'=>$langs->trans("Genderman"), 'woman'=>$langs->trans("Genderwoman"), 'other'=>$langs->trans("Genderother"));
-	print $form->selectarray('gender', $arraygender, GETPOST('gender', 'alphanohtml'), 1, 0, 0, '', 0, 0, 0, '', '', 1);
+	print $form->selectarray('gender', $arraygender, $genderDefaultValue, 1, 0, 0, '', 0, 0, 0, '', '', 1);
 	print '</td></tr>';
 
 	// Address
+	$addressDefaultValue = !empty(GETPOST('address', 'restricthtml')) ? GETPOST('address', 'restricthtml') : ($isReSubmit ? $existingMember->address : "");
 	print '<tr><td>'.$langs->trans("Address").'</td><td>'."\n";
-	print '<textarea name="address" id="address" wrap="soft" class="quatrevingtpercent" rows="'.ROWS_3.'">'.dol_escape_htmltag(GETPOST('address', 'restricthtml'), 0, 1).'</textarea></td></tr>'."\n";
+	print '<textarea name="address" id="address" wrap="soft" class="quatrevingtpercent" rows="'.ROWS_3.'">'.dol_escape_htmltag($addressDefaultValue, 0, 1).'</textarea></td></tr>'."\n";
 
 	// Zip / Town
+	$zipCodeDefaultValue = !empty(GETPOST('zipcode')) ? GETPOST('zipcode') : ($isReSubmit ? $existingMember->zip : "");
+	$townDefaultValue = !empty(GETPOST('town')) ? GETPOST('town') : ($isReSubmit ? $existingMember->town : "");
 	print '<tr><td>'.$langs->trans('Zip').' / '.$langs->trans('Town').'</td><td>';
-	print $formcompany->select_ziptown(GETPOST('zipcode'), 'zipcode', array('town', 'selectcountry_id', 'state_id'), 0, 1, '', 'width75');
+	print $formcompany->select_ziptown($zipCodeDefaultValue, 'zipcode', array('town', 'selectcountry_id', 'state_id'), 0, 1, '', 'width75');
 	print ' / ';
-	print $formcompany->select_ziptown(GETPOST('town'), 'town', array('zipcode', 'selectcountry_id', 'state_id'), 0, 1);
+	print $formcompany->select_ziptown($townDefaultValue, 'town', array('zipcode', 'selectcountry_id', 'state_id'), 0, 1);
 	print '</td></tr>';
 
 	// Country
+	$country_id = !empty(GETPOST('country_id', 'int')) ? GETPOST('country_id', 'int') : ($isReSubmit ? $existingMember->country_id : 0);
 	print '<tr><td>'.$langs->trans('Country').'</td><td>';
 	print img_picto('', 'country', 'class="pictofixedwidth paddingright"');
-	$country_id = GETPOST('country_id', 'int');
 	if (!$country_id && getDolGlobalString('MEMBER_NEWFORM_FORCECOUNTRYCODE')) {
 		$country_id = getCountry($conf->global->MEMBER_NEWFORM_FORCECOUNTRYCODE, 2, $db, $langs);
 	}
@@ -688,12 +783,14 @@ if (getDolGlobalString('MEMBER_SKIP_TABLE') || getDolGlobalString('MEMBER_NEWFOR
 	}
 
 	// Birthday
+	$birthdayDefaultValue = !empty(GETPOST('birth')) ? GETPOST('birth') : ($isReSubmit ? $existingMember->birth : "");
 	print '<tr id="trbirth" class="trbirth"><td>'.$langs->trans("DateOfBirth").'</td><td>';
 	print $form->selectDate(!empty($birthday) ? $birthday : "", 'birth', 0, 0, 1, "newmember", 1, 0);
 	print '</td></tr>'."\n";
 
 	// Photo
-	print '<tr><td>'.$langs->trans("URLPhoto").'</td><td><input type="text" name="photo" class="minwidth200" value="'.dol_escape_htmltag(GETPOST('photo')).'"></td></tr>'."\n";
+	/*$photoDefaultValue = !empty(GETPOST('photo')) ? GETPOST('photo') : ($isReSubmit ? $existingMember->photo : "");
+	print '<tr><td>'.$langs->trans("URLPhoto").'</td><td><input type="text" name="photo" class="minwidth200" value="'.dol_escape_htmltag($photoDefaultValue).'"></td></tr>'."\n";*/
 
 	// Public
 	if (getDolGlobalString('MEMBER_PUBLIC_ENABLED')) {
@@ -850,7 +947,7 @@ if (getDolGlobalString('MEMBER_SKIP_TABLE') || getDolGlobalString('MEMBER_NEWFOR
 	$sql .= " FROM ".MAIN_DB_PREFIX."adherent_type as d";
 	$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."adherent as a";
 	$sql .= " ON d.rowid = a.fk_adherent_type AND a.statut > 0";
-	$sql .= " WHERE d.entity IN (".getEntity('member_type').")";
+	$sql .= " WHERE d.entity IN (". DOLENTITY.")";
 	$sql .= " AND d.statut=1";
 	$sql .= " GROUP BY d.rowid, d.libelle, d.subscription, d.amount, d.caneditamount, d.vote, d.note, d.duration, d.statut, d.morphy";
 

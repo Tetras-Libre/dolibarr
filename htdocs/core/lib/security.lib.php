@@ -848,7 +848,7 @@ function restrictedArea(User $user, $features, $object = 0, $tableandshare = '',
  */
 function checkUserAccessToObject($user, array $featuresarray, $object = 0, $tableandshare = '', $feature2 = '', $dbt_keyfield = '', $dbt_select = 'rowid', $parenttableforentity = '')
 {
-	global $db, $conf;
+	global $db, $conf, $hookmanager;
 
 	if (is_object($object)) {
 		$objectid = $object->id;
@@ -865,6 +865,9 @@ function checkUserAccessToObject($user, array $featuresarray, $object = 0, $tabl
 	$params = explode('&', $tableandshare);
 	$dbtablename = (!empty($params[0]) ? $params[0] : '');
 	$sharedelement = (!empty($params[1]) ? $params[1] : $dbtablename);
+
+	// init the hooks, same context as accessForbiden()
+	$hookmanager->initHooks(['main']);
 
 	foreach ($featuresarray as $feature) {
 		$sql = '';
@@ -925,23 +928,8 @@ function checkUserAccessToObject($user, array $featuresarray, $object = 0, $tabl
 		if (in_array($feature, $check) && $objectid > 0) {		// For $objectid = 0, no check
 			$sql = "SELECT COUNT(dbt.".$dbt_select.") as nb";
 			$sql .= " FROM ".MAIN_DB_PREFIX.$dbtablename." as dbt";
-			if (($feature == 'user' || $feature == 'usergroup') && isModEnabled('multicompany')) {	// Special for multicompany
-				if (getDolGlobalString('MULTICOMPANY_TRANSVERSE_MODE')) {
-					if ($conf->entity == 1 && $user->admin && !$user->entity) {
-						$sql .= " WHERE dbt.".$dbt_select." IN (".$db->sanitize($objectid, 1).")";
-						$sql .= " AND dbt.entity IS NOT NULL";
-					} else {
-						$sql .= ",".MAIN_DB_PREFIX."usergroup_user as ug";
-						$sql .= " WHERE dbt.".$dbt_select." IN (".$db->sanitize($objectid, 1).")";
-						$sql .= " AND ((ug.fk_user = dbt.rowid";
-						$sql .= " AND ug.entity IN (".getEntity('usergroup')."))";
-						$sql .= " OR dbt.entity = 0)"; // Show always superadmin
-					}
-				} else {
-					$sql .= " WHERE dbt.".$dbt_select." IN (".$db->sanitize($objectid, 1).")";
-					$sql .= " AND dbt.entity IN (".getEntity($sharedelement, 1).")";
-				}
-			} else {
+
+			if (($feature != 'user' && $feature != 'usergroup')) {
 				$reg = array();
 				if ($parenttableforentity && preg_match('/(.*)@(.*)/', $parenttableforentity, $reg)) {
 					$sql .= ", ".MAIN_DB_PREFIX.$reg[2]." as dbtp";
@@ -953,6 +941,14 @@ function checkUserAccessToObject($user, array $featuresarray, $object = 0, $tabl
 				}
 			}
 			$checkonentitydone = 1;
+
+			$parameters = array('feature'=>$feature, 'objectid'=>$objectid, 'dbtablename' => $dbtablename, 'dbt_select'=>$dbt_select, 'sharedelement'=>$sharedelement );
+			if (!empty($hookmanager)) {
+				$reshook = $hookmanager->executeHooks('addMoreEntityOnlyCheck', $parameters, $object);
+				if ($reshook > 0) {		// No other test done.
+					$sql .= $hookmanager->resPrint;
+				}
+			}
 		}
 		if (in_array($feature, $checksoc) && $objectid > 0) {	// We check feature = checksoc. For $objectid = 0, no check
 			// If external user: Check permission for external users

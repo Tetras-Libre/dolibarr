@@ -118,6 +118,8 @@ $canadduser = (!empty($user->admin) || $user->hasRight("user", "user", "write"))
 $canreaduser = (!empty($user->admin) || $user->hasRight("user", "user", "read"));
 $canedituser = (!empty($user->admin) || $user->hasRight("user", "user", "write"));	// edit other user
 $candisableuser = (!empty($user->admin) || $user->hasRight("user", "user", "delete"));
+$caneditpasswordandsee = false;
+$caneditpasswordandsend = false;
 $canreadgroup = $canreaduser;
 $caneditgroup = $canedituser;
 if (getDolGlobalString('MAIN_USE_ADVANCED_PERMS')) {
@@ -326,21 +328,9 @@ if (empty($reshook)) {
 
 			// Set entity property
 			$entity = GETPOST('entity', 'int');
-			if (isModEnabled('multicompany')) {
-				if (GETPOST('superadmin', 'int')) {
-					$object->entity = 0;
-				} else {
-					if (getDolGlobalString('MULTICOMPANY_TRANSVERSE_MODE')) {
-						$object->entity = 1; // all users are forced into master entity
-					} else {
-						$object->entity = ($entity == '' ? 1 : $entity);
-					}
-				}
-			} else {
-				$object->entity = ($entity == '' ? 1 : $entity);
-				/*if ($user->admin && $user->entity == 0 && GETPOST("admin",'alpha'))
-				{
-				}*/
+			$object->entity = ($entity == '' ? 1 : $entity);
+			if (GETPOST('superadmin', 'int')) {
+				$object->entity = 0;
 			}
 
 			$db->begin();

@@ -36,6 +36,14 @@ include_once DOL_DOCUMENT_ROOT.'/core/modules/DolibarrModules.class.php';
  */
 class modAdherent extends DolibarrModules
 {
+
+	public $core_enabled = 0;
+
+    public $always_configurable =1;
+
+	public $always_enabled = 0;
+
+
 	/**
 	 *   Constructor. Define names, constants, directories, boxes, permissions
 	 *

@@ -2055,23 +2055,37 @@ class Form
 		// Forge request to select users
 		$sql = "SELECT DISTINCT u.rowid, u.lastname as lastname, u.firstname, u.statut as status, u.login, u.admin, u.entity, u.photo";
 		if (isModEnabled('multicompany') && $conf->entity == 1 && $user->admin && !$user->entity) {
-			$sql .= ", e.label";
+			//$sql .= ", e.label";
 		}
 		$sql .= " FROM " . $this->db->prefix() . "user as u";
-		if (isModEnabled('multicompany') && $conf->entity == 1 && $user->admin && !$user->entity) {
-			$sql .= " LEFT JOIN " . $this->db->prefix() . "entity as e ON e.rowid = u.entity";
-			if (!empty($force_entity)) {
-				$sql .= " WHERE u.entity IN (0, " . $this->db->sanitize($force_entity) . ")";
-			} else {
-				$sql .= " WHERE u.entity IS NOT NULL";
+
+		// Hot fix, this break user group member addition
+		//Add hook to filter on user (for exemple on usergroup define in custom modules)
+		/*$reshook = $hookmanager->executeHooks('addSQLFromOnSelectUsers', ['force_entity' => $force_entity], $this, $action);
+		if (!empty($reshook)) {
+			$sql .= $hookmanager->resPrint;
+		}*/
+
+		// Hot fix
+		if (isModEnabled('multicompany')){
+			if ($conf->entity == 1 && $user->admin && !$user->entity) {
+				$sql .= " LEFT JOIN " . MAIN_DB_PREFIX . "entity as e ON e.rowid = u.entity";
+				if (!empty($force_entity)) {
+					$sql .= " WHERE u.entity IN (0, " . $this->db->sanitize($force_entity) . ")";
+				} else {
+					$sql .= " WHERE u.entity IS NOT NULL";
+				}
+			}else {
+				if (getDolGlobalInt('MULTICOMPANY_TRANSVERSE_MODE')) {
+					$sql .= " WHERE u.rowid IN (SELECT ug.fk_user FROM ".$this->db->prefix()."usergroup_user as ug WHERE ug.entity IN (".getEntity('usergroup')."))";
+				} else {
+					$sql .= " WHERE u.entity IN (" . getEntity('user') . ")";
+				}
 			}
-		} else {
-			if (isModEnabled('multicompany') && getDolGlobalInt('MULTICOMPANY_TRANSVERSE_MODE')) {
-				$sql .= " WHERE u.rowid IN (SELECT ug.fk_user FROM ".$this->db->prefix()."usergroup_user as ug WHERE ug.entity IN (".getEntity('usergroup')."))";
-			} else {
-				$sql .= " WHERE u.entity IN (" . getEntity('user') . ")";
-			}
+
+
 		}
+
 		if (!empty($user->socid)) {
 			$sql .= " AND u.fk_soc = " . ((int) $user->socid);
 		}
