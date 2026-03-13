@@ -3217,12 +3217,17 @@ function dol_check_secure_access_document($modulepart, $original_file, $entity, 
 	} elseif ($modulepart == 'scanner_user_temp' && !empty($conf->scanner->dir_temp)) {
 		// Wrapping for Scanner
 		$accessallowed = 1;
-		$original_file = $conf->scanner->dir_temp.'/'.$fuser->id.'/'.$original_file;
+		$original_file = $conf->scanner->dir_temp . '/' . $fuser->id . '/' . $original_file;
 		// If modulepart=module_user_temp	Allows any module to open a file if file is in directory called DOL_DATA_ROOT/modulepart/temp/iduser
 		// If modulepart=module_temp		Allows any module to open a file if file is in directory called DOL_DATA_ROOT/modulepart/temp
 		// If modulepart=module_user		Allows any module to open a file if file is in directory called DOL_DATA_ROOT/modulepart/iduser
 		// If modulepart=module				Allows any module to open a file if file is in directory called DOL_DATA_ROOT/modulepart
 		// If modulepart=module-abc			Allows any module to open a file if file is in directory called DOL_DATA_ROOT/modulepart
+	} elseif  ($modulepart == 'hrm' ) {
+		if ($fuser->hasRight('position@hrm', $read) || preg_match('/^specimen/i', $original_file)) {
+			$accessallowed = 1;
+		}
+		$original_file = $conf->hrm->dir_output.'/'.$original_file;
 	} else {
 		// GENERIC Wrapping
 		//var_dump($modulepart);

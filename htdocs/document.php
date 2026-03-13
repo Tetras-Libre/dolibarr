@@ -291,7 +291,7 @@ if ($reshook < 0) {
 }
 
 
-// Permissions are ok and file found, so we return it
+// Permissions are ok and file found, so we return dol_check_secure_access_document
 top_httphead($type);
 header('Content-Description: File Transfer');
 if ($encoding) {
