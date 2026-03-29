@@ -1319,7 +1319,7 @@ class Form
 	 * @param int 		$showcode 			Show code
 	 * @return string  		                HTML string with select box for thirdparty.
 	 */
-	public function select_company($selected = '', $htmlname = 'socid', $filter = '', $showempty = '', $showtype = 0, $forcecombo = 0, $events = array(), $limit = 0, $morecss = 'minwidth100', $moreparam = '', $selected_input_value = '', $hidelabel = 1, $ajaxoptions = array(), $multiple = false, $excludeids = array(), $showcode = 0)
+	public function select_company($selected = '', $htmlname = 'socid', $filter = '', $showempty = '', $showtype = 0, $forcecombo = 0, $events = array(), $limit = 0, $morecss = 'minwidth100', $moreparam = '', $selected_input_value = '', $hidelabel = 1, $ajaxoptions = array(), $multiple = false, $excludeids = array(), $showcode = 0, $searchInAllEntities = false)
 	{
 		// phpcs:enable
 		global $conf, $user, $langs;
@@ -1365,7 +1365,7 @@ class Form
 			$out .= ajax_autocompleter($selected, $htmlname, DOL_URL_ROOT . '/societe/ajax/company.php', $urloption, $conf->global->COMPANY_USE_SEARCH_TO_SELECT, 0, $ajaxoptions);
 		} else {
 			// Immediate load of all database
-			$out .= $this->select_thirdparty_list($selected, $htmlname, $filter, $showempty, $showtype, $forcecombo, $events, '', 0, $limit, $morecss, $moreparam, $multiple, $excludeids, $showcode);
+			$out .= $this->select_thirdparty_list($selected, $htmlname, $filter, $showempty, $showtype, $forcecombo, $events, '', 0, $limit, $morecss, $moreparam, $multiple, $excludeids, $showcode, $searchInAllEntities);
 		}
 
 		return $out;
@@ -1396,7 +1396,7 @@ class Form
 	 * @param int 		$showcode 		Show code in list
 	 * @return array|string            	HTML string with
 	 */
-	public function select_thirdparty_list($selected = '', $htmlname = 'socid', $filter = '', $showempty = '', $showtype = 0, $forcecombo = 0, $events = array(), $filterkey = '', $outputmode = 0, $limit = 0, $morecss = 'minwidth100', $moreparam = '', $multiple = false, $excludeids = array(), $showcode = 0)
+	public function select_thirdparty_list($selected = '', $htmlname = 'socid', $filter = '', $showempty = '', $showtype = 0, $forcecombo = 0, $events = array(), $filterkey = '', $outputmode = 0, $limit = 0, $morecss = 'minwidth100', $moreparam = '', $multiple = false, $excludeids = array(), $showcode = 0, $searchInAllEntities = false)
 	{
 		// phpcs:enable
 		global $conf, $user, $langs;
@@ -1446,6 +1446,12 @@ class Form
 			$sql .= ", s.address, s.zip, s.town";
 			$sql .= ", dictp.code as country_code";
 		}
+
+		if ($searchInAllEntities && isModEnabled('multicompany') && $conf->entity == 1 && $user->admin) {
+			$sql .= ", e.label as entity_label";
+		}
+
+
 		$sql .= " FROM " . $this->db->prefix() . "societe as s";
 		if (getDolGlobalString('COMPANY_SHOW_ADDRESS_SELECTLIST')) {
 			$sql .= " LEFT JOIN " . $this->db->prefix() . "c_country as dictp ON dictp.rowid = s.fk_pays";
@@ -1453,7 +1459,16 @@ class Form
 		if (!$user->hasRight('societe', 'client', 'voir') && !$user->socid) {
 			$sql .= ", " . $this->db->prefix() . "societe_commerciaux as sc";
 		}
-		$sql .= " WHERE s.entity IN (" . getEntity('societe') . ")";
+
+		// If multicompany is enabled and user is admin and in master entity, search societe in all entities
+		// TODO must be improved, like in select_user function
+		if ($searchInAllEntities && isModEnabled('multicompany') && $conf->entity == 1 && $user->admin) {
+			$sql .= " JOIN " . $this->db->prefix() . "entity as e ON s.entity = e.rowid";
+			$sql .= " WHERE s.entity IS NOT NULL";
+		} else {
+			$sql .= " WHERE s.entity IN (" . getEntity('societe') . ")";
+		}
+
 		if (!empty($user->socid)) {
 			$sql .= " AND s.rowid = " . ((int) $user->socid);
 		}
@@ -1557,6 +1572,11 @@ class Form
 
 					if (getDolGlobalString('SOCIETE_SHOW_VAT_IN_LIST') && !empty($obj->tva_intra)) {
 						$label .= ' - '.$obj->tva_intra;
+					}
+
+					// Add entity label when soc are searched in all entities
+					if ($searchInAllEntities && isModEnabled('multicompany') && $conf->entity == 1 && $user->admin) {
+						$label .= ' (' . $obj->entity_label . ')';
 					}
 
 					$labelhtml = $label;

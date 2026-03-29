@@ -199,6 +199,22 @@ if (($action == 'update' && !GETPOST("cancel", 'alpha'))
 		/*}*/
 	}
 
+
+	// TODO Must be in trigger
+	if( isModEnabled('multicompany')) {
+		$linked_soc = GETPOST('linked_soc', 'int');
+		if($linked_soc) {
+			$sql = 'SELECT fk_entity FROM '.MAIN_DB_PREFIX.'entity_thirdparty WHERE fk_entity ='. $conf->entity;
+			$resql = $db->query($sql);
+			if(!$resql || $db->num_rows($resql) == 0) {
+				$sql = 'INSERT INTO ' . MAIN_DB_PREFIX . 'entity_thirdparty (entity, fk_entity, fk_thirdparty) VALUES ( 0, ' . $conf->entity . ', ' . $linked_soc . ')';
+			} else {
+				$sql = 'UPDATE ' . MAIN_DB_PREFIX . 'entity_thirdparty SET fk_soc = ' . $linked_soc . ' WHERE fk_entity = ' . $conf->entity;
+			}
+			$resql = $db->query($sql);
+		}
+	}
+
 	dolibarr_set_const($db, "MAIN_INFO_SOCIETE_MANAGERS", GETPOST("MAIN_INFO_SOCIETE_MANAGERS", 'alphanohtml'), 'chaine', 0, '', $conf->entity);
 	dolibarr_set_const($db, "MAIN_INFO_GDPR", GETPOST("MAIN_INFO_GDPR", 'alphanohtml'), 'chaine', 0, '', $conf->entity);
 	dolibarr_set_const($db, "MAIN_INFO_CAPITAL", GETPOST("capital", 'alphanohtml'), 'chaine', 0, '', $conf->entity);
@@ -605,7 +621,41 @@ print '<tr class="oddeven"><td class="tdtop"><label for="note">'.$langs->trans("
 print '<textarea class="flat quatrevingtpercent" name="note" id="note" rows="'.ROWS_5.'">'.(GETPOSTISSET('note') ? GETPOST('note', 'restricthtml') : (getDolGlobalString('MAIN_INFO_SOCIETE_NOTE') ? $conf->global->MAIN_INFO_SOCIETE_NOTE : '')).'</textarea></td></tr>';
 print '</td></tr>';
 
-print '</table>';
+// Society/Third party
+// TODO We need to add a check to see thirdparty association is allowed. --> Some const checks to add
+// !dolibarr_get_const($this->db, 'MULTICOMPANY_LINK_THIRDPARTY_ENTITY',
+if (isModEnabled('multicompany')) {
+	// TODO Trad not loaded
+	print '<tr class="oddeven"><td><label for="linked_soc">'.$langs->trans("ThirdPartyAssociated").'</label></td><td>';
+
+	// Get current society associated to the company (if any)
+	// TODO Code to be improved
+	$linked_soc = 0;
+	$sql = 'SELECT fk_soc FROM '.MAIN_DB_PREFIX.'entity_thirdparty WHERE fk_entity = ' . $entity;
+	$resql = $db->query($sql);
+	if ($resql) {
+		$obj = $db->fetch_object($resql);
+		$linked_soc = $obj->fk_soc;
+	}
+
+	// TODO Get all thirdparty list from the database
+	print $form->select_company($linked_soc, 'linked_soc', '', $langs->trans("ThirdParty"), 0, 0, array(), 0, 'minwidth100', '', '', 1, array(), false, array(), 0, true);
+	print '</td></tr>';
+	print '<tr class="oddeven"><td><label for="force_soc_info">'.$langs->trans("forceUpdateFromSoc").'</label>';
+	print  info_admin($langs->trans("DANGERZONE"), 1);
+	print '</td>';
+	print '<td><input type="checkbox" name="forceUpdateFromSoc" id="forceUpdateFromSoc"></td></tr>' ."\n";
+}
+
+$parameters=array();
+$reshook=$hookmanager->executeHooks('hookantho',$parameters,$object,$action); // See description below
+
+
+
+	print '</table>';
+
+
+print('Module context: '.join(',', $object->contextarray));
 
 print $form->buttonsSaveCancel("Save", '', array(), false, 'reposition');
 
