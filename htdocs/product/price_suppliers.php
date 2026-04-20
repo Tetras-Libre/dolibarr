@@ -925,6 +925,18 @@ if ($id > 0 || $ref) {
 
 		print '<div class="tabsAction">'."\n";
 
+		// Call Hook formConfirm
+		$formconfirm = '';
+		$parameters = array('formConfirm' => $formconfirm, 'object' => $object);
+		$reshook = $hookmanager->executeHooks('formConfirm', $parameters, $object, $action); // Note that $action and $object may have been modified by hook
+		if (empty($reshook)) {
+			$formconfirm .= $hookmanager->resPrint;
+		} elseif ($reshook > 0) {
+			$formconfirm = $hookmanager->resPrint;
+		}
+		// Print form confirm
+		print $formconfirm;
+
 		if ($action != 'create_price' && $action != 'edit_price') {
 			$parameters = array();
 			$reshook = $hookmanager->executeHooks('addMoreActionsButtons', $parameters, $object, $action); // Note that $action and $object may have been modified by hook
