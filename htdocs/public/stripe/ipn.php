@@ -181,14 +181,15 @@ if (getDolGlobalString('MAIN_APPLICATION_TITLE')) {
 	$societeName = getDolGlobalString('MAIN_APPLICATION_TITLE');
 }
 
+
+// Add a delay to be sure that any Stripe action from webhooks are executed after interactive actions that also trigger a webhook
+sleep(2);
+
+
 top_httphead();
 
 dol_syslog("***** Stripe IPN was called with event->type=".$event->type." service=".$service);
 dol_syslog("***** Stripe IPN was called with event->type=".$event->type." service=".$service, LOG_DEBUG, 0, '_payment');
-
-
-// Add a delay to be sure that any Stripe action from webhooks are executed after interactive actions
-sleep(2);
 
 
 if ($event->type == 'payout.created' && getDolGlobalString('STRIPE_AUTO_RECORD_PAYOUT')) {
@@ -535,7 +536,9 @@ if ($event->type == 'payout.created' && getDolGlobalString('STRIPE_AUTO_RECORD_P
 				dol_syslog('* Record payment type PRE for invoice id ' . $invoice_id . '. It includes closing of invoice and regenerating document.', LOG_DEBUG, 0, '_payment');
 
 				// This include closing invoices to 'paid' (and trigger including unsuspending) and regenerating document
-				$paiement_id = $paiement->create($user, 1);
+				$thirdpartyofpayment = null;	// TODO Load thirdparty from $invoice_id
+
+				$paiement_id = $paiement->create($user, 1, $thirdpartyofpayment);
 				if ($paiement_id < 0) {
 					$postactionmessages[] = $paiement->error . ($paiement->error ? ' ' : '') . implode("<br>\n", $paiement->errors);
 					$ispostactionok = -1;

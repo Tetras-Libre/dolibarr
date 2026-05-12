@@ -288,6 +288,7 @@ if (empty($reshook)) {
 	if (($action == 'update_price' || $action == 'update_level_price') && !$cancel && $permissiontoadd) {
 		$error = 0;
 		$pricestoupdate = array();
+		$object->oldcopy = dol_clone($object, 2);
 
 		$psq = GETPOSTINT('psqflag');
 
@@ -689,7 +690,7 @@ if (empty($reshook)) {
 
 	if ($action == 'delete_all_price_by_qty' && $permissiontoadd) {
 		$priceid = GETPOSTINT('priceid');
-		if (!empty($rowid)) {
+		if (!empty($priceid)) {
 			$sql = "DELETE FROM ".MAIN_DB_PREFIX."product_price_by_qty";
 			$sql .= " WHERE fk_product_price = ".((int) $priceid);
 
@@ -1277,7 +1278,7 @@ if (getDolGlobalString('PRODUIT_MULTIPRICES') || getDolGlobalString('PRODUIT_CUS
 				$sql2  = "SELECT";
 				$sql2 .= " fk_object";
 				foreach ($extralabels as $key => $value) {
-					$sql2 .= ", ".$key;
+					$sql2 .= ", ".$db->sanitize($key);
 				}
 				$sql2 .= " FROM ".MAIN_DB_PREFIX."product_price_extrafields";
 				$sql2 .= " WHERE fk_object = ".((int) $lineid->rowid);
@@ -1921,7 +1922,7 @@ if (($action == 'edit_price' || $action == 'edit_level_price') && $object->getRi
 					$sql  = "SELECT";
 					$sql .= " fk_object";
 					foreach ($extralabels as $key => $value) {
-						$sql .= ", ".$key;
+						$sql .= ", ".$db->sanitize($key);
 					}
 					$sql .= " FROM ".MAIN_DB_PREFIX."product_price_extrafields";
 					$sql .= " WHERE fk_object = ".((int) $lineid->rowid);
@@ -2238,7 +2239,7 @@ if (getDolGlobalString('PRODUIT_CUSTOMER_PRICES') || getDolGlobalString('PRODUIT
 				$sql  = "SELECT";
 				$sql .= " fk_object";
 				foreach ($extralabels as $key => $value) {
-					$sql .= ", ".$key;
+					$sql .= ", ".$db->sanitize($key);
 				}
 				$sql .= " FROM ".MAIN_DB_PREFIX."product_customer_price_extrafields";
 				$sql .= " WHERE fk_object = ".((int) $prodcustprice->id);
@@ -2668,7 +2669,7 @@ if (getDolGlobalString('PRODUIT_CUSTOMER_PRICES') || getDolGlobalString('PRODUIT
 					$sql  = "SELECT";
 					$sql .= " fk_object";
 					foreach ($extralabels as $key => $value) {
-						$sql .= ", ".$key;
+						$sql .= ", ".$db->sanitize($key);
 					}
 					$sql .= " FROM ".MAIN_DB_PREFIX."product_customer_price_extrafields";
 					$sql .= " WHERE fk_object = ".((int) $line->id);
