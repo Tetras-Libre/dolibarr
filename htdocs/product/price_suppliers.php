@@ -532,7 +532,7 @@ if ($id > 0 || $ref) {
 				print '<script type="text/javascript">
 				$(document).ready(function () {
 					console.log("Requesting default VAT rate for the supplier...")
-					$("#search_id_fourn").change(load_vat)
+					$("#id_fourn").change(load_vat)
 				});
 				function load_vat() {
 					// get soc id
