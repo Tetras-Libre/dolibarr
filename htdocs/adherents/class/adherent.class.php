@@ -658,7 +658,7 @@ class Adherent extends CommonObject
 	 */
 	public function create($user, $notrigger = 0)
 	{
-		global $langs, $mysoc;
+		global $langs, $mysoc, $conf;
 
 		$error = 0;
 

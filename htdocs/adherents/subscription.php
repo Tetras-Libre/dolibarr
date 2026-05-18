@@ -537,9 +537,6 @@ print '<input type="hidden" name="token" value="'.newToken().'">';
 print '<input type="hidden" name="rowid" value="'.$object->id.'">';
 
 
-// TODO merge v23 initially deleted in v19 but chnag in v23
-print dol_get_fiche_head($head, 'subscription', $langs->trans("Member"), -1, 'user');
-
 $linkback = '<a href="'.dolBuildUrl(DOL_URL_ROOT.'/adherents/list.php', ['restore_lastsearch_values' => 1]).'">'.$langs->trans("BackToList").'</a>';
 // end ******
 

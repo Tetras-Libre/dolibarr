@@ -757,9 +757,9 @@ if (getDolGlobalString('MEMBER_SKIP_TABLE') || getDolGlobalString('MEMBER_NEWFOR
 	print '<input type="hidden" name="action" value="add" />';
 	print '<br>';
 
-	//$messagemandatory = '<span class="">'.$langs->trans("FieldsWithAreMandatory", '*').'</span>';
-	//print '<br>'.$messagemandatory.'<br>';
-	//print $langs->trans("FieldsWithIsForPublic",'**').'<br>';
+	$messagemandatory = '<span class="">'.$langs->trans("FieldsWithAreMandatory", '*').'</span>';
+	print '<br>'.$messagemandatory.'<br>';
+	print $langs->trans("FieldsWithIsForPublic",'**').'<br>';
 
 	print dol_get_fiche_head();
 
@@ -805,8 +805,6 @@ if (getDolGlobalString('MEMBER_SKIP_TABLE') || getDolGlobalString('MEMBER_NEWFOR
 		} else {
 			print '<span class="error">'.$langs->trans("NoTypeDefinedGoToSetup").'</span>';
 		}
-		print '<tr><td class="titlefield classfortooltip" title="'.dol_escape_htmltag($messagemandatory).'">'.$langs->trans("Type").' <span class="star">*</span></td><td>';
-		print $form->selectarray("typeid", $adht->liste_array(1), GETPOST('typeid') ? GETPOST('typeid') : $defaulttype, $isempty);
 		print '</td></tr>'."\n";
 	} else {
 		$adht->fetch(getDolGlobalInt('MEMBER_NEWFORM_FORCETYPE'));
@@ -940,7 +938,7 @@ if (getDolGlobalString('MEMBER_SKIP_TABLE') || getDolGlobalString('MEMBER_NEWFOR
 
 	// Lastname
 	$lastnameDefaultValue = !empty(GETPOST('lastname')) ? GETPOST('lastname') : ($isReSubmit ? $existingMember->lastname : "");
-	print '<tr><td id="tdlastname" class="classfortooltip'.($checkednature == "phy" ? ' fieldrequired"' : '').'">'.$langs->trans("Lastname").'</td><td><input type="text" name="lastname" class="minwidth150" value="'dol_escape_htmltag(las).'"></td></tr>'."\n";
+	print '<tr><td id="tdlastname" class="classfortooltip'.($checkednature == "phy" ? ' fieldrequired"' : '').'">'.$langs->trans("Lastname").'</td><td><input type="text" name="lastname" class="minwidth150" value="' . dol_escape_htmltag($lastnameDefaultValue).'"></td></tr>'."\n";
 
 	// EMail
 	$emailDefaultValue = !empty(GETPOST('email')) ? GETPOST('email') : ($isReSubmit ? $existingMember->email : "");
