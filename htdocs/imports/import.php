@@ -188,6 +188,17 @@ if (empty($array_match_file_to_database)) {
 	}
 }
 
+// get the ouput directory
+$tempDir = $conf->import->dir_temp;
+$parameters = array(
+	'step' => $step ?? 0,
+	'datatoimport' => $datatoimport
+);
+$reshook = $hookmanager->executeHooks('ImportGetTempdir', $parameters);
+if ($reshook > 0) {
+	$tempDir = $hookmanager->resPrint;
+}
+
 
 /*
  * Actions
@@ -236,10 +247,10 @@ if ($action == 'add_import_model' && $user->hasRight('import', 'run')) {
 
 if ($step == 3 && $datatoimport) {
 	if (GETPOST('sendit') && getDolGlobalString('MAIN_UPLOAD_DOC')) {
-		dol_mkdir($conf->import->dir_temp);
+		dol_mkdir($tempDir);
 		$nowyearmonth = dol_print_date(dol_now(), '%Y%m%d%H%M%S');
 
-		$fullpath = $conf->import->dir_temp."/".$nowyearmonth.'-'.dol_string_nohtmltag(dol_sanitizeFileName($_FILES['userfile']['name']));
+		$fullpath = $tempDir."/".$nowyearmonth.'-'.dol_string_nohtmltag(dol_sanitizeFileName($_FILES['userfile']['name']));
 		if (dol_move_uploaded_file($_FILES['userfile']['tmp_name'], $fullpath, 1) > 0) {
 			dol_syslog("File ".$fullpath." was added for import");
 		} else {
@@ -260,7 +271,7 @@ if ($step == 3 && $datatoimport) {
 			$param .= '&endatlinenb='.urlencode($endatlinenb);
 		}
 
-		$file = $conf->import->dir_temp.'/'.GETPOST('urlfile');
+		$file = $tempDir.'/'.GETPOST('urlfile');
 		$ret = dol_delete_file($file);
 		if ($ret) {
 			setEventMessages($langs->trans("FileWasRemoved", GETPOST('urlfile')), null, 'mesgs');
@@ -699,12 +710,12 @@ if ($step == 3 && $datatoimport) {
 	print '</div>';
 
 	// Search available imports
-	$filearray = dol_dir_list($conf->import->dir_temp, 'files', 0, '', '', 'name', SORT_DESC);
+	$filearray = dol_dir_list($tempDir, 'files', 0, '', '', 'name', SORT_DESC);
 	if (count($filearray) > 0) {
 		print '<div class="div-table-responsive-no-min">'; // You can use div-table-responsive-no-min if you don't need reserved height for your table
 		print '<table class="noborder centpercent" width="100%" cellpadding="4">';
 
-		$dir = $conf->import->dir_temp;
+		$dir = $tempDir;
 
 		// Search available files to import
 		$i = 0;
@@ -783,7 +794,7 @@ if ($step == 4 && $datatoimport) {
 	if ($model == 'csv' && strlen($separator) == 1 && !GETPOSTISSET('separator')) {
 		'@phan-var-force ImportCsv $obj';
 		// Count the char in first line of file.
-		$fh = fopen($conf->import->dir_temp.'/'.$filetoimport, 'r');
+		$fh = fopen($tempDir.'/'.$filetoimport, 'r');
 		if ($fh) {
 			$sline = fgets($fh, 1000000);
 			fclose($fh);
@@ -844,7 +855,7 @@ if ($step == 4 && $datatoimport) {
 	// Load the source fields from input file into variable $arrayrecord
 	$fieldssource = array();
 	/** @var array<string,string> $fieldssource */
-	$result = $obj->import_open_file($conf->import->dir_temp.'/'.$filetoimport);
+	$result = $obj->import_open_file($tempDir.'/'.$filetoimport);
 	if ($result >= 0) {
 		// Read first line
 		$arrayrecord = $obj->import_read_record();
@@ -1595,7 +1606,7 @@ if ($step == 5 && $datatoimport) {
 
 	// Load source fields in input file
 	$fieldssource = array();
-	$result = $obj->import_open_file($conf->import->dir_temp.'/'.$filetoimport);
+	$result = $obj->import_open_file($tempDir.'/'.$filetoimport);
 
 	if ($result >= 0) {
 		// Read first line
@@ -1609,7 +1620,7 @@ if ($step == 5 && $datatoimport) {
 		$obj->import_close_file();
 	}
 
-	$nboflines = $obj->import_get_nb_of_lines($conf->import->dir_temp.'/'.$filetoimport);
+	$nboflines = $obj->import_get_nb_of_lines($tempDir.'/'.$filetoimport);
 
 	$param = '&leftmenu=import&format='.urlencode($format).'&datatoimport='.urlencode($datatoimport).'&filetoimport='.urlencode($filetoimport).'&nboflines='.((int) $nboflines).'&separator='.urlencode($separator).'&enclosure='.urlencode($enclosure);
 	$param2 = $param; // $param2 = $param without excludefirstline and endatlinenb
@@ -1885,7 +1896,7 @@ if ($step == 5 && $datatoimport) {
 
 		// Open input file
 		$nbok = 0;
-		$pathfile = $conf->import->dir_temp.'/'.$filetoimport;
+		$pathfile = $tempDir.'/'.$filetoimport;
 		$result = $obj->import_open_file($pathfile);
 		if ($result > 0) {
 			global $tablewithentity_cache;
@@ -2100,7 +2111,7 @@ if ($step == 6 && $datatoimport) {
 
 	// Load source fields in input file
 	$fieldssource = array();
-	$result = $obj->import_open_file($conf->import->dir_temp.'/'.$filetoimport);
+	$result = $obj->import_open_file($tempDir.'/'.$filetoimport);
 	if ($result >= 0) {
 		// Read first line
 		$arrayrecord = $obj->import_read_record();
@@ -2113,7 +2124,7 @@ if ($step == 6 && $datatoimport) {
 		$obj->import_close_file();
 	}
 
-	$nboflines = (GETPOSTISSET("nboflines") ? GETPOSTINT("nboflines") : dol_count_nb_of_line($conf->import->dir_temp.'/'.$filetoimport));
+	$nboflines = (GETPOSTISSET("nboflines") ? GETPOSTINT("nboflines") : dol_count_nb_of_line($tempDir.'/'.$filetoimport));
 
 	$param = '&format='.$format.'&datatoimport='.urlencode($datatoimport).'&filetoimport='.urlencode($filetoimport).'&nboflines='.((int) $nboflines);
 	if ($excludefirstline) {
@@ -2312,7 +2323,7 @@ if ($step == 6 && $datatoimport) {
 
 	// Open input file
 	$nbok = 0;
-	$pathfile = $conf->import->dir_temp.'/'.$filetoimport;
+	$pathfile = $tempDir.'/'.$filetoimport;
 	$result = $obj->import_open_file($pathfile);
 	if ($result > 0) {
 		global $tablewithentity_cache;
