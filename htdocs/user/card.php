@@ -1957,17 +1957,32 @@ if ($action == 'create' || $action == 'adduserldap') {
 			if (isModEnabled('member')) {
 				$langs->load("members");
 				print '<tr><td>'.$langs->trans("LinkedToDolibarrMember").'</td>';
-				print '<td>';
-				if ($object->fk_member) {
-					$adh = new Adherent($db);
-					$adh->fetch($object->fk_member);
-					$adh->ref = $adh->getFullname($langs); // Force to show login instead of id
-					print $adh->getNomUrl(-1);
-				} else {
-					print '<span class="opacitymedium hideonsmartphone">'.$langs->trans("UserNotLinkedToMember").'</span>';
+
+				// get the ids of the linked adherents
+				$adherentIds = [];
+				// awful coupling but i've given up
+				if (isModEnabled('ffcu')) {
+					require_once DOL_DOCUMENT_ROOT.'/core/class/commonhookactions.class.php';
+					$adherentIds = ffcu_fetchLinkedAdherents($db, $object);
+				} else if ($object->fk_member) { // default doli
+					$adherentIds[] = $object->fk_member;
 				}
-				print '</td>';
-				print '</tr>'."\n";
+
+
+				if (!empty($adherentIds)) {
+					$adherentHtmlTable = [];
+					foreach ($adherentIds as $adherentId) {
+						$adh = new Adherent($db);
+						$adh->fetch($adherentId);
+						$adh->ref = $adh->getFullName($langs); // Force to show login instead of id
+						$adherentHtmlTable[] = '<td>' . $adh->getNomUrl(-1) .'</td>';
+					}
+					print implode("</tr><tr><td></td>", $adherentHtmlTable);
+
+				} else {
+					print '<td><span class="opacitymedium hideonsmartphone">'.$langs->trans("UserNotLinkedToMember").'</span></td>';
+				}
+				print "</tr>\n";
 			}
 
 			// Signature
@@ -2973,16 +2988,31 @@ if ($action == 'create' || $action == 'adduserldap') {
 			if (isModEnabled('member')) {
 				$langs->load("members");
 				print '<tr><td>'.$langs->trans("LinkedToDolibarrMember").'</td>';
-				print '<td>';
-				if ($object->fk_member) {
-					$adh = new Adherent($db);
-					$adh->fetch($object->fk_member);
-					$adh->ref = $adh->login; // Force to show login instead of id
-					print $adh->getNomUrl(1);
-				} else {
-					print '<span class="opacitymedium hideonsmartphone">'.$langs->trans("UserNotLinkedToMember").'</span>';
+
+				// get the ids of the linked adherents
+				$adherentIds = [];
+				// awful coupling but i've given up
+				if (isModEnabled('ffcu')) {
+					require_once DOL_DOCUMENT_ROOT.'/core/class/commonhookactions.class.php';
+					$adherentIds = ffcu_fetchLinkedAdherents($db, $object);
+				} else if ($object->fk_member) { // default doli
+					$adherentIds[] = $object->fk_member;
 				}
-				print '</td>';
+
+
+				if (!empty($adherentIds)) {
+					$adherentHtmlTable = [];
+					foreach ($adherentIds as $adherentId) {
+						$adh = new Adherent($db);
+						$adh->fetch($adherentId);
+						$adh->ref = $adh->login; // Force to show login instead of id
+						$adherentHtmlTable[] = '<td>' . $adh->getNomUrl(1) .'</td>';
+					}
+					print implode("</tr><tr><td></td>", $adherentHtmlTable);
+
+				} else {
+					print '<td><span class="opacitymedium hideonsmartphone">'.$langs->trans("UserNotLinkedToMember").'</span></td>';
+				}
 				print "</tr>\n";
 			}
 
