@@ -294,6 +294,8 @@ class ImportCsv extends ModeleImports
 					}
 				}
 			}
+			// escape the values, never trust the user !
+			$newarrayres[$key]['val'] = $this->db->escape($newarrayres[$key]['val']);
 
 			$this->col = count($newarrayres);
 		}
