@@ -527,7 +527,7 @@ if (empty($reshook)) {
 		$phone = GETPOST("phone", 'alpha');
 		$phone_perso = GETPOST("phone_perso", 'alpha');
 		$phone_mobile = GETPOST("phone_mobile", 'alpha');
-		$email = preg_replace('/\s+/', '', GETPOST("member_email", 'aZ09arobase'));
+		$email = preg_replace('/\s+/', '', GETPOST("member_email", 'email'));
 		$url = trim(GETPOST('url', 'url'));
 		$login = GETPOST("member_login", 'alphanohtml');
 		$pass = GETPOST("password", 'password');	// For password, we use 'none'
