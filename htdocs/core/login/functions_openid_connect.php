@@ -115,12 +115,12 @@ function check_user_password_openid_connect($usertotest, $passwordtotest, $entit
 		$_SESSION["dol_loginmesg"] = "Error in OAuth 2.0 flow (".$token_response['content'].")";
 		dol_syslog("functions_openid_connect::check_user_password_openid_connect::".$token_response['content'], LOG_ERR);
 		return false;
-	} elseif ($token_content->error) {
+	} elseif (is_object($token_content) && property_exists($token_content, 'error')) {
 		// Got token response but content is an error
 		$_SESSION["dol_loginmesg"] = "Error in OAuth 2.0 flow (".$token_content->error_description.")";
 		dol_syslog("functions_openid_connect::check_user_password_openid_connect::".$token_content->error_description, LOG_ERR);
 		return false;
-	} elseif (!property_exists($token_content, 'access_token')) {
+	} elseif (!is_object($token_content) || !property_exists($token_content, 'access_token')) {
 		// Other token request error
 		$_SESSION["dol_loginmesg"] = "Token request error (".$token_response['http_code'].")";
 		dol_syslog("functions_openid_connect::check_user_password_openid_connect::".$_SESSION["dol_loginmesg"], LOG_ERR);
@@ -150,12 +150,12 @@ function check_user_password_openid_connect($usertotest, $passwordtotest, $entit
 		$_SESSION["dol_loginmesg"] = "OpenID Connect user info error: " . $userinfo_response['content'];
 		dol_syslog("functions_openid_connect::check_user_password_openid_connect::".$userinfo_response['content'], LOG_ERR);
 		return false;
-	} elseif ($userinfo_content->error) {
+	} elseif (is_object($userinfo_content) && property_exists($userinfo_content, 'error')) {
 		// Got user info response but content is an error
 		$_SESSION["dol_loginmesg"] = "Error in OAuth 2.0 flow (".$userinfo_content->error_description.")";
 		dol_syslog("functions_openid_connect::check_user_password_openid_connect::".$userinfo_content->error_description, LOG_ERR);
 		return false;
-	} elseif (!property_exists($userinfo_content, $login_claim)) {
+	} elseif (!is_object($userinfo_content) || !property_exists($userinfo_content, $login_claim)) {
 		// Other user info request error
 		$_SESSION["dol_loginmesg"] = "Userinfo request error (".$userinfo_response['http_code'].")";
 		dol_syslog("functions_openid_connect::check_user_password_openid_connect::".$_SESSION["dol_loginmesg"], LOG_ERR);
@@ -163,7 +163,7 @@ function check_user_password_openid_connect($usertotest, $passwordtotest, $entit
 	}
 
 	// Success: retrieve claim to return to Dolibarr as login
-	$sql = 'SELECT login, entity, datestartvalidity, dateendvalidity';
+	$sql = 'SELECT login, rowid, entity, datestartvalidity, dateendvalidity';
 	$sql .= ' FROM '.MAIN_DB_PREFIX.'user';
 	if ($login_claim === 'email') {
 		// If login claim is email, check both login and email fields
@@ -184,8 +184,8 @@ function check_user_password_openid_connect($usertotest, $passwordtotest, $entit
 		dol_syslog("functions_openid_connect::check_user_password_openid_connect::Error more than 1 result from the query");
 		return false;
 	}
-	$obj = $db->fetch_object($resql);
-	if (!$obj) {
+	$userObj = $db->fetch_object($resql);
+	if (!$userObj) {
 		dol_syslog("functions_openid_connect::check_user_password_openid_connect::Error no result from the query");
 		return false;
 	}
@@ -195,44 +195,42 @@ function check_user_password_openid_connect($usertotest, $passwordtotest, $entit
 	// Note: Test on date validity is done later natively with isNotIntoValidityDateRange() by core after calling checkLoginPassEntity() that call this method
 	dol_syslog("functions_openid_connect::check_user_password_openid_connect END");
 
-	// TODO Check if necessairy MERGE 22 from 19
-
-//	if(isModEnabled('multicompany')) {
-//		if(getDolGlobalString('MULTICOMPANY_TRANSVERSE_MODE')) {
-//			dol_syslog("Check entity in transverse mode ",  LOG_ERR);
-//			$sql = 'SELECT DISTINCT (lugu.entity) ';
-//			$sql .= ' FROM '.MAIN_DB_PREFIX.'user lu JOIN '.MAIN_DB_PREFIX.'usergroup_user lugu ON lu.rowid=lugu.fk_user ';
-//			$sql .= " WHERE lu.rowid = ".((int) $obj->rowid);
-//			$sql .= " ORDER BY lugu.entity";
-//			$sql .= " LIMIT 1";
-//			$resql = $db->query($sql);
-//			if ($resql) {
-//				$obj = $db->fetch_object($resql);
-//				if ($obj) {
-//					// Set the entity to the one of the user
-//					dol_syslog("Redirect user to entity with id" . $obj->entity, LOG_ERR);
-//					$_SESSION['dol_entity'] = $obj->entity;
-//					$conf->entity = $obj->entity;
-//					$conf->setValues($db);
-//				} else {
-//					// If no entity found, set to 1
-//					$_SESSION['dol_entity'] = 1;
-//					$conf->entity = 1;
-//					$conf->setValues($db);
-//				}
-//				// redirect to home page to force reload of menu
-//				header("Location: ".DOL_URL_ROOT.'/index.php?mainmenu=home');
-//			} else {
-//				dol_syslog("functions_openid_connect::check_user_password_openid_connect Error: ".$db->lasterror(), LOG_ERR);
-//			}
-//		} else {
-//			dol_syslog("Check entity in decentralized mode ",  LOG_ERR);
-//			$_SESSION['dol_entity'] = $obj->entity;
-//			$conf->entity =   $obj->entity;
-//			$conf->setValues($db);
-//		}
-//	}
+	if(isModEnabled('multicompany')) {
+		if(getDolGlobalString('MULTICOMPANY_TRANSVERSE_MODE')) {
+			dol_syslog("Check entity in transverse mode ",  LOG_ERR);
+			$sql = 'SELECT DISTINCT (lugu.entity) ';
+			$sql .= ' FROM '.MAIN_DB_PREFIX.'user lu JOIN '.MAIN_DB_PREFIX.'usergroup_user lugu ON lu.rowid=lugu.fk_user ';
+			$sql .= " WHERE lu.rowid = ".((int) $userObj->rowid);
+			$sql .= " ORDER BY lugu.entity";
+			$sql .= " LIMIT 1";
+			$resql = $db->query($sql);
+			if ($resql) {
+				$entityObj = $db->fetch_object($resql);
+				if ($entityObj) {
+					// Set the entity to the one of the user
+					dol_syslog("Redirect user to entity with id" . $entityObj->entity, LOG_ERR);
+					$_SESSION['dol_entity'] = $entityObj->entity;
+					$conf->entity = $entityObj->entity;
+					$conf->setValues($db);
+				} else {
+					// If no entity found, set to 1
+					$_SESSION['dol_entity'] = 1;
+					$conf->entity = 1;
+					$conf->setValues($db);
+				}
+				// redirect to home page to force reload of menu
+				header("Location: ".DOL_URL_ROOT.'/index.php?mainmenu=home');
+			} else {
+				dol_syslog("functions_openid_connect::check_user_password_openid_connect Error: ".$db->lasterror(), LOG_ERR);
+			}
+		} else {
+			dol_syslog("Check entity in decentralized mode ",  LOG_ERR);
+			$_SESSION['dol_entity'] = $userObj->entity;
+			$conf->entity =   $userObj->entity;
+			$conf->setValues($db);
+		}
+	}
 
 
-	return $obj->login;
+	return $userObj->login;
 }
