@@ -195,43 +195,41 @@ function check_user_password_openid_connect($usertotest, $passwordtotest, $entit
 	// Note: Test on date validity is done later natively with isNotIntoValidityDateRange() by core after calling checkLoginPassEntity() that call this method
 	dol_syslog("functions_openid_connect::check_user_password_openid_connect END");
 
-	// TODO Check if necessairy MERGE 22 from 19
-
-//	if(isModEnabled('multicompany')) {
-//		if(getDolGlobalString('MULTICOMPANY_TRANSVERSE_MODE')) {
-//			dol_syslog("Check entity in transverse mode ",  LOG_ERR);
-//			$sql = 'SELECT DISTINCT (lugu.entity) ';
-//			$sql .= ' FROM '.MAIN_DB_PREFIX.'user lu JOIN '.MAIN_DB_PREFIX.'usergroup_user lugu ON lu.rowid=lugu.fk_user ';
-//			$sql .= " WHERE lu.rowid = ".((int) $obj->rowid);
-//			$sql .= " ORDER BY lugu.entity";
-//			$sql .= " LIMIT 1";
-//			$resql = $db->query($sql);
-//			if ($resql) {
-//				$obj = $db->fetch_object($resql);
-//				if ($obj) {
-//					// Set the entity to the one of the user
-//					dol_syslog("Redirect user to entity with id" . $obj->entity, LOG_ERR);
-//					$_SESSION['dol_entity'] = $obj->entity;
-//					$conf->entity = $obj->entity;
-//					$conf->setValues($db);
-//				} else {
-//					// If no entity found, set to 1
-//					$_SESSION['dol_entity'] = 1;
-//					$conf->entity = 1;
-//					$conf->setValues($db);
-//				}
-//				// redirect to home page to force reload of menu
-//				header("Location: ".DOL_URL_ROOT.'/index.php?mainmenu=home');
-//			} else {
-//				dol_syslog("functions_openid_connect::check_user_password_openid_connect Error: ".$db->lasterror(), LOG_ERR);
-//			}
-//		} else {
-//			dol_syslog("Check entity in decentralized mode ",  LOG_ERR);
-//			$_SESSION['dol_entity'] = $obj->entity;
-//			$conf->entity =   $obj->entity;
-//			$conf->setValues($db);
-//		}
-//	}
+	if(isModEnabled('multicompany')) {
+		if(getDolGlobalString('MULTICOMPANY_TRANSVERSE_MODE')) {
+			dol_syslog("Check entity in transverse mode ",  LOG_ERR);
+			$sql = 'SELECT DISTINCT (lugu.entity) ';
+			$sql .= ' FROM '.MAIN_DB_PREFIX.'user lu JOIN '.MAIN_DB_PREFIX.'usergroup_user lugu ON lu.rowid=lugu.fk_user ';
+			$sql .= " WHERE lu.rowid = ".((int) $obj->rowid);
+			$sql .= " ORDER BY lugu.entity";
+			$sql .= " LIMIT 1";
+			$resql = $db->query($sql);
+			if ($resql) {
+				$obj = $db->fetch_object($resql);
+				if ($obj) {
+					// Set the entity to the one of the user
+					dol_syslog("Redirect user to entity with id" . $obj->entity, LOG_ERR);
+					$_SESSION['dol_entity'] = $obj->entity;
+					$conf->entity = $obj->entity;
+					$conf->setValues($db);
+				} else {
+					// If no entity found, set to 1
+					$_SESSION['dol_entity'] = 1;
+					$conf->entity = 1;
+					$conf->setValues($db);
+				}
+				// redirect to home page to force reload of menu
+				header("Location: ".DOL_URL_ROOT.'/index.php?mainmenu=home');
+			} else {
+				dol_syslog("functions_openid_connect::check_user_password_openid_connect Error: ".$db->lasterror(), LOG_ERR);
+			}
+		} else {
+			dol_syslog("Check entity in decentralized mode ",  LOG_ERR);
+			$_SESSION['dol_entity'] = $obj->entity;
+			$conf->entity =   $obj->entity;
+			$conf->setValues($db);
+		}
+	}
 
 
 	return $obj->login;
