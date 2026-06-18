@@ -3481,7 +3481,7 @@ class Adherent extends CommonObject
 	 *  @param		?array<string,mixed>	$arraydata				Array of data
 	 *  @return		string											HTML Code for Kanban thumb.
 	 */
-	public function getKanbanView($option = '', $arraydata = null)
+	public function getKanbanView($option = 'card', $arraydata = null)
 	{
 		$selected = (empty($arraydata['selected']) ? 0 : $arraydata['selected']);
 
@@ -3495,7 +3495,7 @@ class Adherent extends CommonObject
 		}
 		$return .= '</span>';
 		$return .= '<div class="info-box-content">';
-		$return .= '<span class="info-box-ref inline-block tdoverflowmax150 valignmiddle">' . $this->getNomUrl() . '</span>';
+		$return .= '<span class="info-box-ref inline-block tdoverflowmax150 valignmiddle">' . $this->getNomUrl(option: $option) . '</span>';
 		if ($selected >= 0) {
 			$return .= '<input id="cb'.$this->id.'" class="flat checkforselect fright" type="checkbox" name="toselect[]" value="'.$this->id.'"'.($selected ? ' checked="checked"' : '').'>';
 		}
