@@ -113,7 +113,7 @@ if ((empty($id)  || empty($ref) ) && $viewMode=='self') {
 	$userId = $user->id;
 	$sql = "";
 
-	if(isModEnabled('multicompanyhybridusermanagement')) {
+	if(isModEnabled('ffcu')) {
 		$adherenttable = MAIN_DB_PREFIX."adherent";
 		$extratable = $adherenttable . "_extrafields";
 		$sql = "SELECT a.rowid FROM $adherenttable as a LEFT JOIN $extratable as extra ON a.rowid = extra.fk_object WHERE extra.fk_user = \"$userId\"";

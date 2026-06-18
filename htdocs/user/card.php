@@ -1963,7 +1963,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 				// awful coupling but i've given up
 				if (isModEnabled('ffcu')) {
 					require_once DOL_DOCUMENT_ROOT.'/core/class/commonhookactions.class.php';
-					$adherentIds = ffcu_fetchLinkedAdherents($db, $object);
+					$adherentIds = ffcu_fetchLinkedAdherents($db, $object, [$conf->entity]);
 				} else if ($object->fk_member) { // default doli
 					$adherentIds[] = $object->fk_member;
 				}
@@ -2994,7 +2994,7 @@ if ($action == 'create' || $action == 'adduserldap') {
 				// awful coupling but i've given up
 				if (isModEnabled('ffcu')) {
 					require_once DOL_DOCUMENT_ROOT.'/core/class/commonhookactions.class.php';
-					$adherentIds = ffcu_fetchLinkedAdherents($db, $object);
+					$adherentIds = ffcu_fetchLinkedAdherents($db, $object, [$conf->entity]);
 				} else if ($object->fk_member) { // default doli
 					$adherentIds[] = $object->fk_member;
 				}
