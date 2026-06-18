@@ -441,7 +441,7 @@ function print_eldy_menu($db, $atarget, $type_user, &$tabMenu, &$menu, $noout = 
 	// Tools
 	$tmpentry = array(
 		'enabled' => 1,
-		'perms' => '1',
+		'perms' => $user->isAdmin(),
 		'module' => ''
 	);
 	$menu_arr[] = array(
