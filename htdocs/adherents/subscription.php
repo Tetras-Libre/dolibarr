@@ -165,7 +165,7 @@ if ($id > 0 || !empty($ref)) {
 $permissiontoaddmember = $user->hasRight('adherent', 'creer');
 
 // Security check
-if($userIdAssociated != $user->id && ($id < 0 && $id =="" && empty($rowid))) {
+if($userIdAssociated != $user->id || (($id < 0 || $id =="") && empty($rowid))) {
 	$result = restrictedArea($user, 'adherent', $object->id, '', '', 'socid', 'rowid', 0);
 	accessforbidden();
 }
@@ -245,6 +245,10 @@ if (empty($reshook) && $action == 'setsocid' && $permissiontoaddmember) {
 			$action = '';
 		}
 	}
+}
+
+if (empty($reshook) && $action == 'generateFFCUID') {
+	adhsub_actionGenerateFFCUID($object);
 }
 
 if (empty($reshook) && $user->hasRight('adherent', 'cotisation', 'creer') && $action == 'subscription' && !$cancel) {
@@ -745,20 +749,21 @@ print dol_get_fiche_end();
  * Action bar
  */
 
+print '<div class="tabsAction">';
 // Button to create a new subscription if member no draft (-1) neither resiliated (0) neither excluded (-2)
 if ($user->hasRight('adherent', 'cotisation', 'creer')) {
 	if ($action != 'addsubscription' && $action != 'create_thirdparty') {
-		print '<div class="tabsAction">';
 
 		if ($object->status > 0) {
 			print '<div class="inline-block divButAction"><a class="butAction" href="'.$_SERVER["PHP_SELF"].'?rowid='.$rowid.'&action=addsubscription&token='.newToken().'">'.$langs->trans("AddSubscription")."</a></div>";
 		} else {
 			print '<div class="inline-block divButAction"><a class="butActionRefused classfortooltip" href="#" title="'.dol_escape_htmltag($langs->trans("ValidateBefore")).'">'.$langs->trans("AddSubscription").'</a></div>';
 		}
-
-		print '</div>';
 	}
 }
+
+print adhsub_buildGenerateCardButton($object);
+print '</div>';
 
 /*
  * List of subscriptions
@@ -1292,3 +1297,41 @@ if (($action == 'addsubscription' || $action == 'create_thirdparty') && $user->h
 // End of page
 llxFooter();
 $db->close();
+
+function adhsub_buildGenerateCardButton(Adherent $adherent) : string{
+	global $langs;
+
+	// get the attributes
+	$btnTitle = dol_escape_htmltag($langs->trans("DownloadCardBtnTitle"));
+	$action = $_SERVER['PHP_SELF'] . "?action=generateFFCUID&rowid=$adherent->id";
+	$additionalClasses = '';
+
+	// did the user have a subscription at some point ?
+	if ($adherent->datefin === ''){
+		// no, disable the button
+		$additionalClasses = 'Refused classfortooltip';
+	}
+
+	// return the html
+	return <<<EOF
+<div class="inline-block divButAction"><a class="butAction$additionalClasses" href="$action" title="$btnTitle">$btnTitle</a></div>
+EOF;
+}
+
+function adhsub_actionGenerateFFCUID($object){
+	global $db, $langs;
+
+	// can we generate the card ?
+	if (!$object instanceof Adherent) return -1;
+
+	// generate the card (res is a boolean)
+	$res = ffcu_generateAdherentCard($db, $langs, $object);
+	if (!$res) {
+		dol_print_error($db, $object->error, $object->errors);
+		return -1;
+	}
+
+	// it went great; go to the documents page
+	header("Location: /adherents/document.php?rowid=$object->id");
+	return 1;
+}
