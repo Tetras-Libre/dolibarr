@@ -114,20 +114,17 @@ if ((empty($id)  || empty($ref) ) && $viewMode=='self') {
 	$sql = "";
 
 	if(isModEnabled('ffcu')) {
-		$adherenttable = MAIN_DB_PREFIX."adherent";
-		$extratable = $adherenttable . "_extrafields";
-		$sql = "SELECT a.rowid FROM $adherenttable as a LEFT JOIN $extratable as extra ON a.rowid = extra.fk_object WHERE extra.fk_user = \"$userId\"";
-		if ($conf->entity != null) {
-			$sql .= " AND a.entity = $conf->entity";
-		}
+		// get the linked adherents
+		$entities = [];
+		if($conf->entity !== null) $entities[] = $conf->entity;
+		$linkedAdhs = ffcu_fetchLinkedAdherents($db, $user, $entities);
 
-		// ask the db
-		$resql = $db->query($sql);
-		if ($resql) {
-			$obj = $db->fetch_object($resql);
-			if($obj){
-				$id = $obj->rowid;
-			}
+		// assign the id
+		$nbLinkedAdhs = count($linkedAdhs);
+		if ($nbLinkedAdhs > 1){
+			header('Location: /custom/ffcu/subscriptions/my_subscriptions.php');
+		} else if ($nbLinkedAdhs === 1) {
+			$id = $linkedAdhs[0];
 		}
 	} else {
 		// Classic case
