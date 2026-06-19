@@ -165,8 +165,8 @@ if ($id > 0 || !empty($ref)) {
 $permissiontoaddmember = $user->hasRight('adherent', 'creer');
 
 // Security check
-if($userIdAssociated != $user->id || (($id < 0 || $id =="") && empty($rowid))) {
-	$result = restrictedArea($user, 'adherent', $object->id, '', '', 'socid', 'rowid', 0);
+$isIdDefined = !(($id < 0 || $id =="") && empty($rowid));
+if(($userIdAssociated != $user->id && !$user->isAdmin()) || !$isIdDefined || 0 > restrictedArea($user, 'adherent', $object->id, '', '', 'socid', 'rowid', 0)) {
 	accessforbidden();
 }
 
