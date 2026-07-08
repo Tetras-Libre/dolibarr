@@ -1332,6 +1332,6 @@ function adhsub_actionGenerateFFCUID($object){
 	}
 
 	// it went great; go to the documents page
-	header("Location: /adherents/document.php?rowid=$object->id");
+	header("Location: " . $object->getLastMainDocLink('member', 1));
 	return 1;
 }
