@@ -7464,8 +7464,8 @@ function print_fleche_navigation($page, $file, $options = '', $nextpage = 0, $be
 		if ((int) $limit > 0 && (empty($selectlimitsuffix) || !is_numeric($selectlimitsuffix))) {
 			$pagesizechoices = '10:10,15:15,20:20,25:25,50:50,100:100,250:250,500:500,1000:1000';
 			$pagesizechoices .= ',5000:5000';
-			//$pagesizechoices .= ',10000:10000';				// Memory trouble on most browsers
-			//$pagesizechoices .= ',20000:20000';				// Memory trouble on most browsers
+			$pagesizechoices .= ',10000:10000';				// Memory trouble on most browsers
+			$pagesizechoices .= ',20000:20000';				// Memory trouble on most browsers
 			//$pagesizechoices .= ',0:'.$langs->trans("All");	// Not yet supported
 			//$pagesizechoices .= ',2:2';
 			if (getDolGlobalString('MAIN_PAGESIZE_CHOICES')) {
