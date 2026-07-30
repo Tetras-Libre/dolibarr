@@ -833,7 +833,7 @@ if ($result >= 0) {
 					if ($objp->multicurrency_code && $objp->multicurrency_code != $conf->currency) {
 						if ($action != 'add_paiement') {
 							if (!empty($conf->use_javascript_ajax)) {
-								print '<button class="btn-low-emphasis --btn-icon AutoFillAmount" data-rowname="'.$namef.'" data-value="'.($sign * (float) $multicurrency_remaintopay).'">';
+								print '<button type="button" class="btn-low-emphasis --btn-icon AutoFillAmount" data-rowname="'.$namef.'" data-value="'.($sign * (float) $multicurrency_remaintopay).'">';
 								print img_picto("Auto fill", 'rightarrow.png');
 								print '</button>';
 							}
@@ -906,7 +906,7 @@ if ($result >= 0) {
 
 				if ($action != 'add_paiement') {
 					if (!empty($conf->use_javascript_ajax)) {
-						print '<button  class="btn-low-emphasis --btn-icon AutoFillAmount" data-rowname="'.$namef.'" data-value="'.($sign * (float) $remaintopay).'">';
+						print '<button type="button" class="btn-low-emphasis --btn-icon AutoFillAmount" data-rowname="'.$namef.'" data-value="'.($sign * (float) $remaintopay).'">';
 						print img_picto("Auto fill", 'rightarrow.png');
 						print '</button>';
 					}
