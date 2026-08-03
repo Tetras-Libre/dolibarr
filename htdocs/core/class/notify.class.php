@@ -649,7 +649,10 @@ class Notify
 		if (getDolGlobalString('MAIN_APPLICATION_TITLE')) {
 			$application = getDolGlobalString('MAIN_APPLICATION_TITLE');
 		}
-		$from = getDolGlobalString('NOTIFICATION_EMAIL_FROM', getDolGlobalString('MAIN_MAIL_EMAIL_FROM'));
+		$from = getDolGlobalString('NOTIFICATION_EMAIL_FROM');
+		if (empty($from)) {
+			$from = getDolGlobalString('MAIN_MAIL_EMAIL_FROM');
+		}
 		$object_type = '';
 		$link = '';
 		$num = 0;

@@ -96,6 +96,23 @@ class Documents extends DolibarrApi
 			throw new RestException(403);
 		}
 
+		if (DolibarrApiAccess::$user->socid > 0) {
+			if ($sqlprotectagainstexternals) {
+				$resql = $this->db->query($sqlprotectagainstexternals);
+				if ($resql) {
+					$num = $this->db->num_rows($resql);
+					$i = 0;
+					while ($i < $num) {
+						$obj = $this->db->fetch_object($resql);
+						if (DolibarrApiAccess::$user->socid != $obj->fk_soc) {
+							throw new RestException(403, 'Not allowed to download documents with such a ref');
+						}
+						$i++;
+					}
+				}
+			}
+		}
+
 		$filename = basename($original_file);
 		$original_file_osencoded = dol_osencode($original_file); // New file name encoded in OS encoding charset
 
@@ -171,6 +188,23 @@ class Documents extends DolibarrApi
 		}
 		if (!$accessallowed) {
 			throw new RestException(403);
+		}
+
+		if (DolibarrApiAccess::$user->socid > 0) {
+			if ($sqlprotectagainstexternals) {
+				$resql = $this->db->query($sqlprotectagainstexternals);
+				if ($resql) {
+					$num = $this->db->num_rows($resql);
+					$i = 0;
+					while ($i < $num) {
+						$obj = $this->db->fetch_object($resql);
+						if (DolibarrApiAccess::$user->socid != $obj->fk_soc) {
+							throw new RestException(403, 'Not allowed to download documents with such a ref');
+						}
+						$i++;
+					}
+				}
+			}
 		}
 
 		// --- Generates the document
@@ -999,6 +1033,23 @@ class Documents extends DolibarrApi
 		}
 		if (!$accessallowed) {
 			throw new RestException(403);
+		}
+
+		if (DolibarrApiAccess::$user->socid > 0) {
+			if ($sqlprotectagainstexternals) {
+				$resql = $this->db->query($sqlprotectagainstexternals);
+				if ($resql) {
+					$num = $this->db->num_rows($resql);
+					$i = 0;
+					while ($i < $num) {
+						$obj = $this->db->fetch_object($resql);
+						if (DolibarrApiAccess::$user->socid != $obj->fk_soc) {
+							throw new RestException(403, 'Not allowed to download documents with such a ref');
+						}
+						$i++;
+					}
+				}
+			}
 		}
 
 		$filename = basename($original_file);
