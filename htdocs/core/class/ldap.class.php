@@ -395,6 +395,10 @@ class Ldap
 						//ldap_set_option($this->connection, LDAP_OPT_PROTOCOL_VERSION, 3);
 						//ldap_set_option($this->connection, LDAP_OPT_REFERRALS, 0);
 
+						if (getDolGlobalString('LDAP_SERVER_TLS_IGNORE_CERT')) {
+							dol_syslog(get_class($this)."::connectBind ignoring tls cert", LOG_WARNING);
+							ldap_set_option($this->connection, LDAP_OPT_X_TLS_REQUIRE_CERT, LDAP_OPT_X_TLS_ALLOW);
+						}
 						$resulttls = ldap_start_tls($this->connection);
 						if (!$resulttls) {
 							dol_syslog(get_class($this)."::connectBind failed to start tls", LOG_WARNING);
@@ -607,6 +611,7 @@ class Ldap
 	 */
 	public function add($dn, $info, $user)
 	{
+		global $db, $entity;
 		dol_syslog(get_class($this)."::add dn=".$dn." info=".print_r($info, true));
 
 		// Check parameters
@@ -618,6 +623,18 @@ class Ldap
 			$this->error = "NotConnected";
 			return -3;
 		}
+
+
+		if (getDolGlobalString('LDAP_INCREMENTAL_GROUPS_IDS') && in_array('posixGroup', $info["objectclass"])) {
+			$nextid = (int)getDolGlobalString('LDAP_INCREMENTAL_GROUPS_IDS') + 1;
+			$info['gidNumber'] = $nextid;
+		}
+		if (getDolGlobalString('LDAP_INCREMENTAL_ACCOUNTS_IDS') && in_array('posixAccount', $info["objectclass"])) {
+			$nextid = (int)getDolGlobalString('LDAP_INCREMENTAL_ACCOUNTS_IDS') + 1;
+			$info['gidNumber'] = $nextid;
+			$info['uidNumber'] = $nextid;
+		}
+
 
 		// Encode to LDAP page code
 		$dn = $this->convFromOutputCharset($dn, $this->ldapcharset);
@@ -633,6 +650,14 @@ class Ldap
 		$result = @ldap_add($this->connection, $dn, $info);
 
 		if ($result) {
+			if (getDolGlobalString('LDAP_INCREMENTAL_GROUPS_IDS') && in_array('posixGroup', $info["objectclass"])) {
+				require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
+				dolibarr_set_const($db, 'LDAP_INCREMENTAL_GROUPS_IDS', $nextid, 'chaine', 1, 'Last group ID created', $entity);
+			}
+			if (getDolGlobalString('LDAP_INCREMENTAL_ACCOUNTS_IDS') && in_array('posixAccount', $info["objectclass"])) {
+				require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
+				dolibarr_set_const($db, 'LDAP_INCREMENTAL_ACCOUNTS_IDS', $nextid, 'chaine', 1, 'Last user ID created', $entity);
+			}
 			dol_syslog(get_class($this)."::add successful", LOG_DEBUG);
 			return 1;
 		} else {
